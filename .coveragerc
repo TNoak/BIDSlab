@@ -1,0 +1,18 @@
+[run]
+source = src/abidskit
+omit = ".venv/*", "docs/*", "data/*", "requirements/*", "branding/*", "templates/*", "tools/*", "build/*", "dist/*", "tests/*", ".tox/*"
+parallel = true
+branch = true
+patch = subprocess
+
+[report]
+show_missing = true
+skip_covered = true
+exclude_lines =
+    pragma: no cover
+    raise NotImplemented
+    def __str__
+    def __repr__
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    if typing.TYPE_CHECKING:

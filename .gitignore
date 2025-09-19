@@ -269,3 +269,5 @@ cython_debug/
 
 ### Custom additions
 data
+src/abidskit/config
+src/abidskit/parser

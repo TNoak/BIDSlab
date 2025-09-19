@@ -1,3 +1,5 @@
-### aBIDSkit &ndash; *A*ugsburg *B*rain *I*nformatics *D*ata *S*tructure kit
+### aBIDSkit &ndash; *A*ugsburg *B*rain *I*maging *D*ata
+*S*tructure kit <!-- codespell:ignore tructure -->
 
-This repository contains a python package to convert wearable data into the [BIDS](https://bids.neuroimaging.io/) format.
+This repository contains a python package to load data that is in
+the [BIDS](https://bids.neuroimaging.io/) format.
