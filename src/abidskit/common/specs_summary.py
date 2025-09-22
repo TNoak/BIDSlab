@@ -11,10 +11,11 @@ import os
 import pathlib
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, Iterable, Mapping
+from warnings import warn
 
 from abidskit.common.specs_datatype import Datatype
 from abidskit.common.specs_misc import Column
-from abidskit.utils.exceptions import FieldMissingError
+from abidskit.utils.exceptions import FieldMissingError, TopLevelEntityNotLinkedWarning
 from abidskit.utils.helpers import (
     get_matching_subpaths,
     get_tsv_json_files,
@@ -70,10 +71,15 @@ class Scan:
         return self.root / self.filename
 
     @property
-    def session(self) -> SimpleNamespace:
-        session_dict = {k.lstrip("_"): v for k, v in vars(self._session).items()}
-        session_dict.pop("scans")
-        return SimpleNamespace(**session_dict)
+    def session(self) -> SimpleNamespace | None:
+        if self._session:
+            session_dict = {k.lstrip("_"): v for k, v in vars(self._session).items()}
+            session_dict.pop("scans")
+            return SimpleNamespace(**session_dict)
+
+        assert self._session is None  # for mypy
+        warn("Scan is not linked to a Session object.", TopLevelEntityNotLinkedWarning)
+        return self._session
 
     @session.setter
     def session(self, value: "Session") -> None:
@@ -106,12 +112,20 @@ class Session:
         return f"<Session id={self.session_id}>"
 
     @property
-    def participant(self) -> SimpleNamespace:
-        participant_dict = {
-            k.lstrip("_"): v for k, v in vars(self._participant).items()
-        }
-        participant_dict.pop("sessions")
-        return SimpleNamespace(**participant_dict)
+    def participant(self) -> SimpleNamespace | None:
+        if self._participant:
+            participant_dict = {
+                k.lstrip("_"): v for k, v in vars(self._participant).items()
+            }
+            participant_dict.pop("sessions")
+            return SimpleNamespace(**participant_dict)
+
+        assert self._participant is None  # for mypy
+        warn(
+            "Session is not linked to a Participant object.",
+            TopLevelEntityNotLinkedWarning,
+        )
+        return self._participant
 
     @participant.setter
     def participant(self, value: "Participant") -> None:
@@ -124,11 +138,19 @@ class Session:
             # scans.json can be in root, subject or session level
             # scans.tsv can be in subject or session level
             column_data = {}
+
+            # if no top-level entities are linked
+            try:
+                if participant := self.participant:
+                    dataset_root = participant.dataset.root
+            except AttributeError:
+                dataset_root = self.root
+
             for dir_level in get_matching_subpaths(
                 path=self.root,
                 matches=["sub-*", "ses-*"],
-                root=self.participant.dataset.root,
-            ) + [self.participant.dataset.root]:
+                root=dataset_root,
+            ) + [dataset_root]:
                 tsv_path, json_path = get_tsv_json_files(dir_level, "*scans")
                 columns = []
 
@@ -236,10 +258,15 @@ class Participant:
         return f"<Participant id={self.participant_id}>"
 
     @property
-    def dataset(self) -> SimpleNamespace:
-        dataset_dict = {k.lstrip("_"): v for k, v in vars(self._dataset).items()}
-        dataset_dict.pop("participants")
-        return SimpleNamespace(**dataset_dict)
+    def dataset(self) -> SimpleNamespace | None:
+        if self._dataset:
+            dataset_dict = {k.lstrip("_"): v for k, v in vars(self._dataset).items()}
+            dataset_dict.pop("participants")
+            return SimpleNamespace(**dataset_dict)
+
+        assert self._dataset is None  # for mypy
+        warn("Participant is not linked to a Dataset", TopLevelEntityNotLinkedWarning)
+        return self._dataset
 
     @dataset.setter
     def dataset(self, value: "Dataset") -> None:

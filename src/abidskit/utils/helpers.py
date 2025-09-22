@@ -10,6 +10,7 @@
 import json
 import pathlib
 import re
+import warnings
 from _warnings import warn
 from typing import Iterable
 
@@ -19,6 +20,7 @@ from abidskit.utils.exceptions import (
     FileTypeUnsupportedWarning,
     MultipleFilesFoundError,
     MultipleFilesFoundWarning,
+    TopLevelEntityNotLinkedWarning,
 )
 from abidskit.utils.string_manipulation import to_snakecase
 
@@ -26,12 +28,14 @@ from abidskit.utils.string_manipulation import to_snakecase
 def set_attr_from_dict(obj, data: dict):
     for key, value in data.items():
         key = to_snakecase(key)
-        if hasattr(obj, key):
-            setattr(obj, key, value)
-        else:
-            raise FieldNotValidError(
-                f"Field {key} is not valid in {obj.__class__.__name__}"
-            ) from None
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=TopLevelEntityNotLinkedWarning)
+            if hasattr(obj, key):
+                setattr(obj, key, value)
+            else:
+                raise FieldNotValidError(
+                    f"Field {key} is not valid in {obj.__class__.__name__}"
+                ) from None
 
 
 def parse_json_sidecar(sidecar_path):

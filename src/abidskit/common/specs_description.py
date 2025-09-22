@@ -233,6 +233,7 @@ class Dataset:
                     self._participants.append(
                         Participant(
                             base_path=self.root / entry.get("participant_id", "sub-01"),
+                            dataset=self,
                             **entry,
                         )
                     )

@@ -7,15 +7,24 @@
 import os
 import pathlib
 from dataclasses import dataclass
-from typing import Iterable, Mapping
+from types import SimpleNamespace
+from typing import TYPE_CHECKING, Iterable, Mapping
+from warnings import warn
 
 from abidskit.utils.checks import check_if_valid_uri
-from abidskit.utils.exceptions import FieldEntryNotValidError, FieldMissingError
+from abidskit.utils.exceptions import (
+    FieldEntryNotValidError,
+    FieldMissingError,
+    TopLevelEntityNotLinkedWarning,
+)
 from abidskit.utils.helpers import (
     get_entity_from_file,
     set_attr_from_dict,
 )
 from abidskit.utils.string_manipulation import to_snakecase
+
+if TYPE_CHECKING:
+    from abidskit.common.specs_datatype import Datatype
 
 FORMAT_ALLOWED_FIELD_ENTRIES = {
     "string",
@@ -127,7 +136,10 @@ class Acquisition:
 
 class Task:
     def __init__(
-        self, base_path: os.PathLike | str, task_name: str, **kwargs: str | Iterable
+        self,
+        base_path: os.PathLike | str,
+        task_name: str,
+        **kwargs: "str | Datatype | Iterable",
     ) -> None:
         self.task_id: str | None = None
         self.task_name: str = task_name  # !: This is required
@@ -139,6 +151,8 @@ class Task:
 
         self.root: pathlib.Path = pathlib.Path(base_path)
 
+        self._datatype: Datatype | None = None
+
         self._acquisitions: Iterable[Acquisition] | None = None
 
         if kwargs:
@@ -149,6 +163,21 @@ class Task:
 
     def __repr__(self) -> str:
         return f"<Task id={self.task_id}>"
+
+    @property
+    def datatype(self) -> SimpleNamespace | None:
+        if self._datatype:
+            datatype_dict = {k.lstrip("_"): v for k, v in vars(self._datatype).items()}
+            datatype_dict.pop("tasks")
+            return SimpleNamespace(**datatype_dict)
+
+        assert self._datatype is None  # for mypy
+        warn("Task is not linked to a Datatype object.", TopLevelEntityNotLinkedWarning)
+        return self._datatype
+
+    @datatype.setter
+    def datatype(self, value: "Datatype") -> None:
+        self._datatype = value
 
     @property
     def acquisitions(self) -> Iterable[Acquisition]:

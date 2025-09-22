@@ -11,12 +11,15 @@ import os
 import pathlib
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Iterable, Mapping
+from warnings import warn
 
 from abidskit.common.specs_misc import Task
 from abidskit.extensions.motion import MotionTask, parse_motion_json_sidecar
+from abidskit.utils.exceptions import TopLevelEntityNotLinkedWarning
 from abidskit.utils.helpers import (
     get_entity_from_file,
     get_tsv_json_files,
+    set_attr_from_dict,
 )
 
 if TYPE_CHECKING:
@@ -39,29 +42,35 @@ class Datatype:
         self,
         base_path: os.PathLike | str,
         datatype_name: str,
-        session: "Session",
-        # **kwargs: Any,
+        **kwargs: "Session | Iterable",
     ) -> None:
         self.datatype_name: str = datatype_name
 
         self.root: pathlib.Path = pathlib.Path(base_path)
 
         self._session: Session | None = None
-        self.session = session
 
         self._tasks: Iterable[Task] | None = None
 
-        # if kwargs:
-        #     set_attr_from_dict(self, kwargs)
+        if kwargs:
+            set_attr_from_dict(self, kwargs)
 
     def __repr__(self) -> str:
         return f"<Datatype datatype_name={self.datatype_name}>"
 
     @property
-    def session(self) -> SimpleNamespace:
-        session_dict = {k.lstrip("_"): v for k, v in vars(self._session).items()}
-        session_dict.pop("datatypes")
-        return SimpleNamespace(**session_dict)
+    def session(self) -> SimpleNamespace | None:
+        if self._session:
+            session_dict = {k.lstrip("_"): v for k, v in vars(self._session).items()}
+            session_dict.pop("datatypes")
+            return SimpleNamespace(**session_dict)
+
+        assert self._session is None  # for mypy
+        warn(
+            "Datatype is not linked to a Session object.",
+            TopLevelEntityNotLinkedWarning,
+        )
+        return self._session
 
     @session.setter
     def session(self, value: "Session") -> None:
@@ -98,6 +107,7 @@ class Datatype:
                                     task_id="task-" + task_id,
                                     task_name=task_name,
                                     base_path=self.root,
+                                    datatype=self,
                                     **data["task"],
                                 )
                             )
@@ -113,7 +123,12 @@ class Datatype:
             # If no tasks are found, create a default one
             if not self._tasks:
                 self._tasks.append(
-                    Task(task_name="n/a", task_id="task-00", base_path=self.root)
+                    Task(
+                        task_name="n/a",
+                        task_id="task-00",
+                        base_path=self.root,
+                        datatype=self,
+                    )
                 )
 
         return self._tasks

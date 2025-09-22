@@ -80,6 +80,12 @@ class MultipleFilesFoundWarning(Warning):
     pass
 
 
+class TopLevelEntityNotLinkedWarning(Warning):
+    """Raised when a top-level entity is not linked."""
+
+    pass
+
+
 class VersionMismatchError(Exception):
     """Raised when two versions are not the same."""
 
