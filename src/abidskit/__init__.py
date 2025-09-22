@@ -11,10 +11,6 @@ Structure) datasets.
 #  Chair of Informatics for Medical Technology
 #
 #  SPDX-License-Identifier: BSD-3-Clause
-#
-#  SPDX-License-Identifier: BSD-3-Clause
-#
-#  SPDX-License-Identifier: BSD-3-Clause
 
 __version__ = "0.1.0"
 __author__ = "Lukas Behammer"
