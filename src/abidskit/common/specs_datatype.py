@@ -18,7 +18,6 @@ from abidskit.utils.helpers import (
     get_entity_from_file,
     get_tsv_json_files,
 )
-from abidskit.utils.string_manipulation import to_snakecase
 
 if TYPE_CHECKING:
     from abidskit.common.specs_summary import Session
@@ -74,26 +73,48 @@ class Datatype:
             self._tasks = []
             if self.datatype_name in DATATYPES_WITH_TASKS:
                 files = self.root.iterdir()
-                task_names = set()
+                task_ids = set()
                 for file in files:
-                    task_names.add(
-                        get_entity_from_file(
-                            file,
-                            "task",
-                        )["task"]
-                    )
-                for task_name in task_names:
+                    try:
+                        task_ids.add(
+                            get_entity_from_file(
+                                file,
+                                "task",
+                            )["task"]
+                        )
+                    except KeyError:
+                        continue
+                for task_id in task_ids:
                     _, json_path = get_tsv_json_files(
-                        self.root, f"*task-{task_name}*_{self.datatype_name}"
+                        self.root, f"*task-{task_id}*_{self.datatype_name}"
                     )
 
                     if json_path:
                         if self.datatype_name == "motion":
                             data = parse_motion_json_sidecar(json_path)
-                            task_name = to_snakecase(data["task"].pop("TaskName"))
+                            task_name = data["task"].pop("TaskName")
                             self._tasks.append(
-                                MotionTask(task_name=task_name, **data["task"])
+                                MotionTask(
+                                    task_id="task-" + task_id,
+                                    task_name=task_name,
+                                    base_path=self.root,
+                                    **data["task"],
+                                )
                             )
+                        else:
+                            raise NotImplementedError
+
+                    else:
+                        raise NotImplementedError
+
+            else:
+                raise NotImplementedError
+
+            # If no tasks are found, create a default one
+            if not self._tasks:
+                self._tasks.append(
+                    Task(task_name="n/a", task_id="task-00", base_path=self.root)
+                )
 
         return self._tasks
 

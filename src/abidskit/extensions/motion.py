@@ -4,17 +4,22 @@
 #  Chair of Informatics for Medical Technology
 #
 #  SPDX-License-Identifier: BSD-3-Clause
+
 import json
+import os
 import re
+from typing import Any
 
 from abidskit.common.specs_misc import Task
 
 
 class MotionTask(Task):
-    def __init__(self, task_name: str, **kwargs):
+    def __init__(
+        self, base_path: os.PathLike | str, task_name: str, **kwargs: Any
+    ) -> None:
         self.tracking_system = None
 
-        super().__init__(task_name, **kwargs)
+        super().__init__(base_path=base_path, task_name=task_name, **kwargs)
 
 
 def parse_motion_json_sidecar(sidecar_path):
