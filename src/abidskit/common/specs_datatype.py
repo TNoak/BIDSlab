@@ -13,10 +13,12 @@ from types import SimpleNamespace
 from typing import TYPE_CHECKING, Iterable, Mapping
 
 from abidskit.common.specs_misc import Task
+from abidskit.extensions.motion import MotionTask, parse_motion_json_sidecar
 from abidskit.utils.helpers import (
     get_entity_from_file,
     get_tsv_json_files,
 )
+from abidskit.utils.string_manipulation import to_snakecase
 
 if TYPE_CHECKING:
     from abidskit.common.specs_summary import Session
@@ -72,9 +74,9 @@ class Datatype:
             self._tasks = []
             if self.datatype_name in DATATYPES_WITH_TASKS:
                 files = self.root.iterdir()
-                task_names = []
+                task_names = set()
                 for file in files:
-                    task_names.append(
+                    task_names.add(
                         get_entity_from_file(
                             file,
                             "task",
@@ -84,6 +86,14 @@ class Datatype:
                     _, json_path = get_tsv_json_files(
                         self.root, f"*task-{task_name}*_{self.datatype_name}"
                     )
+
+                    if json_path:
+                        if self.datatype_name == "motion":
+                            data = parse_motion_json_sidecar(json_path)
+                            task_name = to_snakecase(data["task"].pop("TaskName"))
+                            self._tasks.append(
+                                MotionTask(task_name=task_name, **data["task"])
+                            )
 
         return self._tasks
 
