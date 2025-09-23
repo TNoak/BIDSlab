@@ -30,7 +30,7 @@ SHORT_FORMS = {
 }
 
 
-def to_titlecase(string):
+def to_titlecase(string: str) -> str:
     parts = re.split(r"[_ ]", string)
     parts = [
         SHORT_FORMS[part.lower()] if part.lower() in SHORT_FORMS else part.title()
@@ -39,7 +39,7 @@ def to_titlecase(string):
     return "".join(parts)
 
 
-def to_snakecase(string):
+def to_snakecase(string: str) -> str:
     for _, value in SHORT_FORMS.items():
         if value == "ACCEL":
             # avoid matching ANGACCEL
@@ -53,3 +53,8 @@ def to_snakecase(string):
     string = re.sub(r"[_ ]", "_", string.strip())
     string = re.sub(r"([a-z])([A-Z])", r"\1_\2", string)
     return string.lower()
+
+
+def remove_special_characters(string: str) -> str:
+    string = re.sub(r"[^a-zA-Z0-9]", " ", string)
+    return re.sub(r"\s+", "+", string).strip("+")

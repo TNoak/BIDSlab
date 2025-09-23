@@ -4,16 +4,16 @@
 #  Chair of Informatics for Medical Technology
 #
 #  SPDX-License-Identifier: BSD-3-Clause
-#
-#  SPDX-License-Identifier: BSD-3-Clause
-#
-#  SPDX-License-Identifier: BSD-3-Clause
-#
-#  SPDX-License-Identifier: BSD-3-Clause
+
+import re
 
 import pytest
 
-from abidskit.utils.string_manipulation import to_snakecase, to_titlecase
+from abidskit.utils.string_manipulation import (
+    remove_special_characters,
+    to_snakecase,
+    to_titlecase,
+)
 
 TITLES = [
     ("One_small_sentence", "OneSmallSentence"),
@@ -76,3 +76,11 @@ class TestCaseConversion:
     def test_to_snakecase(self, case, result):
         snake_case = to_snakecase(case)
         assert snake_case == result
+
+
+def test_remove_special_characters():
+    removed = remove_special_characters(
+        "This! is@ a# $test% ^string& *with(36)special_+ -characters: {}[]|;='<>,.?/`~"
+    )
+    assert removed == "This+is+a+test+string+with+36+special+characters"
+    assert re.match(r"^[a-zA-Z0-9+]*$", removed)

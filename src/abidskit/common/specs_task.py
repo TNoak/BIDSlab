@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Iterable
 from abidskit.common.specs_misc import Acquisition
 from abidskit.utils.exceptions import FieldMissingError, TopLevelEntityNotLinkedWarning
 from abidskit.utils.helpers import get_entity_from_file, set_attr_from_dict
+from abidskit.utils.string_manipulation import remove_special_characters
 
 if TYPE_CHECKING:
     from abidskit.common.specs_datatype import Datatype
@@ -46,8 +47,8 @@ class Task:
         if not self.task_name:
             raise FieldMissingError("Field `TaskName` is required in Task")
 
-        # TODO: Implement building of task_id from task_name
-        # if not self.task_id:
+        if not self.task_id:
+            self.task_id = f"task-{remove_special_characters(self.task_name)}"
 
     def __repr__(self) -> str:
         return f"<Task id={self.task_id}>"
