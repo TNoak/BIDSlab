@@ -13,7 +13,7 @@ from types import SimpleNamespace
 from typing import TYPE_CHECKING, Iterable, Mapping
 from warnings import warn
 
-from abidskit.common.specs_misc import Task
+from abidskit.common.specs_task import Task
 from abidskit.extensions.motion import MotionTask, parse_motion_json_sidecar
 from abidskit.utils.exceptions import TopLevelEntityNotLinkedWarning
 from abidskit.utils.helpers import (

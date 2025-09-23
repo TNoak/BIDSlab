@@ -4,27 +4,21 @@
 #  Chair of Informatics for Medical Technology
 #
 #  SPDX-License-Identifier: BSD-3-Clause
-import os
-import pathlib
+
 from dataclasses import dataclass
-from types import SimpleNamespace
 from typing import TYPE_CHECKING, Iterable, Mapping
-from warnings import warn
 
 from abidskit.utils.checks import check_if_valid_uri
 from abidskit.utils.exceptions import (
     FieldEntryNotValidError,
-    FieldMissingError,
-    TopLevelEntityNotLinkedWarning,
 )
 from abidskit.utils.helpers import (
-    get_entity_from_file,
     set_attr_from_dict,
 )
 from abidskit.utils.string_manipulation import to_snakecase
 
 if TYPE_CHECKING:
-    from abidskit.common.specs_datatype import Datatype
+    from abidskit.common.specs_task import Task
 
 FORMAT_ALLOWED_FIELD_ENTRIES = {
     "string",
@@ -128,93 +122,25 @@ class Acquisition:
     def __init__(self, acquisition_id: str):
         self.acquisition_id: str = acquisition_id
 
-        self.runs = None
+        self._task: Task | None = None
+
+        self._runs: Iterable[Run] | None = None
 
     def __repr__(self) -> str:
         return f"<Acquisition id={self.acquisition_id}>"
 
-
-class Task:
-    def __init__(
-        self,
-        base_path: os.PathLike | str,
-        task_name: str,
-        **kwargs: "str | Datatype | Iterable",
-    ) -> None:
-        self.task_id: str | None = None
-        self.task_name: str = task_name  # !: This is required
-        self.task_description: str | None = None
-        self.instructions: str | None = None
-
-        # self.cog_atlas_id = None  # !: Only for special datatypes
-        # self.cog_poid = None  # !: Only for special datatypes
-
-        self.root: pathlib.Path = pathlib.Path(base_path)
-
-        self._datatype: Datatype | None = None
-
-        self._acquisitions: Iterable[Acquisition] | None = None
-
-        if kwargs:
-            set_attr_from_dict(self, kwargs)
-
-        if not self.task_name:
-            raise FieldMissingError("Field `TaskName` is required in Task")
-
-    def __repr__(self) -> str:
-        return f"<Task id={self.task_id}>"
-
     @property
-    def datatype(self) -> SimpleNamespace | None:
-        if self._datatype:
-            datatype_dict = {k.lstrip("_"): v for k, v in vars(self._datatype).items()}
-            datatype_dict.pop("tasks")
-            return SimpleNamespace(**datatype_dict)
+    def task(self) -> "Task | None":
+        raise NotImplementedError
 
-        assert self._datatype is None  # for mypy
-        warn("Task is not linked to a Datatype object.", TopLevelEntityNotLinkedWarning)
-        return self._datatype
+    @task.setter
+    def task(self, value: "Task") -> None:
+        raise NotImplementedError
 
-    @datatype.setter
-    def datatype(self, value: "Datatype") -> None:
-        self._datatype = value
-
-    @property
-    def acquisitions(self) -> Iterable[Acquisition]:
-        if not self._acquisitions:
-            self._acquisitions = []
-            files = self.root.iterdir()
-            acquisition_ids = set()
-            for file in files:
-                try:
-                    acquisition_ids.add(
-                        get_entity_from_file(
-                            file,
-                            "acq",
-                        )["acq"]
-                    )
-                except KeyError:
-                    continue
-            for acquisition_id in acquisition_ids:
-                self._acquisitions.append(Acquisition(acquisition_id=acquisition_id))
-
-            # If no acquisitions are found, add a default one
-            if not self._acquisitions:
-                self._acquisitions.append(Acquisition(acquisition_id="acq-00"))
-
-        return self._acquisitions
-
-    @acquisitions.setter
-    def acquisitions(self, value: Iterable[str] | Iterable[Acquisition]) -> None:
-        if isinstance(value, Iterable):
-            if all(isinstance(entry, str) for entry in value):
-                self._acquisitions = []
-                for entry in value:
-                    assert isinstance(entry, str)  # for mypy
-                    self._acquisitions.append(Acquisition(acquisition_id=entry))
-            elif all(isinstance(v, Acquisition) for v in value):
-                self._acquisitions = value  # type: ignore[assignment]  # mypy cannot type narrow on all()
-        else:
-            raise TypeError(
-                "Field `Acquisitions` must be a list of Acquisition objects"
-            )
+    # @property
+    # def runs(self) -> Iterable[Run]:
+    #     raise NotImplementedError
+    #
+    # @runs.setter
+    # def runs(self, value: Iterable[dict] | Iterable[Run]) -> None:
+    #     raise NotImplementedError

@@ -28,5 +28,6 @@ from abidskit.common.specs_description import (
     GeneratedBy,
     SourceDataset,
 )
-from abidskit.common.specs_misc import Acquisition, Column, Task
+from abidskit.common.specs_misc import Acquisition, Column
 from abidskit.common.specs_summary import Participant, Scan, Session
+from abidskit.common.specs_task import Task

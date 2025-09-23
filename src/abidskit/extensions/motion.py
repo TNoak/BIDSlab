@@ -10,7 +10,7 @@ import os
 import re
 from typing import Any
 
-from abidskit.common.specs_misc import Task
+from abidskit.common.specs_task import Task
 
 
 class MotionTask(Task):
