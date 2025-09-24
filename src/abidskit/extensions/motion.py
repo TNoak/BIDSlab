@@ -10,10 +10,10 @@ import os
 import re
 from typing import Any
 
-from abidskit.common.specs_task import Task
+from abidskit.common.base import BaseTask
 
 
-class MotionTask(Task):
+class MotionTask(BaseTask):
     def __init__(
         self, base_path: os.PathLike | str, task_name: str, **kwargs: Any
     ) -> None:

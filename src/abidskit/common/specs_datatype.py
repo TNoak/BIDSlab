@@ -13,6 +13,7 @@ from types import SimpleNamespace
 from typing import TYPE_CHECKING, Iterable, Mapping
 from warnings import warn
 
+from abidskit.common.base import BaseTask
 from abidskit.common.specs_task import Task
 from abidskit.extensions.motion import MotionTask, parse_motion_json_sidecar
 from abidskit.utils.exceptions import TopLevelEntityNotLinkedWarning
@@ -50,7 +51,7 @@ class Datatype:
 
         self._session: Session | None = None
 
-        self._tasks: Iterable[Task] | None = None
+        self._tasks: Iterable[BaseTask] | None = None
 
         if kwargs:
             set_attr_from_dict(self, kwargs)
@@ -77,7 +78,7 @@ class Datatype:
         self._session = value
 
     @property
-    def tasks(self) -> Iterable[Task]:
+    def tasks(self) -> Iterable[BaseTask]:
         if not self._tasks:
             self._tasks = []
             if self.datatype_name in DATATYPES_WITH_TASKS:
@@ -134,14 +135,14 @@ class Datatype:
         return self._tasks
 
     @tasks.setter
-    def tasks(self, value: Iterable[Mapping] | Iterable[Task]) -> None:
+    def tasks(self, value: Iterable[Mapping] | Iterable[BaseTask]) -> None:
         if isinstance(value, Iterable):
             if all(isinstance(entry, Mapping) for entry in value):
                 self._tasks = []
                 for entry in value:
                     assert isinstance(entry, Mapping)  # for mypy
                     self._tasks.append(Task(**entry))
-            elif all(isinstance(entry, Task) for entry in value):
+            elif all(isinstance(entry, BaseTask) for entry in value):
                 self._tasks = value  # type: ignore[assignment]  # mypy cannot type narrow on all()
         else:
             raise TypeError("Field `Tasks` must be a list of Task objects")
