@@ -8,7 +8,7 @@
 import json
 import pathlib
 import re
-from typing import Iterable
+from typing import TYPE_CHECKING, Iterable, Iterator, Mapping, TypeVar
 from warnings import catch_warnings, simplefilter, warn
 
 from abidskit.utils.checks import check_dataset_description_present
@@ -21,8 +21,13 @@ from abidskit.utils.exceptions import (
 )
 from abidskit.utils.string_manipulation import to_snakecase
 
+if TYPE_CHECKING:
+    from abidskit.common.specs_description import Dataset
 
-def set_attr_from_dict(obj, data: dict):
+T = TypeVar("T")
+
+
+def set_attr_from_dict(obj: T, data: Mapping) -> None:
     for key, value in data.items():
         key = to_snakecase(key)
         with catch_warnings():
@@ -35,12 +40,12 @@ def set_attr_from_dict(obj, data: dict):
                 ) from None
 
 
-def parse_json_sidecar(sidecar_path):
+def parse_json_sidecar(sidecar_path: pathlib.Path) -> dict:
     with sidecar_path.open("r", encoding="utf-8") as f:
         return json.load(f)
 
 
-def parse_descriptive_tsv(tsv_path):
+def parse_descriptive_tsv(tsv_path: pathlib.Path) -> Iterator[dict]:
     with tsv_path.open("r", encoding="utf-8") as f:
         lines = f.readlines()
         headers = lines[0].strip().split("\t")
@@ -50,7 +55,7 @@ def parse_descriptive_tsv(tsv_path):
             yield entry_dict
 
 
-def get_root_files(dataset):
+def get_root_files(dataset: "Dataset") -> None:
     files = list(dataset.root.iterdir())
     check_dataset_description_present(dataset)
 
@@ -88,7 +93,7 @@ def get_matching_subpaths(
     ]
 
 
-def get_entity_from_file(path: pathlib.Path, entity_name: str) -> dict:
+def get_entity_from_file(path: pathlib.Path, entity_name: str) -> dict[str, str]:
     entities = {}
     entity_name = entity_name.replace(" ", "")
     pattern = re.compile(rf"(?P<entity>({entity_name}))-(?P<value>[a-zA-Z0-9]+)")
@@ -99,7 +104,9 @@ def get_entity_from_file(path: pathlib.Path, entity_name: str) -> dict:
     return entities
 
 
-def get_tsv_json_files(path, file_name):
+def get_tsv_json_files(
+    path: pathlib.Path, file_name: str
+) -> tuple[pathlib.Path | None, pathlib.Path | None]:
     files = path.glob(f"{file_name}.*")
     tsv_path = None
     json_path = None
