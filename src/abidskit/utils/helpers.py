@@ -8,9 +8,8 @@
 import json
 import pathlib
 import re
-import warnings
-from _warnings import warn
 from typing import Iterable
+from warnings import catch_warnings, simplefilter, warn
 
 from abidskit.utils.checks import check_dataset_description_present
 from abidskit.utils.exceptions import (
@@ -26,8 +25,8 @@ from abidskit.utils.string_manipulation import to_snakecase
 def set_attr_from_dict(obj, data: dict):
     for key, value in data.items():
         key = to_snakecase(key)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=TopLevelEntityNotLinkedWarning)
+        with catch_warnings():
+            simplefilter("ignore", category=TopLevelEntityNotLinkedWarning)
             if hasattr(obj, key):
                 setattr(obj, key, value)
             else:
