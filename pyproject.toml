@@ -78,6 +78,11 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 ######################################################################
+# Setuptools
+[tool.setuptools.dynamic]
+version = {attr = "abidskit.__version__"}
+
+######################################################################
 # Ruff
 [tool.ruff]
 extend-exclude = [
