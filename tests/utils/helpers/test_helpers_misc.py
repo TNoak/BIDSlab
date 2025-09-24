@@ -5,16 +5,25 @@
 #
 #  SPDX-License-Identifier: BSD-3-Clause
 
+from warnings import warn
+
 import pytest
 
 import abidskit as abk
-from abidskit.utils.exceptions import FieldNotValidError
+from abidskit.utils.exceptions import FieldNotValidError, TopLevelEntityNotLinkedWarning
 
 
 class SampleClass:
     def __init__(self):
         self.attr1 = None
         self.attr2 = None
+
+
+class SampleClassWarnTopLevel:
+    def __init__(self):
+        self.attr1 = None
+
+        warn("Top level entity not linked", TopLevelEntityNotLinkedWarning)
 
 
 class TestSetClassAttributes:
@@ -41,4 +50,12 @@ class TestSetClassAttributes:
 
         assert not hasattr(sample, "attr3")
 
-        assert not hasattr(create_sample_class, "attr3")
+    def test_set_class_attributes_missing_top_level_entity(self):
+        # Setup
+        attr_dict = {"attr1": "value1"}
+        with pytest.warns(TopLevelEntityNotLinkedWarning):
+            sample = SampleClassWarnTopLevel()
+
+        # Test
+        abk.utils.helpers.set_attr_from_dict(sample, attr_dict)  # No warning here
+        assert sample.attr1 == "value1"
