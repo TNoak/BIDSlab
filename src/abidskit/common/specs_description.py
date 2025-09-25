@@ -10,7 +10,7 @@
 import os
 import pathlib
 from dataclasses import dataclass
-from typing import Iterable, Mapping
+from typing import Iterable, List, Mapping
 
 from abidskit.common.specs_misc import Column
 from abidskit.common.specs_summary import Participant
@@ -20,6 +20,7 @@ from abidskit.utils.exceptions import (
     VersionMismatchError,
 )
 from abidskit.utils.helpers import (
+    add_entity_to_list,
     get_root_files,
     get_tsv_json_files,
     parse_descriptive_tsv,
@@ -183,37 +184,12 @@ class Dataset:
     def participants(self) -> Iterable[Participant]:
         if not self._participants:
             tsv_path, json_path = get_tsv_json_files(self.root, "participants")
-            columns = []
-            self._participants = []
-            if json_path:
-                column_data = parse_json_sidecar(json_path)
-                for column_name, column_values in column_data.items():
-                    columns.append(Column(column_name=column_name, **column_values))
-            if tsv_path:
-                data = parse_descriptive_tsv(tsv_path)
-                for participant in data:
-                    self._participants.append(
-                        Participant(
-                            base_path=self.root / participant.get("participant_id"),
-                            columns=columns,
-                            dataset=self,
-                            **participant,
-                        )
-                    )
-            else:
-                dirs = self.root.iterdir()
-                for directory in dirs:
-                    if directory.is_dir() and directory.name.startswith("sub-"):
-                        self._participants.append(
-                            Participant(
-                                base_path=self.root / directory.name,
-                                participant_id=directory.name,
-                                dataset=self,
-                            )
-                        )
+            self._participants = get_participants_from_files(
+                self, tsv_path=tsv_path, json_path=json_path
+            )
 
             # If no participants are found, create a default one
-            if not self._participants:
+            if len(self._participants) == 0:
                 self._participants.append(
                     Participant(
                         base_path=self.root, participant_id="sub-00", dataset=self
@@ -266,3 +242,48 @@ class Dataset:
             raise FieldMissingError("Field `BIDSVersion` is required in Dataset")
         if self.readme_path is None:
             raise FieldMissingError("File `README` is required")
+
+
+def get_participants_from_files(
+    dataset: Dataset,
+    tsv_path: pathlib.Path | None,
+    json_path: pathlib.Path | None,
+) -> List[Participant]:
+    participants: List[Participant] = []
+    columns = []
+
+    if json_path:
+        column_data = parse_json_sidecar(json_path)
+        for column_name, column_values in column_data.items():
+            columns.append(Column(column_name=column_name, **column_values))
+
+    if tsv_path:
+        data = parse_descriptive_tsv(tsv_path)
+        for participant in data:
+            assert isinstance(participant, dict)
+            participant_id = participant.get("participant_id")
+            if participant_id is None:
+                raise FieldMissingError(
+                    "Field `participant_id` is required as column in participants.tsv"
+                )
+            add_entity_to_list(
+                entity_list=participants,
+                entity_class=Participant,
+                base_path=dataset.root / participant_id,
+                columns=columns,
+                dataset=dataset,
+                **participant,
+            )
+    else:
+        dirs = dataset.root.iterdir()
+        for directory in dirs:
+            if directory.is_dir() and directory.name.startswith("sub-"):
+                add_entity_to_list(
+                    entity_list=participants,
+                    entity_class=Participant,
+                    base_path=dataset.root / directory.name,
+                    participant_id=directory.name,
+                    dataset=dataset,
+                )
+
+    return participants

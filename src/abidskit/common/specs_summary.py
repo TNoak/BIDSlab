@@ -10,13 +10,14 @@
 import os
 import pathlib
 from types import SimpleNamespace
-from typing import TYPE_CHECKING, Any, Iterable, Mapping
+from typing import TYPE_CHECKING, Any, Iterable, List, Mapping
 from warnings import warn
 
 from abidskit.common.specs_datatype import Datatype
 from abidskit.common.specs_misc import Column
 from abidskit.utils.exceptions import FieldMissingError, TopLevelEntityNotLinkedWarning
 from abidskit.utils.helpers import (
+    add_entity_to_list,
     get_matching_subpaths,
     get_tsv_json_files,
     parse_descriptive_tsv,
@@ -134,45 +135,18 @@ class Session:
     @property
     def scans(self) -> Iterable[Scan] | None:
         if not self._scans:
-            # For every level before sessions
-            # scans.json can be in root, subject or session level
-            # scans.tsv can be in subject or session level
-            column_data = {}
-
             # if no top-level entities are linked
+            # try-except necessary since participant and dataset might not be linked
+            # and thus participant would be None or accessing participant.dataset would
+            # raise an AttributeError
+            # TODO: test this
             try:
                 if participant := self.participant:
                     dataset_root = participant.dataset.root
             except AttributeError:
                 dataset_root = self.root
 
-            for dir_level in get_matching_subpaths(
-                path=self.root,
-                matches=["sub-*", "ses-*"],
-                root=dataset_root,
-            ) + [dataset_root]:
-                tsv_path, json_path = get_tsv_json_files(dir_level, "*scans")
-                columns = []
-
-                if json_path:
-                    column_data.update(parse_json_sidecar(json_path))
-
-                if column_data:
-                    for column_name, column_values in column_data.items():
-                        columns.append(Column(column_name=column_name, **column_values))
-
-                if tsv_path and dir_level != self.root.parent.parent:
-                    self._scans = []
-                    data = parse_descriptive_tsv(tsv_path)
-                    for scan in data:
-                        self._scans.append(
-                            Scan(
-                                base_path=self.root,
-                                **scan,
-                                columns=columns,
-                                session=self,
-                            )
-                        )
+            self._scans = get_scans_from_files(self, dataset_root=dataset_root)
 
         # TODO: implement automatic scan detection
         return self._scans
@@ -278,31 +252,10 @@ class Participant:
             tsv_path, _ = get_tsv_json_files(
                 self.root, f"{self.participant_id}_sessions"
             )
-            self._sessions = []
-            if tsv_path:
-                data = parse_descriptive_tsv(tsv_path)
-                for session in data:
-                    self._sessions.append(
-                        Session(
-                            base_path=self.root / session.get("session_id"),
-                            participant=self,
-                            **session,
-                        )
-                    )
-            else:
-                dirs = self.root.iterdir()
-                for directory in dirs:
-                    if directory.is_dir() and directory.name.startswith("ses-"):
-                        self._sessions.append(
-                            Session(
-                                base_path=self.root / directory.name,
-                                session_id=directory.name,
-                                participant=self,
-                            )
-                        )
+            self._sessions = get_sessions_from_files(self, tsv_path=tsv_path)
 
             # If no sessions are found, create a default one
-            if not self._sessions:
+            if len(self._sessions) == 0:
                 self._sessions.append(
                     Session(
                         base_path=self.root,
@@ -325,3 +278,83 @@ class Participant:
                 self._sessions = value  # type: ignore[assignment]  # mypy cannot type narrow on all()
         else:
             raise TypeError("Field `Sessions` must be a list of Session objects")
+
+
+def get_sessions_from_files(
+    participant: Participant,
+    tsv_path: pathlib.Path | None,
+) -> List[Session]:
+    sessions: List[Session] = []
+    if tsv_path:
+        data = parse_descriptive_tsv(tsv_path)
+        for session in data:
+            assert isinstance(session, dict)
+            session_id = session.get("session_id")
+            if session_id is None:
+                raise FieldMissingError(
+                    "Field `session_id` is required as column in sessions.tsv"
+                )
+            add_entity_to_list(
+                entity_list=sessions,
+                entity_class=Session,
+                base_path=participant.root / session_id,
+                participant=participant,
+                **session,
+            )
+    else:
+        dirs = participant.root.iterdir()
+        for directory in dirs:
+            if directory.is_dir() and directory.name.startswith("ses-"):
+                add_entity_to_list(
+                    entity_list=sessions,
+                    entity_class=Session,
+                    base_path=participant.root / directory.name,
+                    session_id=directory.name,
+                    participant=participant,
+                )
+
+    return sessions
+
+
+def get_scans_from_files(
+    session: Session,
+    dataset_root: pathlib.Path,
+) -> List[Scan]:
+    # For every level before sessions:
+    # - scans.json can be in root, subject or session level
+    # - scans.tsv can be in subject or session level and the one from the entity
+    #   furthest down the hierarchy is used
+    # TODO: make sure that the order of dir_levels is correct, such that dataset_root
+    #  is first and session last
+    column_data = {}
+    scans: List[Scan] = []
+
+    for dir_level in get_matching_subpaths(
+        path=session.root,
+        matches=["sub-*", "ses-*"],
+        root=dataset_root,
+    ) + [dataset_root]:
+        tsv_path, json_path = get_tsv_json_files(dir_level, "*scans")
+        columns = []
+
+        if json_path:
+            column_data.update(parse_json_sidecar(json_path))
+
+        if column_data:
+            for column_name, column_values in column_data.items():
+                columns.append(Column(column_name=column_name, **column_values))
+
+        if tsv_path and dir_level != dataset_root:
+            scans = []
+            data = parse_descriptive_tsv(tsv_path)
+            for scan in data:
+                add_entity_to_list(
+                    entity_list=scans,
+                    entity_class=Scan,
+                    base_path=session.root,
+                    session=session,
+                    **scan,
+                    columns=columns,
+                )
+
+    return scans
