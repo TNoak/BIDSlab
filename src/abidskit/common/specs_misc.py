@@ -6,11 +6,14 @@
 #  SPDX-License-Identifier: BSD-3-Clause
 
 from dataclasses import dataclass
+from types import SimpleNamespace
 from typing import TYPE_CHECKING, Iterable, Mapping
+from warnings import warn
 
 from abidskit.utils.checks import check_if_valid_uri
 from abidskit.utils.exceptions import (
     FieldEntryNotValidError,
+    TopLevelEntityNotLinkedWarning,
 )
 from abidskit.utils.helpers import (
     set_attr_from_dict,
@@ -124,23 +127,20 @@ class Acquisition:
 
         self._task: Task | None = None
 
-        self._runs: Iterable[Run] | None = None
-
-    def __repr__(self) -> str:
-        return f"<Acquisition id={self.acquisition_id}>"
-
     @property
-    def task(self) -> "Task | None":
-        raise NotImplementedError
+    def task(self) -> SimpleNamespace | None:
+        if self._task:
+            task_dict = {k.lstrip("_"): v for k, v in vars(self._task).items()}
+            task_dict.pop("acquisitions")
+            return SimpleNamespace(**task_dict)
+
+        assert self._task is None  # for mypy
+        warn(
+            "Acquisition is not linked to a Task object.",
+            TopLevelEntityNotLinkedWarning,
+        )
+        return self._task
 
     @task.setter
     def task(self, value: "Task") -> None:
-        raise NotImplementedError
-
-    # @property
-    # def runs(self) -> Iterable[Run]:
-    #     raise NotImplementedError
-    #
-    # @runs.setter
-    # def runs(self, value: Iterable[dict] | Iterable[Run]) -> None:
-    #     raise NotImplementedError
+        self._task = value
