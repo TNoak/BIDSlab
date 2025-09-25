@@ -14,14 +14,14 @@ from abidskit.utils.exceptions import FieldNotValidError, TopLevelEntityNotLinke
 
 
 class SampleClass:
-    def __init__(self):
-        self.attr1 = None
-        self.attr2 = None
+    def __init__(self, attr1=None, attr2=None):
+        self.attr1 = attr1
+        self.attr2 = attr2
 
 
 class SampleClassWarnTopLevel:
-    def __init__(self):
-        self.attr1 = None
+    def __init__(self, attr1=None):
+        self.attr1 = attr1
 
         warn("Top level entity not linked", TopLevelEntityNotLinkedWarning)
 
