@@ -8,7 +8,7 @@
 import json
 import pathlib
 import re
-from typing import TYPE_CHECKING, Iterable, Iterator, Mapping, TypeVar
+from typing import TYPE_CHECKING, Any, Iterable, Iterator, List, Mapping, TypeVar
 from warnings import catch_warnings, simplefilter, warn
 
 from abidskit.utils.checks import check_dataset_description_present
@@ -23,6 +23,7 @@ from abidskit.utils.string_manipulation import to_snakecase
 
 if TYPE_CHECKING:
     from abidskit.common.specs_description import Dataset
+    from abidskit.common.specs_summary import Participant, Scan, Session
 
 T = TypeVar("T")
 
@@ -139,3 +140,12 @@ def get_tsv_json_files(
                     FileTypeUnsupportedWarning,
                 )
     return tsv_path, json_path
+
+
+def add_entity_to_list(
+    entity_list: List,
+    entity_class: "type[Participant] | type[Session] | type[Scan]",
+    **kwargs: Any,
+) -> None:
+    entity_instance = entity_class(**kwargs)
+    entity_list.append(entity_instance)
