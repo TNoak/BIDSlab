@@ -36,6 +36,7 @@ class TestDescription:
         make_files(tmp_root, ["README", "CHANGES"])
         # Test
         assert test_dataset.root == tmp_root
+        assert not (tmp_root / "dataset_description.json").exists()
         with pytest.raises(abk.utils.exceptions.FileMissingError):
             abk.utils.checks.check_dataset_description_present(test_dataset)
         # Teardown
