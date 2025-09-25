@@ -47,11 +47,21 @@ class Task(BaseTask):
                 except KeyError:
                     continue
             for acquisition_id in acquisition_ids:
-                self._acquisitions.append(Acquisition(acquisition_id=acquisition_id))
+                self._acquisitions.append(
+                    Acquisition(
+                        acquisition_id=acquisition_id,
+                        base_path=self.root,
+                    )
+                )
 
             # If no acquisitions are found, add a default one
             if not self._acquisitions:
-                self._acquisitions.append(Acquisition(acquisition_id="acq-00"))
+                self._acquisitions.append(
+                    Acquisition(
+                        acquisition_id="acq-00",
+                        base_path=self.root,
+                    )
+                )
 
         return self._acquisitions
 
@@ -62,7 +72,12 @@ class Task(BaseTask):
                 self._acquisitions = []
                 for entry in value:
                     assert isinstance(entry, str)  # for mypy
-                    self._acquisitions.append(Acquisition(acquisition_id=entry))
+                    self._acquisitions.append(
+                        Acquisition(
+                            acquisition_id=entry,
+                            base_path=self.root,
+                        )
+                    )
             elif all(isinstance(v, Acquisition) for v in value):
                 self._acquisitions = value  # type: ignore[assignment]  # mypy cannot type narrow on all()
         else:

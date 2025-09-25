@@ -5,11 +5,13 @@
 #
 #  SPDX-License-Identifier: BSD-3-Clause
 
+import os
 from dataclasses import dataclass
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Iterable, Mapping
 from warnings import warn
 
+from abidskit.common.base import BaseAcquisition
 from abidskit.utils.checks import check_if_valid_uri
 from abidskit.utils.exceptions import (
     FieldEntryNotValidError,
@@ -121,9 +123,9 @@ class Column:
             raise TypeError("Field `Levels` must be a list of Level objects")
 
 
-class Acquisition:
-    def __init__(self, acquisition_id: str):
-        self.acquisition_id: str = acquisition_id
+class Acquisition(BaseAcquisition):
+    def __init__(self, base_path: os.PathLike | str, acquisition_id: str):
+        super().__init__(base_path=base_path, acquisition_id=acquisition_id)
 
         self._task: Task | None = None
 
