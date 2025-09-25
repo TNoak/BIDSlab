@@ -116,14 +116,14 @@ class Dataset:
 
         self.root: pathlib.Path = pathlib.Path(root)
 
-        self.readme_path = None  # !: This is required
-        self.citation_path = None
-        self.changes_path = None
-        self.license_path = None
+        self.readme_path: pathlib.Path | None = None  # !: This is required
+        self.citation_path: pathlib.Path | None = None
+        self.changes_path: pathlib.Path | None = None
+        self.license_path: pathlib.Path | None = None
 
-        self.sourcedata_path = None
-        self.code_path = None
-        self.stimuli_path = None
+        self.sourcedata_path: pathlib.Path | None = None
+        self.code_path: pathlib.Path | None = None
+        self.stimuli_path: pathlib.Path | None = None
 
         self._participants: Iterable[Participant] | None = None
 
