@@ -141,7 +141,7 @@ class Datatype:
                 self._tasks = []
                 for entry in value:
                     assert isinstance(entry, Mapping)  # for mypy
-                    self._tasks.append(Task(**entry))
+                    self._tasks.append(Task(base_path=self.root, **entry))
             elif all(isinstance(entry, BaseTask) for entry in value):
                 self._tasks = value  # type: ignore[assignment]  # mypy cannot type narrow on all()
         else:
