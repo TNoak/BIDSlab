@@ -59,3 +59,57 @@ class TestSetClassAttributes:
         # Test
         abk.utils.helpers.set_attr_from_dict(sample, attr_dict)  # No warning here
         assert sample.attr1 == "value1"
+
+
+class TestAddEntityToList:
+    def test_add_entity_to_list(self):
+        # Setup
+        entity_list = []
+        entity = SampleClass
+
+        # Test
+        abk.utils.helpers.add_entity_to_list(entity_list, entity)
+        assert type(entity_list[0]) is SampleClass
+
+    def test_add_entity_to_list_with_nonempty_list(self):
+        # Setup
+        entity_list = [SampleClass()]
+        entity = SampleClass
+
+        # Test
+        abk.utils.helpers.add_entity_to_list(entity_list, entity)
+        assert type(entity_list[1]) is SampleClass
+        assert len(entity_list) == 2
+
+    def test_add_entity_to_list_multiple_times(self):
+        # Setup
+        entity_list = []
+        entity = SampleClass
+
+        # Test
+        abk.utils.helpers.add_entity_to_list(entity_list, entity)
+        abk.utils.helpers.add_entity_to_list(entity_list, entity)
+        assert type(entity_list[0]) is SampleClass
+        assert type(entity_list[1]) is SampleClass
+        assert len(entity_list) == 2
+
+    def test_add_entity_to_list_with_arguments(self):
+        # Setup
+        entity_list = []
+        entity = SampleClass
+        args = {"attr1": "value1"}
+
+        # Test
+        abk.utils.helpers.add_entity_to_list(entity_list, entity, **args)
+        assert type(entity_list[0]) is SampleClass
+        assert entity_list[0].attr1 == "value1"
+
+    def test_add_entity_to_list_with_invalid_entity(self):
+        # Setup
+        entity_list = []
+        entity = "NotAClass"
+
+        # Test
+        with pytest.raises(TypeError):
+            abk.utils.helpers.add_entity_to_list(entity_list, entity)
+        assert len(entity_list) == 0
