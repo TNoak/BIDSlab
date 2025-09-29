@@ -33,7 +33,9 @@ class TrackSys:
         **kwargs: "dict | Hardware | Institution | MotionTask | Iterable",
     ) -> None:
         self.tracking_system_id: str = tracking_system_id
-        self.tracking_system_name: str | None = kwargs.pop("TrackingSystemName", None)
+        self.tracking_system_name: str | None = kwargs["motion"].pop(
+            "TrackingSystemName", None
+        )
 
         self._hardware: Hardware | None = None
         self._institution: Institution | None = None
