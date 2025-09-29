@@ -92,7 +92,7 @@ class MotionTask(BaseTask):
         super().__init__(base_path=base_path, task_name=task_name, **kwargs)
 
     @property
-    def tracking_systems(self):
+    def tracking_systems(self) -> Iterable[TrackSys]:
         if not self._tracking_systems:
             self._tracking_systems = []
             files = self.root.iterdir()
