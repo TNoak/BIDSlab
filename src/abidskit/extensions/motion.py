@@ -82,6 +82,24 @@ class TrackSys:
         else:
             raise TypeError("Field `Institution` must be a Institution object")
 
+    @property
+    def task(self) -> SimpleNamespace | None:
+        if self._task:
+            task_dict = {k.lstrip("_"): v for k, v in vars(self._task).items()}
+            task_dict.pop("tracking_systems")
+            return SimpleNamespace(**task_dict)
+
+        assert self._task is None  # for mypy
+        warn(
+            "TrackSys is not linked to a Task object.",
+            TopLevelEntityNotLinkedWarning,
+        )
+        return self._task
+
+    @task.setter
+    def task(self, value: "MotionTask") -> None:
+        self._task = value
+
 
 class MotionTask(BaseTask):
     def __init__(
@@ -121,6 +139,7 @@ class MotionTask(BaseTask):
                         TrackSys(
                             tracking_system_id=tracking_system_id,
                             base_path=self.root,
+                            task=self,
                             hardware=hardware,
                             institution=institution,
                             motion=tracking_system,
@@ -139,7 +158,7 @@ class MotionTask(BaseTask):
                 for entry in value:
                     assert isinstance(entry, Mapping)  # for mypy
                     self._tracking_systems.append(
-                        TrackSys(base_path=self.root, **entry)
+                        TrackSys(base_path=self.root, task=self, **entry)
                     )
             elif all(isinstance(entry, TrackSys) for entry in value):
                 self._tracking_systems = value  # type: ignore[assignment]  # mypy cannot type narrow on all()
