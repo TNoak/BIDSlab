@@ -7,11 +7,16 @@
 
 import json
 import os
+import pathlib
 import re
+from types import SimpleNamespace
 from typing import Any, Iterable, Mapping
+from warnings import warn
 
+from abidskit.common import Acquisition
 from abidskit.common.base import BaseTask
 from abidskit.common.specs_misc import Hardware, Institution
+from abidskit.utils.exceptions import TopLevelEntityNotLinkedWarning
 from abidskit.utils.helpers import (
     get_entity_from_file,
     get_tsv_json_files,
@@ -21,31 +26,36 @@ from abidskit.utils.string_manipulation import to_snakecase
 
 
 class TrackSys:
-    def __init__(self, base_path, tracking_system_id, **kwargs):
-        self.tracking_system_id = tracking_system_id
-        self.tracking_system_name = kwargs.pop("TrackingSystemName", None)
+    def __init__(
+        self,
+        base_path: os.PathLike | str,
+        tracking_system_id: str,
+        **kwargs: "dict | Hardware | Institution | MotionTask | Iterable",
+    ) -> None:
+        self.tracking_system_id: str = tracking_system_id
+        self.tracking_system_name: str | None = kwargs.pop("TrackingSystemName", None)
 
-        self._hardware = None
-        self._institution = None
-        self.motion = None
+        self._hardware: Hardware | None = None
+        self._institution: Institution | None = None
+        self.motion: dict | None = None
 
-        self.root = base_path
+        self.root: pathlib.Path = base_path
 
-        self._task = None
+        self._task: MotionTask | None = None
 
-        self._acquisitions = None
+        self._acquisitions: Iterable[Acquisition] | None = None
 
         set_attr_from_dict(self, kwargs)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"TrackSys(tracking_system_id={self.tracking_system_id}, tracking_system_name={self.tracking_system_name})"
 
     @property
-    def hardware(self):
+    def hardware(self) -> Hardware | None:
         return self._hardware
 
     @hardware.setter
-    def hardware(self, value: dict | Hardware):
+    def hardware(self, value: dict | Hardware) -> None:
         if isinstance(value, dict):
             hardware_data = {}
             for k, v in value.items():
@@ -57,11 +67,11 @@ class TrackSys:
             raise TypeError("Field `Hardware` must be a Hardware object")
 
     @property
-    def institution(self):
+    def institution(self) -> Institution | None:
         return self._institution
 
     @institution.setter
-    def institution(self, value: dict | Institution):
+    def institution(self, value: dict | Institution) -> None:
         if isinstance(value, dict):
             institution_data = {}
             for k, v in value.items():
