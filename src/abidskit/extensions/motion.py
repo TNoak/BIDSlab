@@ -149,7 +149,7 @@ class MotionTask(BaseTask):
             )
 
 
-def parse_motion_json_sidecar(sidecar_path):
+def parse_motion_json_sidecar(sidecar_path: pathlib.Path) -> dict:
     with sidecar_path.open("r", encoding="utf-8") as f:
         data = json.load(f)
         task_information = {}
