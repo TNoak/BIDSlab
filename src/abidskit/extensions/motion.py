@@ -23,7 +23,7 @@ from abidskit.utils.string_manipulation import to_snakecase
 class TrackSys:
     def __init__(self, base_path, tracking_system_id, **kwargs):
         self.tracking_system_id = tracking_system_id
-        self.tracking_system_name = None
+        self.tracking_system_name = kwargs.pop("TrackingSystemName", None)
 
         self._hardware = None
         self._institution = None
