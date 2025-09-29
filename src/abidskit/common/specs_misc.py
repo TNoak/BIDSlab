@@ -61,6 +61,27 @@ class Level:
         return f"<Level label={self.level_label}>"
 
 
+@dataclass(slots=True)
+class Hardware:
+    manufacturer: str | None = None
+    manufacturers_model_name: str | None = None
+    software_versions: str | None = None
+    device_serial_number: str | None = None
+
+    def __repr__(self) -> str:
+        return f"<Hardware manufacturer={self.manufacturer} model={self.manufacturers_model_name}>"
+
+
+@dataclass(slots=True)
+class Institution:
+    institution_name: str | None = None
+    institution_address: str | None = None
+    institutional_department_name: str | None = None
+
+    def __repr__(self) -> str:
+        return f"<Institution name={self.institution_name}>"
+
+
 class Column:
     def __init__(
         self, column_name: str, **kwargs: str | int | float | Mapping | Iterable

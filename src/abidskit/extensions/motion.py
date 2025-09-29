@@ -11,11 +11,13 @@ import re
 from typing import Any, Iterable, Mapping
 
 from abidskit.common.base import BaseTask
+from abidskit.common.specs_misc import Hardware, Institution
 from abidskit.utils.helpers import (
     get_entity_from_file,
     get_tsv_json_files,
     set_attr_from_dict,
 )
+from abidskit.utils.string_manipulation import to_snakecase
 
 
 class TrackSys:
@@ -23,8 +25,8 @@ class TrackSys:
         self.tracking_system_id = tracking_system_id
         self.tracking_system_name = None
 
-        self.hardware = None
-        self.institution = None
+        self._hardware = None
+        self._institution = None
         self.motion = None
 
         self.root = base_path
@@ -37,6 +39,38 @@ class TrackSys:
 
     def __repr__(self):
         return f"TrackSys(tracking_system_id={self.tracking_system_id}, tracking_system_name={self.tracking_system_name})"
+
+    @property
+    def hardware(self):
+        return self._hardware
+
+    @hardware.setter
+    def hardware(self, value: dict | Hardware):
+        if isinstance(value, dict):
+            hardware_data = {}
+            for k, v in value.items():
+                hardware_data[to_snakecase(k)] = v
+            self._hardware = Hardware(**hardware_data)
+        elif isinstance(value, Hardware):
+            self._hardware = value
+        else:
+            raise TypeError("Field `Hardware` must be a Hardware object")
+
+    @property
+    def institution(self):
+        return self._institution
+
+    @institution.setter
+    def institution(self, value: dict | Institution):
+        if isinstance(value, dict):
+            institution_data = {}
+            for k, v in value.items():
+                institution_data[to_snakecase(k)] = v
+            self._institution = Institution(**institution_data)
+        elif isinstance(value, Institution):
+            self._institution = value
+        else:
+            raise TypeError("Field `Institution` must be a Institution object")
 
 
 class MotionTask(BaseTask):
@@ -65,7 +99,7 @@ class MotionTask(BaseTask):
                     continue
             for tracking_system_id in tracking_systems_ids:
                 _, json_path = get_tsv_json_files(
-                    self.root, f"*tracksys-{tracking_system_id}*"
+                    self.root, f"*tracksys-{tracking_system_id}*_motion"
                 )
 
                 if json_path:
