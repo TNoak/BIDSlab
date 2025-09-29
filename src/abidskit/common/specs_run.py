@@ -7,6 +7,14 @@
 
 import os
 import pathlib
+from types import SimpleNamespace
+from typing import TYPE_CHECKING
+from warnings import warn
+
+from abidskit.utils.exceptions import TopLevelEntityNotLinkedWarning
+
+if TYPE_CHECKING:
+    from abidskit.common.specs_misc import Acquisition
 
 
 class Run:
@@ -21,13 +29,24 @@ class Run:
         self._recordings = None
         self._events = None
 
-    # @property
-    # def acquisition(self):
-    #     return self._acquisition
+    @property
+    def acquisition(self) -> SimpleNamespace | None:
+        if self._acquisition:
+            acquisition_dict = {
+                k.lstrip("_"): v for k, v in vars(self._acquisition).items()
+            }
+            acquisition_dict.pop("tasks")
+            return SimpleNamespace(**acquisition_dict)
 
-    # @acquisition.setter
-    # def acquisition(self, value):
-    #     self._acquisition = value
+        assert self._acquisition is None  # for mypy
+        warn(
+            "Run is not linked to a Acquisition object.", TopLevelEntityNotLinkedWarning
+        )
+        return self._acquisition
+
+    @acquisition.setter
+    def acquisition(self, value: "Acquisition") -> None:
+        self._acquisition = value
 
     # @property
     # def recordings(self):
@@ -42,6 +61,5 @@ class Run:
     #     raise NotImplementedError
 
     # @events.setter
-    # # TODO: implement
     # def events(self, value: Iterable[dict] | Iterable[Event]):
     #     raise NotImplementedError
