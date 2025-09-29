@@ -8,18 +8,101 @@
 import json
 import os
 import re
-from typing import Any
+from typing import Any, Iterable, Mapping
 
 from abidskit.common.base import BaseTask
+from abidskit.utils.helpers import (
+    get_entity_from_file,
+    get_tsv_json_files,
+    set_attr_from_dict,
+)
+
+
+class TrackSys:
+    def __init__(self, base_path, tracking_system_id, **kwargs):
+        self.tracking_system_id = tracking_system_id
+        self.tracking_system_name = None
+
+        self.hardware = None
+        self.institution = None
+        self.motion = None
+
+        self.root = base_path
+
+        self._task = None
+
+        self._acquisitions = None
+
+        set_attr_from_dict(self, kwargs)
+
+    def __repr__(self):
+        return f"TrackSys(tracking_system_id={self.tracking_system_id}, tracking_system_name={self.tracking_system_name})"
 
 
 class MotionTask(BaseTask):
     def __init__(
         self, base_path: os.PathLike | str, task_name: str, **kwargs: Any
     ) -> None:
-        self.tracking_system = None
+        self._tracking_systems = None
 
         super().__init__(base_path=base_path, task_name=task_name, **kwargs)
+
+    @property
+    def tracking_systems(self):
+        if not self._tracking_systems:
+            self._tracking_systems = []
+            files = self.root.iterdir()
+            tracking_systems_ids = set()
+            for file in files:
+                try:
+                    tracking_systems_ids.add(
+                        get_entity_from_file(
+                            file,
+                            "tracksys",
+                        )["tracksys"]
+                    )
+                except KeyError:
+                    continue
+            for tracking_system_id in tracking_systems_ids:
+                _, json_path = get_tsv_json_files(
+                    self.root, f"*tracksys-{tracking_system_id}*"
+                )
+
+                if json_path:
+                    data = parse_motion_json_sidecar(json_path)
+                    tracking_system = data["motion"]
+                    hardware = data["hardware"]
+                    institution = data["institution"]
+                    self._tracking_systems.append(
+                        TrackSys(
+                            tracking_system_id=tracking_system_id,
+                            base_path=self.root,
+                            hardware=hardware,
+                            institution=institution,
+                            motion=tracking_system,
+                        )
+                    )
+                else:
+                    raise NotImplementedError  # TODO: implement
+
+        return self._tracking_systems
+
+    @tracking_systems.setter
+    def tracking_systems(self, value: Iterable[Mapping] | Iterable[TrackSys]) -> None:
+        if isinstance(value, Iterable):
+            if all(isinstance(entry, Mapping) for entry in value):
+                self._tracking_systems = []
+                for entry in value:
+                    assert isinstance(entry, Mapping)  # for mypy
+                    self._tracking_systems.append(
+                        TrackSys(base_path=self.root, **entry)
+                    )
+            elif all(isinstance(entry, TrackSys) for entry in value):
+                self._tracking_systems = value  # type: ignore[assignment]  # mypy cannot type narrow on all()
+        else:
+            raise TypeError(
+                "Field `TrackingSystems` must be a list of TrackSys objects"
+            )
 
 
 def parse_motion_json_sidecar(sidecar_path):
