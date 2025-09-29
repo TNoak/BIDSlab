@@ -39,7 +39,7 @@ class TrackSys:
         self._institution: Institution | None = None
         self.motion: dict | None = None
 
-        self.root: pathlib.Path = base_path
+        self.root: pathlib.Path = pathlib.Path(base_path)
 
         self._task: MotionTask | None = None
 
