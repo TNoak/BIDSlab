@@ -15,6 +15,7 @@ from warnings import warn
 
 from abidskit.common.base import BaseAcquisition, BaseTask
 from abidskit.common.specs_misc import Hardware, Institution
+from abidskit.common.specs_run import Run
 from abidskit.utils.exceptions import TopLevelEntityNotLinkedWarning
 from abidskit.utils.helpers import (
     get_entity_from_file,
@@ -22,6 +23,44 @@ from abidskit.utils.helpers import (
     set_attr_from_dict,
 )
 from abidskit.utils.string_manipulation import to_snakecase
+
+
+class MotionRun(Run):
+    def __init__(self, base_path: os.PathLike | str, run_id: str, **kwargs):
+        super().__init__(base_path=base_path, run_id=run_id)
+
+        self._channels = None
+        self._data: Any = None
+
+        set_attr_from_dict(self, kwargs)
+
+    @property
+    def acquisition(self) -> SimpleNamespace | None:
+        if self._acquisition:
+            acquisition_dict = {
+                k.lstrip("_"): v for k, v in vars(self._acquisition).items()
+            }
+            acquisition_dict.pop("runs")
+            return SimpleNamespace(**acquisition_dict)
+
+        assert self._acquisition is None  # for mypy
+        warn(
+            "Run is not linked to a Acquisition object.", TopLevelEntityNotLinkedWarning
+        )
+        return self._acquisition
+
+    @acquisition.setter
+    def acquisition(self, value: "MotionAcquisition") -> None:
+        self._acquisition = value
+
+    @property
+    def data(self):
+        # TODO: implement lazy loading
+        return NotImplementedError
+
+    @data.setter
+    def data(self, value):
+        return NotImplementedError
 
 
 class MotionAcquisition(BaseAcquisition):
@@ -57,7 +96,6 @@ class MotionAcquisition(BaseAcquisition):
         set_attr_from_dict(self, kwargs)
 
         # TODO: parse channels in this class
-        # TODO: CONTINUE here: override property runs
 
     @property
     def tracking_system(self) -> SimpleNamespace | None:
@@ -78,6 +116,58 @@ class MotionAcquisition(BaseAcquisition):
     @tracking_system.setter
     def tracking_system(self, value: "TrackSys") -> None:
         self._tracking_system = value
+
+    @property
+    def runs(self) -> Iterable[MotionRun]:
+        if not self._runs:
+            self._runs = []
+            files = self.root.iterdir()
+            run_ids = set()
+            for file in files:
+                try:
+                    run_ids.add(
+                        get_entity_from_file(
+                            file,
+                            "run",
+                        )["run"]
+                    )
+                except KeyError:
+                    continue
+            for run_id in run_ids:
+                self._runs.append(
+                    MotionRun(
+                        run_id=run_id,
+                        base_path=self.root,
+                        acquisition=self,
+                    )
+                )
+
+            # If no runs are found, add a default one
+            if not self._runs:
+                self._runs.append(
+                    MotionRun(
+                        run_id="run-00",
+                        base_path=self.root,
+                        acquisition=self,
+                    )
+                )
+
+        return self._runs
+
+    @runs.setter
+    def runs(self, value: Iterable[str] | Iterable[MotionRun]) -> None:
+        if isinstance(value, Iterable):
+            if all(isinstance(entry, str) for entry in value):
+                self._runs = []
+                for entry in value:
+                    assert isinstance(entry, str)  # for mypy
+                    self._runs.append(
+                        MotionRun(run_id=entry, base_path=self.root, acquisition=self)
+                    )
+            elif all(isinstance(v, MotionRun) for v in value):
+                self._runs = value  # type: ignore[assignment]  # mypy cannot type narrow on all()
+        else:
+            raise TypeError("Field `Runs` must be a list of Run objects")
 
 
 class TrackSys:
