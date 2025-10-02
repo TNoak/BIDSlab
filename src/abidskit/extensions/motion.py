@@ -13,8 +13,7 @@ from types import SimpleNamespace
 from typing import Any, Iterable, Mapping
 from warnings import warn
 
-from abidskit.common import Acquisition
-from abidskit.common.base import BaseTask
+from abidskit.common.base import BaseAcquisition, BaseTask
 from abidskit.common.specs_misc import Hardware, Institution
 from abidskit.utils.exceptions import TopLevelEntityNotLinkedWarning
 from abidskit.utils.helpers import (
@@ -23,6 +22,62 @@ from abidskit.utils.helpers import (
     set_attr_from_dict,
 )
 from abidskit.utils.string_manipulation import to_snakecase
+
+
+class MotionAcquisition(BaseAcquisition):
+    def __init__(
+        self,
+        base_path: os.PathLike | str,
+        acquisition_id: str,
+        sampling_frequency: int | float,
+        **kwargs: Any,
+    ):
+        super().__init__(base_path=base_path, acquisition_id=acquisition_id)
+
+        self.sampling_frequency: int | float = sampling_frequency
+        self.accel_channel_count: int | None = None
+        self.angaccel_channel_count: int | None = None
+        self.gyro_channel_count: int | None = None
+        self.jntang_channel_count: int | None = None
+        self.latency_channel_count: int | None = None
+        self.magn_channel_count: int | None = None
+        self.misc_channel_count: int | None = None
+        self.missing_values: str | None = None
+        self.motion_channel_count: int | None = None
+        self.ornt_channel_count: int | None = None
+        self.pos_channel_count: int | None = None
+        self.sampling_frequency_effective: int | float | None = None
+        self.recording_duration: int | float | None = None
+        self.subject_artefact_description: str | None = None
+        self.tracked_points_count: int | float | None = None
+        self.vel_channel_count: int | None = None
+
+        self._tracking_system: "TrackSys | None" = None
+
+        set_attr_from_dict(self, kwargs)
+
+        # TODO: parse channels in this class
+        # TODO: CONTINUE here: override property runs
+
+    @property
+    def tracking_system(self) -> SimpleNamespace | None:
+        if self._tracking_system:
+            tracking_system_dict = {
+                k.lstrip("_"): v for k, v in vars(self._tracking_system).items()
+            }
+            tracking_system_dict.pop("acquisitions")
+            return SimpleNamespace(**tracking_system_dict)
+
+        assert self._tracking_system is None  # for mypy
+        warn(
+            "Acquisition is not linked to a TrackSys object.",
+            TopLevelEntityNotLinkedWarning,
+        )
+        return self._tracking_system
+
+    @tracking_system.setter
+    def tracking_system(self, value: "TrackSys") -> None:
+        self._tracking_system = value
 
 
 class TrackSys:
@@ -39,13 +94,13 @@ class TrackSys:
 
         self._hardware: Hardware | None = None
         self._institution: Institution | None = None
-        self.motion: dict | None = None
+        self._motion: dict | None = kwargs.pop("motion", None)
 
         self.root: pathlib.Path = pathlib.Path(base_path)
 
         self._task: MotionTask | None = None
 
-        self._acquisitions: Iterable[Acquisition] | None = None
+        self._acquisitions: Iterable[MotionAcquisition] | None = None
 
         set_attr_from_dict(self, kwargs)
 
@@ -102,6 +157,60 @@ class TrackSys:
     def task(self, value: "MotionTask") -> None:
         self._task = value
 
+    @property
+    def acquisitions(self) -> Iterable[MotionAcquisition]:
+        if not self._acquisitions:
+            self._acquisitions = []
+            files = self.root.iterdir()
+            acquisition_ids = set()
+            for file in files:
+                try:
+                    acquisition_ids.add(
+                        get_entity_from_file(
+                            file,
+                            "acq",
+                        )["acq"]
+                    )
+                except KeyError:
+                    continue
+            for acquisition_id in acquisition_ids:
+                _, json_path = get_tsv_json_files(
+                    self.root,
+                    f"*tracksys-{self.tracking_system_id}_acq-{acquisition_id}_*_motion",
+                )
+
+                if json_path:
+                    data = parse_motion_json_sidecar(json_path)
+                    acquisition_info = data["motion"]
+                    sampling_frequency = acquisition_info.pop("SamplingFrequency")
+                    self._acquisitions.append(
+                        MotionAcquisition(
+                            base_path=self.root,
+                            acquisition_id="acq-" + acquisition_id,
+                            tracking_system=self,
+                            sampling_frequency=sampling_frequency,
+                            **acquisition_info,
+                        )
+                    )
+                else:
+                    raise NotImplementedError  # TODO: implement
+
+            # If no acquisitions are found, add a default one from the motion info
+            if not self._acquisitions:
+                self._acquisitions.append(
+                    MotionAcquisition(
+                        acquisition_id="acq-00",
+                        base_path=self.root,
+                        tracking_system=self,
+                        sampling_frequency=self._motion.pop(
+                            "SamplingFrequency"
+                        ),  # FIXME: can be None
+                        **self._motion,
+                    )
+                )
+
+        return self._acquisitions
+
 
 class MotionTask(BaseTask):
     def __init__(
@@ -134,21 +243,23 @@ class MotionTask(BaseTask):
 
                 if json_path:
                     data = parse_motion_json_sidecar(json_path)
-                    tracking_system = data["motion"]
-                    hardware = data["hardware"]
-                    institution = data["institution"]
+                    motion_info = data["motion"]  # FIXME: can be None
+                    hardware_info = data["hardware"]  # FIXME: can be None
+                    institution_info = data["institution"]  # FIXME: can be None
                     self._tracking_systems.append(
                         TrackSys(
                             tracking_system_id=tracking_system_id,
                             base_path=self.root,
                             task=self,
-                            hardware=hardware,
-                            institution=institution,
-                            motion=tracking_system,
+                            hardware=hardware_info,
+                            institution=institution_info,
+                            motion=motion_info,
                         )
                     )
                 else:
                     raise NotImplementedError  # TODO: implement
+
+            # TODO: If no tracking systems are found, add a default one?
 
         return self._tracking_systems
 
