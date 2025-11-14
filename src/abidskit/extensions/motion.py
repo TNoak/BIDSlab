@@ -14,6 +14,8 @@ from types import SimpleNamespace
 from typing import Any, Iterable, Mapping
 from warnings import warn
 
+import pandas as pd
+
 from abidskit.common.base import BaseAcquisition, BaseTask
 from abidskit.common.specs_misc import Column, Hardware, Institution
 from abidskit.common.specs_run import Run
@@ -116,12 +118,26 @@ class MotionRun(Run):
 
     @property
     def data(self):
-        # TODO: implement lazy loading
-        return NotImplementedError
+        if self._data is None:
+            # TODO: handle acquisition_id
+            tsv_path, _ = get_tsv_json_files(
+                self.root,
+                f"*tracksys-{self.acquisition.tracking_system.tracking_system_id}*_motion",
+            )
+            # TODO: put this in a file and write decorator to get files with datalad
+            data_frame = pd.read_csv(tsv_path, sep="\t", header=None)
+            column_names = {}
+            for column_number, column in enumerate(self.channels):
+                column_names[column_number] = column.name
+            data_frame.rename(columns=column_names, inplace=True)
+
+            self._data = data_frame
+
+        return self._data
 
     @data.setter
-    def data(self, value):
-        return NotImplementedError
+    def data(self, value: pd.DataFrame) -> None:
+        self._data = value
 
 
 class MotionAcquisition(BaseAcquisition):
