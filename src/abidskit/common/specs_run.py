@@ -8,17 +8,18 @@
 import os
 import pathlib
 from types import SimpleNamespace
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from warnings import warn
 
 from abidskit.utils.exceptions import TopLevelEntityNotLinkedWarning
+from abidskit.utils.helpers import set_attr_from_dict
 
 if TYPE_CHECKING:
     from abidskit.common.specs_misc import Acquisition
 
 
 class Run:
-    def __init__(self, base_path: os.PathLike | str, run_id: str):
+    def __init__(self, base_path: os.PathLike | str, run_id: str, **kwargs: Any):
         self.run_id = run_id
         # TODO: make sure that run_id is "run-<int>"
 
@@ -28,6 +29,11 @@ class Run:
 
         self._recordings = None
         self._events = None
+
+        set_attr_from_dict(self, kwargs)
+
+    def __repr__(self):
+        return f"Run id={self.run_id}"
 
     @property
     def acquisition(self) -> SimpleNamespace | None:
