@@ -15,7 +15,7 @@ from mimesis import Development
 import abidskit as abk
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def tmp_root(tmp_path_factory):
     return tmp_path_factory.mktemp("bids_dataset")
 
