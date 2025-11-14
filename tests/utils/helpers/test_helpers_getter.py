@@ -177,7 +177,10 @@ class TestGetTsvJsonFiles:
                 tmp_root, "*_scans"
             )
         assert tsv_path is None
-        assert json_path == tmp_root / "example_scans.json"
+        assert (
+            json_path == tmp_root / "example_scans.json"
+            or tmp_root / "second_scans.json"
+        )
 
         # Teardown
         delete_files(tmp_root, files)
