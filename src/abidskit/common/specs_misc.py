@@ -69,7 +69,10 @@ class Hardware:
     device_serial_number: str | None = None
 
     def __repr__(self) -> str:
-        return f"<Hardware manufacturer={self.manufacturer} model={self.manufacturers_model_name}>"
+        return (
+            f"<Hardware manufacturer={self.manufacturer} "
+            f"model={self.manufacturers_model_name}>"
+        )
 
 
 @dataclass(slots=True)
@@ -112,7 +115,7 @@ class Column:
     def format(self) -> str | None:
         return self._format
 
-    @format.setter
+    @format.setter  # noqa: A003
     def format(self, value: str) -> None:
         if value not in FORMAT_ALLOWED_FIELD_ENTRIES:
             raise FieldEntryNotValidError(
