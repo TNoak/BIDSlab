@@ -35,10 +35,10 @@ class Task(BaseTask):
         if not self._acquisitions:
             self._acquisitions = []
             files = self.root.iterdir()
-            acquisition_ids = set()
+            acquisition_labels = set()
             for file in files:
                 try:
-                    acquisition_ids.add(
+                    acquisition_labels.add(
                         get_entity_from_file(
                             file,
                             "acq",
@@ -46,10 +46,10 @@ class Task(BaseTask):
                     )
                 except KeyError:
                     continue
-            for acquisition_id in acquisition_ids:
+            for acquisition_label in acquisition_labels:
                 self._acquisitions.append(
                     Acquisition(
-                        acquisition_id=acquisition_id,
+                        acquisition_id="acq-" + acquisition_label,
                         base_path=self.root,
                     )
                 )
