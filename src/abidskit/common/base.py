@@ -99,6 +99,7 @@ class BaseAcquisition(ABC):
                     Run(
                         run_id=run_id,
                         base_path=self.root,
+                        acquisition=self,
                     )
                 )
 
@@ -108,6 +109,7 @@ class BaseAcquisition(ABC):
                     Run(
                         run_id="run-00",
                         base_path=self.root,
+                        acquisition=self,
                     )
                 )
 
@@ -120,7 +122,9 @@ class BaseAcquisition(ABC):
                 self._runs = []
                 for entry in value:
                     assert isinstance(entry, str)  # for mypy
-                    self._runs.append(Run(run_id=entry, base_path=self.root))
+                    self._runs.append(
+                        Run(run_id=entry, base_path=self.root, acquisition=self)
+                    )
             elif all(isinstance(v, Run) for v in value):
                 self._runs = value  # type: ignore[assignment]  # mypy cannot type narrow on all()
         else:
