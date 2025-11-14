@@ -110,7 +110,7 @@ repos:
     rev: v1.16.1
     hooks:
       - id: mypy
-        additional_dependencies: [uritools]
+        additional_dependencies: [uritools, pandas-stubs]
         args: ["--config-file=pyproject.toml", "src/abidskit"]
         files: src/abidskit  # Only run when files in src/abidskit are changed.
         pass_filenames: false
