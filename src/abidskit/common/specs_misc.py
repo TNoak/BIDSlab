@@ -7,17 +7,17 @@
 
 import os
 from dataclasses import dataclass
-from types import SimpleNamespace
-from typing import TYPE_CHECKING, Iterable, Mapping
+from typing import TYPE_CHECKING, Iterable, Mapping, Sequence
 from warnings import warn
 
-from abidskit.common.base import BaseAcquisition
+from abidskit.common.base import BaseAcquisition, Run
 from abidskit.utils.checks import check_if_valid_uri
 from abidskit.utils.exceptions import (
     FieldEntryNotValidError,
     TopLevelEntityNotLinkedWarning,
 )
 from abidskit.utils.helpers import (
+    get_entity_from_file,
     set_attr_from_dict,
 )
 from abidskit.utils.string_manipulation import to_snakecase
@@ -49,7 +49,7 @@ FORMAT_ALLOWED_FIELD_ENTRIES = {
 
 @dataclass(slots=True)
 class Level:
-    level_label: str
+    level_name: str
     description: str
     term_url: str | None = None
 
@@ -58,7 +58,7 @@ class Level:
             check_if_valid_uri(self.term_url)
 
     def __repr__(self) -> str:
-        return f"<Level label={self.level_label}>"
+        return f"<Level name={self.level_name}>"
 
 
 @dataclass(slots=True)
@@ -87,9 +87,9 @@ class Institution:
 
 class Column:
     def __init__(
-        self, column_name: str, **kwargs: str | int | float | Mapping | Iterable
+        self, name: str, **kwargs: str | int | float | Mapping | Iterable
     ) -> None:
-        self.column_name: str = column_name
+        self.column_name: str = name
 
         self.long_name: str | None = None
         self.description: str | None = None
@@ -100,6 +100,7 @@ class Column:
         self.hed: str | Mapping[str, str] | None = None
         self.maximum: int | float | None = None
         self.minimum: int | float | None = None
+        self.unit: str | None = None  # support for older spec versions
 
         self._levels: Iterable[Level] | None = None
 
@@ -121,6 +122,7 @@ class Column:
             raise FieldEntryNotValidError(
                 f"Field `Format` must be one of {FORMAT_ALLOWED_FIELD_ENTRIES}"
             )
+        self._format = value
 
     @property
     def levels(self) -> Iterable[Level] | None:
@@ -136,9 +138,9 @@ class Column:
                         to_snakecase(level_key): level_val
                         for level_key, level_val in val.items()
                     }
-                    level = Level(level_label=to_snakecase(key), **val)
+                    level = Level(level_name=key, **val)
                 else:
-                    level = Level(level_label=to_snakecase(key), description=val)
+                    level = Level(level_name=key, description=val)
 
                 self._levels.append(level)
         elif isinstance(value, Iterable) and all(isinstance(v, Level) for v in value):
@@ -154,13 +156,62 @@ class Acquisition(BaseAcquisition):
         self._task: Task | None = None
 
     @property
-    def task(self) -> SimpleNamespace | None:
-        if self._task:
-            task_dict = {k.lstrip("_"): v for k, v in vars(self._task).items()}
-            task_dict.pop("acquisitions")
-            return SimpleNamespace(**task_dict)
+    def runs(self) -> Sequence[Run]:
+        if not self._runs:
+            self._runs = []
+            files = self.root.iterdir()
+            run_ids = set()
+            for file in files:
+                try:
+                    run_ids.add(
+                        get_entity_from_file(
+                            file,
+                            "run",
+                        )["run"]
+                    )
+                except KeyError:
+                    continue
+            for run_id in run_ids:
+                self._runs.append(
+                    Run(
+                        run_id=run_id,
+                        base_path=self.root,
+                        acquisition=self,
+                    )
+                )
 
-        assert self._task is None  # for mypy
+            # If no runs are found, add a default one
+            if not self._runs:
+                self._runs.append(
+                    Run(
+                        run_id="run-00",
+                        base_path=self.root,
+                        acquisition=self,
+                    )
+                )
+
+        return self._runs
+
+    @runs.setter
+    def runs(self, value: Sequence[str | Run]) -> None:
+        if isinstance(value, Sequence):
+            if all(isinstance(entry, str) for entry in value):
+                self._runs = []
+                for entry in value:
+                    assert isinstance(entry, str)  # for mypy
+                    self._runs.append(
+                        Run(run_id=entry, base_path=self.root, acquisition=self)
+                    )
+            elif all(isinstance(v, Run) for v in value):
+                self._runs = value  # type: ignore[assignment]  # mypy cannot type narrow on all()
+        else:
+            raise TypeError("Field `Runs` must be a list of Run objects")
+
+    @property
+    def task(self) -> "Task | None":
+        if self._task:
+            return self._task
+
         warn(
             "Acquisition is not linked to a Task object.",
             TopLevelEntityNotLinkedWarning,

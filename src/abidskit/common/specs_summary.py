@@ -4,20 +4,22 @@
 #  Chair of Informatics for Medical Technology
 #
 #  SPDX-License-Identifier: BSD-3-Clause
-#
-#  SPDX-License-Identifier: BSD-3-Clause
 
 import os
 import pathlib
-from types import SimpleNamespace
-from typing import TYPE_CHECKING, Any, Iterable, List, Mapping
+from typing import TYPE_CHECKING, Any, List, Mapping, Sequence
 from warnings import warn
 
+import pandas as pd
+
+from abidskit.common.base import Entity
 from abidskit.common.specs_datatype import Datatype
 from abidskit.common.specs_misc import Column
+from abidskit.utils.dict_manipulation import clean_dict
 from abidskit.utils.exceptions import FieldMissingError, TopLevelEntityNotLinkedWarning
 from abidskit.utils.helpers import (
-    add_entity_to_list,
+    add_object_to_sequence,
+    append_path,
     get_matching_subpaths,
     get_tsv_json_files,
     parse_descriptive_tsv,
@@ -52,7 +54,7 @@ class Scan:
         self.filename: pathlib.Path = pathlib.Path(filename)
         self.acq_time: str | None = None
         self.hed: str | None = None
-        self.columns: Iterable[str] | None = None
+        self.columns: Sequence[str] | None = None
 
         self.root: pathlib.Path = pathlib.Path(base_path)
 
@@ -72,13 +74,10 @@ class Scan:
         return self.root / self.filename
 
     @property
-    def session(self) -> SimpleNamespace | None:
+    def session(self) -> "Session | None":
         if self._session:
-            session_dict = {k.lstrip("_"): v for k, v in vars(self._session).items()}
-            session_dict.pop("scans")
-            return SimpleNamespace(**session_dict)
+            return self._session
 
-        assert self._session is None  # for mypy
         warn("Scan is not linked to a Session object.", TopLevelEntityNotLinkedWarning)
         return self._session
 
@@ -87,21 +86,24 @@ class Scan:
         self._session = value
 
 
-class Session:
+class Session(Entity):
     def __init__(
         self, base_path: os.PathLike | str, session_id: str, **kwargs: Any
     ) -> None:
-        self.session_id: str = session_id  # !: This is required
+        super().__init__(_entity_id=session_id, _entity_name="ses")
+        self.session_id: str = self._entity_id  # !: This is required
         self.acq_time: str | None = None
         self.pathology: str | int | None = None  # TODO: check if same as in samples
         self.hed: str | None = None
+
+        # TODO: add columns
 
         self.root: pathlib.Path = pathlib.Path(base_path)
 
         self._participant: Participant | None = None
 
-        self._scans: Iterable[Scan] | None = None
-        self._datatypes: Iterable[Datatype] | None = None
+        self._scans: Sequence[Scan] | None = None
+        self._datatypes: Sequence[Datatype] | None = None
 
         for key, value in kwargs.items():
             setattr(self, key, value)
@@ -113,15 +115,10 @@ class Session:
         return f"<Session id={self.session_id}>"
 
     @property
-    def participant(self) -> SimpleNamespace | None:
+    def participant(self) -> "Participant | None":
         if self._participant:
-            participant_dict = {
-                k.lstrip("_"): v for k, v in vars(self._participant).items()
-            }
-            participant_dict.pop("sessions")
-            return SimpleNamespace(**participant_dict)
+            return self._participant
 
-        assert self._participant is None  # for mypy
         warn(
             "Session is not linked to a Participant object.",
             TopLevelEntityNotLinkedWarning,
@@ -133,18 +130,26 @@ class Session:
         self._participant = value
 
     @property
-    def scans(self) -> Iterable[Scan] | None:
+    def scans(self) -> Sequence[Scan] | None:
         if not self._scans:
-            # if no top-level entities are linked
-            # try-except necessary since participant and dataset might not be linked
-            # and thus participant would be None or accessing participant.dataset would
-            # raise an AttributeError
-            # TODO: test this
-            try:
-                if participant := self.participant:
+            dataset_root = self.root
+
+            if participant := self.participant:
+                if participant.dataset:
                     dataset_root = participant.dataset.root
-            except AttributeError:
-                dataset_root = self.root
+                else:
+                    warn(
+                        "Top-level Participant object of this Session has no linked "
+                        "top-level Dataset object. Therefore this Session's 'root' "
+                        "attribute is used for Scan detection.",
+                        TopLevelEntityNotLinkedWarning,
+                    )
+            else:
+                warn(
+                    "Session is not linked to a Participant object. Therefore "
+                    "this session's 'root' attribute is used for scan detection.",
+                    TopLevelEntityNotLinkedWarning,
+                )
 
             self._scans = get_scans_from_files(self, dataset_root=dataset_root)
 
@@ -152,9 +157,9 @@ class Session:
         return self._scans
 
     @scans.setter
-    def scans(self, value: Iterable[Mapping] | Iterable[Scan]) -> None:
+    def scans(self, value: Sequence[Mapping] | Sequence[Scan]) -> None:
         # TODO: handle columns here
-        if isinstance(value, Iterable):
+        if isinstance(value, Sequence):
             if all(isinstance(entry, Mapping) for entry in value):
                 self._scans = []
                 for entry in value:
@@ -166,7 +171,7 @@ class Session:
             raise TypeError("Field `Scans` must be a list of Scan objects")
 
     @property
-    def datatypes(self) -> Iterable[Datatype]:
+    def datatypes(self) -> Sequence[Datatype]:
         if not self._datatypes:
             self._datatypes = []
             for file in self.root.iterdir():
@@ -178,8 +183,8 @@ class Session:
         return self._datatypes
 
     @datatypes.setter
-    def datatypes(self, value: Iterable[str] | Iterable[Datatype]) -> None:
-        if isinstance(value, Iterable):
+    def datatypes(self, value: Sequence[str] | Sequence[Datatype]) -> None:
+        if isinstance(value, Sequence):
             if all(isinstance(entry, str) for entry in value):
                 self._datatypes = []
                 for entry in value:
@@ -197,14 +202,25 @@ class Session:
         else:
             raise TypeError("Field `Datatypes` must be a list of Datatype objects")
 
+    def write(self, output_path: os.PathLike | str) -> None:
+        output_path = pathlib.Path(output_path)
+        for datatype in self.datatypes:
+            # Insert datatype level folder
+            path = pathlib.Path(output_path.parent) / datatype.datatype_name
+            if not path.exists():
+                path.mkdir(parents=True, exist_ok=True)
+            path /= output_path.name
+            datatype.write(path)
 
-class Participant:
+
+class Participant(Entity):
     def __init__(
         self,
         base_path: os.PathLike | str,
         participant_id: str,
         **kwargs: Any,
     ) -> None:
+        super().__init__(_entity_id=participant_id, _entity_name="sub")
         self.participant_id: str = participant_id  # !: This is required
         self.species: str | int | None = "homo sapiens"
         self.age: int | None = None
@@ -218,9 +234,9 @@ class Participant:
 
         self._dataset: Dataset | None = None
 
-        self.columns: Iterable[Column] | None = None
+        self.columns: Sequence[Column] | None = None
 
-        self._sessions: Iterable[Session] | None = None
+        self._sessions: Sequence[Session] | None = None
 
         for key, value in kwargs.items():
             setattr(self, key, value)
@@ -232,13 +248,10 @@ class Participant:
         return f"<Participant id={self.participant_id}>"
 
     @property
-    def dataset(self) -> SimpleNamespace | None:
+    def dataset(self) -> "Dataset | None":
         if self._dataset:
-            dataset_dict = {k.lstrip("_"): v for k, v in vars(self._dataset).items()}
-            dataset_dict.pop("participants")
-            return SimpleNamespace(**dataset_dict)
+            return self._dataset
 
-        assert self._dataset is None  # for mypy
         warn("Participant is not linked to a Dataset", TopLevelEntityNotLinkedWarning)
         return self._dataset
 
@@ -247,7 +260,7 @@ class Participant:
         self._dataset = value
 
     @property
-    def sessions(self) -> Iterable[Session]:
+    def sessions(self) -> Sequence[Session]:
         if not self._sessions:
             tsv_path, _ = get_tsv_json_files(
                 self.root, f"{self.participant_id}_sessions"
@@ -267,8 +280,8 @@ class Participant:
         return self._sessions
 
     @sessions.setter
-    def sessions(self, value: Iterable[Mapping] | Iterable[Session]) -> None:
-        if isinstance(value, Iterable):
+    def sessions(self, value: Sequence[Mapping] | Sequence[Session]) -> None:
+        if isinstance(value, Sequence):
             if all(isinstance(entry, Mapping) for entry in value):
                 self._sessions = []
                 for entry in value:
@@ -278,6 +291,46 @@ class Participant:
                 self._sessions = value  # type: ignore[assignment]  # mypy cannot type narrow on all()
         else:
             raise TypeError("Field `Sessions` must be a list of Session objects")
+
+    def list_sessions(self) -> pd.DataFrame:
+        sessions_dataframe = pd.DataFrame()
+        for session in self.sessions:
+            session_dict = session.__dict__.copy()
+            session_dict = clean_dict(session_dict, keys_to_titlecase=False)
+
+            # session_dict.pop("columns")
+            # TODO: expand columns
+            sessions_dataframe = pd.concat(
+                [sessions_dataframe, pd.DataFrame([session_dict])],
+                ignore_index=True,
+            )
+        sessions_dataframe.dropna(axis=1, how="all", inplace=True)
+        return sessions_dataframe
+
+    def write(self, output_path: os.PathLike | str) -> None:
+        output_path = pathlib.Path(output_path)
+
+        # write sessions description to "sessions.tsv"
+        sessions_dataframe = self.list_sessions()
+        sessions_dataframe.to_csv(
+            output_path / f"{self.participant_id}_sessions.tsv", sep="\t", index=False
+        )
+
+        # write each session data
+        for session in self.sessions:
+            if len(self.sessions) > 1:
+                path = output_path / session.session_id
+                if not path.exists():
+                    path.mkdir(parents=True, exist_ok=True)
+            else:
+                path = output_path
+            path /= self.participant_id
+            path = (
+                append_path(path, f"_{session.session_id}")
+                if len(self.sessions) > 1
+                else path
+            )
+            session.write(path)
 
 
 def get_sessions_from_files(
@@ -294,7 +347,7 @@ def get_sessions_from_files(
                 raise FieldMissingError(
                     "Field `session_id` is required as column in sessions.tsv"
                 )
-            add_entity_to_list(
+            add_object_to_sequence(
                 entity_list=sessions,
                 entity_class=Session,
                 base_path=participant.root / session_id,
@@ -305,7 +358,7 @@ def get_sessions_from_files(
         dirs = participant.root.iterdir()
         for directory in dirs:
             if directory.is_dir() and directory.name.startswith("ses-"):
-                add_entity_to_list(
+                add_object_to_sequence(
                     entity_list=sessions,
                     entity_class=Session,
                     base_path=participant.root / directory.name,
@@ -342,13 +395,13 @@ def get_scans_from_files(
 
         if column_data:
             for column_name, column_values in column_data.items():
-                columns.append(Column(column_name=column_name, **column_values))
+                columns.append(Column(name=column_name, **column_values))
 
         if tsv_path and dir_level != dataset_root:
             scans = []
             data = parse_descriptive_tsv(tsv_path)
             for scan in data:
-                add_entity_to_list(
+                add_object_to_sequence(
                     entity_list=scans,
                     entity_class=Scan,
                     base_path=session.root,

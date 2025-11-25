@@ -84,3 +84,7 @@ class Task(BaseTask):
             raise TypeError(
                 "Field `Acquisitions` must be a list of Acquisition objects"
             )
+
+    def write(self, output_path: os.PathLike | str) -> None:
+        # TODO: implement writing of basic Task data
+        raise NotImplementedError

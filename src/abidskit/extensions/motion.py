@@ -9,26 +9,54 @@ import json
 import os
 import pathlib
 import re
-from dataclasses import dataclass
-from types import SimpleNamespace
-from typing import Any, Iterable, Mapping
+from dataclasses import asdict, dataclass
+from typing import Any, Mapping, Sequence
 from warnings import warn
 
 import pandas as pd
 
-from abidskit.common.base import BaseAcquisition, BaseTask
+from abidskit.common.base import BaseAcquisition, BaseTask, Entity, Run
 from abidskit.common.specs_misc import Column, Hardware, Institution
-from abidskit.common.specs_run import Run
-from abidskit.utils.exceptions import TopLevelEntityNotLinkedWarning
+from abidskit.utils.dict_manipulation import clean_dict, delete_none_from_dict
+from abidskit.utils.exceptions import (
+    FieldEntryNotValidError,
+    TopLevelEntityNotLinkedWarning,
+)
 from abidskit.utils.helpers import (
-    add_entity_to_list,
+    add_object_to_sequence,
+    append_path,
     get_entity_from_file,
     get_tsv_json_files,
     parse_descriptive_tsv,
     parse_json_sidecar,
     set_attr_from_dict,
+    write_entities,
 )
 from abidskit.utils.string_manipulation import to_snakecase
+
+MOTION_CHANNEL_COMPONENT_ALLOWED_FIELD_ENTRIES = {
+    "x",
+    "y",
+    "z",
+    "quat_x",
+    "quat_y",
+    "quat_z",
+    "quat_w",
+    "n/a",
+}
+
+MOTION_CHANNEL_TYPE_ALLOWED_FIELD_ENTRIES = {
+    "ACCEL",
+    "ANGACCEL",
+    "GYRO",
+    "JNTANG",
+    "LATENCY",
+    "MAGN",
+    "MISC",
+    "ORNT",
+    "POS",
+    "VEL",
+}
 
 
 @dataclass(slots=True)
@@ -42,6 +70,9 @@ class ReferenceFrame:
     def __repr__(self) -> str:
         return f"<ReferenceFrame name={self.name}>"
 
+    def __hash__(self) -> int:
+        return id(self)
+
 
 class MotionChannel:
     def __init__(
@@ -54,17 +85,17 @@ class MotionChannel:
         **kwargs: Any,
     ):
         self.name: str = name
-        self.component: str = component
+        self._component: str = component
         self._type: str = type
         self.tracked_point: str = tracked_point
         self.units: str = units
         self.placement: str | None = None
-        self.reference_frame: str | None = None
+        self.reference_frame: str | ReferenceFrame | None = None
         self.description: str | None = None
         self.sampling_frequency: int | float | None = None
         self.status: str | None = None
         self.status_description: str | None = None
-        self.columns: Iterable[Column] | None = None
+        self.columns: Sequence[Column] | None = None
 
         set_attr_from_dict(self, kwargs)
 
@@ -72,33 +103,46 @@ class MotionChannel:
         return f"<MotionChannel name={self.name}>"
 
     @property
-    def type(self) -> str:
+    def type(self) -> str | None:
         return self._type
 
     @type.setter  # noqa: A003
     def type(self, value: str) -> None:
+        if value not in MOTION_CHANNEL_TYPE_ALLOWED_FIELD_ENTRIES:
+            raise FieldEntryNotValidError(
+                f"Field `Type` must be one "
+                f"of {MOTION_CHANNEL_TYPE_ALLOWED_FIELD_ENTRIES}"
+            )
         self._type = value
+
+    @property
+    def component(self) -> str | None:
+        return self._component
+
+    @component.setter
+    def component(self, value: str) -> None:
+        if value not in MOTION_CHANNEL_COMPONENT_ALLOWED_FIELD_ENTRIES:
+            raise FieldEntryNotValidError(
+                f"Field `Component` must be one "
+                f"of {MOTION_CHANNEL_COMPONENT_ALLOWED_FIELD_ENTRIES}"
+            )
+        self._component = value
 
 
 class MotionRun(Run):
     def __init__(self, base_path: os.PathLike | str, run_id: str, **kwargs):
         super().__init__(base_path=base_path, run_id=run_id)
 
-        self._channels: Iterable[MotionChannel] | None = None
+        self._channels: Sequence[MotionChannel] | None = None
         self._data: Any = None
 
         set_attr_from_dict(self, kwargs)
 
     @property
-    def acquisition(self) -> SimpleNamespace | None:
+    def acquisition(self) -> "MotionAcquisition | None":
         if self._acquisition:
-            acquisition_dict = {
-                k.lstrip("_"): v for k, v in vars(self._acquisition).items()
-            }
-            acquisition_dict.pop("runs")
-            return SimpleNamespace(**acquisition_dict)
+            return self._acquisition
 
-        assert self._acquisition is None  # for mypy
         warn(
             "Run is not linked to a Acquisition object.", TopLevelEntityNotLinkedWarning
         )
@@ -109,22 +153,28 @@ class MotionRun(Run):
         self._acquisition = value
 
     @property
-    def channels(self) -> Iterable[MotionChannel]:
+    def channels(self) -> Sequence[MotionChannel] | None:
         return self._channels
 
     @channels.setter
-    def channels(self, value: Iterable[MotionChannel]) -> None:
+    def channels(self, value: Sequence[MotionChannel]) -> None:
         self._channels = value
 
     @property
     def data(self):
         if self._data is None:
-            # TODO: handle acquisition_id
+            file_name = f"*{self.acquisition.tracking_system.tracking_system_id}*"
+            file_name += (
+                f"_{self.acquisition.acquisition_id}"
+                if len(self.acquisition.tracking_system.acquisitions) > 1
+                else ""
+            )
+            file_name += f"_{self.run_id}" if len(self.acquisition.runs) > 1 else ""
             tsv_path, _ = get_tsv_json_files(
                 self.root,
-                f"*tracksys-{self.acquisition.tracking_system.tracking_system_id}*_motion",
+                file_name + "_motion",
             )
-            # TODO: put this in a file and write decorator to get files with datalad
+            # TODO: put this in a function and write decorator to get files with datalad
             data_frame = pd.read_csv(tsv_path, sep="\t", header=None)
             column_names = {}
             for column_number, column in enumerate(self.channels):
@@ -138,6 +188,81 @@ class MotionRun(Run):
     @data.setter
     def data(self, value: pd.DataFrame) -> None:
         self._data = value
+
+    def list_channels(self) -> pd.DataFrame:
+        channels_dataframe = pd.DataFrame()
+        for motion_channel in self.channels if self.channels else []:
+            channel_dict = motion_channel.__dict__.copy()
+            channel_dict["component"] = channel_dict.pop("_component", None)
+            channel_dict["type"] = channel_dict.pop("_type", None)
+
+            channel_dict = delete_none_from_dict(channel_dict)
+
+            reference_frame = channel_dict.pop("reference_frame")
+            if isinstance(reference_frame, ReferenceFrame):
+                channel_dict["reference_frame"] = reference_frame.name
+            else:
+                channel_dict["reference_frame"] = reference_frame
+
+            channel_dict.pop("columns")
+            # TODO: expand columns
+            channels_dataframe = pd.concat(
+                [channels_dataframe, pd.DataFrame([channel_dict])],
+                ignore_index=True,
+            )
+        channels_dataframe.dropna(axis=1, how="all", inplace=True)
+        return channels_dataframe
+
+    def _reference_frames(self) -> set[ReferenceFrame]:
+        reference_frames_set = set()
+        for motion_channel in self.channels if self.channels else []:
+            reference_frame = motion_channel.reference_frame
+            if isinstance(reference_frame, ReferenceFrame):
+                reference_frames_set.add(reference_frame)
+        return reference_frames_set
+
+    def _columns(self) -> set[Column]:
+        columns_set = set()
+        for motion_channel in self.channels if self.channels else []:
+            for column in motion_channel.columns if motion_channel.columns else []:
+                columns_set.add(column)
+        return columns_set
+
+    def write(self, output_path: os.PathLike | str) -> None:
+        output_path = pathlib.Path(output_path)
+        # write motion data to "*_motion.tsv"
+        output_path_data = append_path(output_path, "_motion.tsv")
+        self.data.to_csv(output_path_data, sep="\t", index=False, header=False)
+
+        # write channels description to "*_channels.tsv"
+        output_path_channels = append_path(output_path, "_channels.tsv")
+        channels_dataframe = self.list_channels()
+        channels_dataframe.to_csv(output_path_channels, sep="\t", index=False)
+
+        # write columns description to "*_channels.json"
+        output_path_channel_description = append_path(output_path, "_channels.json")
+        channel_description = {}
+
+        columns = self._columns()
+        for column in columns:
+            column_dict = column.__dict__.copy()
+            column_dict.pop("column_name")
+            channel_description[column.column_name] = column_dict
+        reference_frames = self._reference_frames()
+
+        for reference_frame in reference_frames:
+            reference_frame_dict = asdict(reference_frame)
+            reference_frame_name = reference_frame_dict.pop("name")
+            channel_description["reference_frame"]["Levels"] = {
+                reference_frame_name: reference_frame_dict
+            }
+
+        channel_description = clean_dict(channel_description)
+        json.dump(
+            channel_description,
+            output_path_channel_description.open("w", encoding="utf-8"),
+            indent=4,
+        )
 
 
 class MotionAcquisition(BaseAcquisition):
@@ -163,25 +288,29 @@ class MotionAcquisition(BaseAcquisition):
         self.ornt_channel_count: int | None = None
         self.pos_channel_count: int | None = None
         self.sampling_frequency_effective: int | float | None = None
-        self.recording_duration: int | float | None = None
         self.subject_artefact_description: str | None = None
         self.tracked_points_count: int | float | None = None
         self.vel_channel_count: int | None = None
+
+        # Recording duration belongs to run level --> !TODO: move to Run
+        self._recording_duration: int | float | None = kwargs.pop(
+            "RecordingDuration", None
+        )
+
+        # sampling_frequency_effective belongs to run level? --> !TODO: move to Run?
+        self._sampling_frequency_effective: int | float | None = kwargs.pop(
+            "SamplingFrequencyEffective", None
+        )
 
         self._tracking_system: "TrackSys | None" = None
 
         set_attr_from_dict(self, kwargs)
 
     @property
-    def tracking_system(self) -> SimpleNamespace | None:
+    def tracking_system(self) -> "TrackSys | None":
         if self._tracking_system:
-            tracking_system_dict = {
-                k.lstrip("_"): v for k, v in vars(self._tracking_system).items()
-            }
-            tracking_system_dict.pop("acquisitions")
-            return SimpleNamespace(**tracking_system_dict)
+            return self._tracking_system
 
-        assert self._tracking_system is None  # for mypy
         warn(
             "Acquisition is not linked to a TrackSys object.",
             TopLevelEntityNotLinkedWarning,
@@ -193,11 +322,16 @@ class MotionAcquisition(BaseAcquisition):
         self._tracking_system = value
 
     @property
-    def runs(self) -> Iterable[MotionRun]:
+    def runs(self) -> Sequence[MotionRun]:
         if not self._runs:
+            if self.tracking_system:
+                file_name = f"*{self.tracking_system.tracking_system_id}*"
+            else:
+                file_name = "*"
+
             tsv_path, json_path = get_tsv_json_files(
                 self.root,
-                f"*tracksys-{self.tracking_system.tracking_system_id}*_channels",
+                file_name + "_channels",
             )
             channels = get_motion_channels(tsv_path=tsv_path, json_path=json_path)
             self._runs = []
@@ -237,8 +371,8 @@ class MotionAcquisition(BaseAcquisition):
         return self._runs
 
     @runs.setter
-    def runs(self, value: Iterable[str] | Iterable[MotionRun]) -> None:
-        if isinstance(value, Iterable):
+    def runs(self, value: Sequence[str | MotionRun]) -> None:
+        if isinstance(value, Sequence):
             if all(isinstance(entry, str) for entry in value):
                 self._runs = []
                 for entry in value:
@@ -252,27 +386,31 @@ class MotionAcquisition(BaseAcquisition):
             raise TypeError("Field `Runs` must be a list of Run objects")
 
 
-class TrackSys:
+class TrackSys(Entity):
     def __init__(
         self,
         base_path: os.PathLike | str,
         tracking_system_id: str,
-        **kwargs: "dict | Hardware | Institution | MotionTask | Iterable",
+        motion_description: dict | None = None,
+        **kwargs: "dict | Hardware | Institution | MotionTask | Sequence",
     ) -> None:
-        self.tracking_system_id: str = tracking_system_id
-        self.tracking_system_name: str | None = kwargs["motion"].pop(
-            "TrackingSystemName", None
-        )
-
+        super().__init__(_entity_id=tracking_system_id, _entity_name="tracksys")
         self._hardware: Hardware | None = None
         self._institution: Institution | None = None
-        self._motion: dict | None = kwargs.pop("motion", None)
+        self._motion_description: dict = (
+            motion_description if motion_description else {}
+        )
+
+        self.tracking_system_id: str = self._entity_id
+        self.tracking_system_name: str | None = self._motion_description.pop(
+            "TrackingSystemName", None
+        )
 
         self.root: pathlib.Path = pathlib.Path(base_path)
 
         self._task: MotionTask | None = None
 
-        self._acquisitions: Iterable[MotionAcquisition] | None = None
+        self._acquisitions: Sequence[MotionAcquisition] | None = None
 
         set_attr_from_dict(self, kwargs)
 
@@ -314,13 +452,10 @@ class TrackSys:
             raise TypeError("Field `Institution` must be a Institution object")
 
     @property
-    def task(self) -> SimpleNamespace | None:
+    def task(self) -> "MotionTask | None":
         if self._task:
-            task_dict = {k.lstrip("_"): v for k, v in vars(self._task).items()}
-            task_dict.pop("tracking_systems")
-            return SimpleNamespace(**task_dict)
+            return self._task
 
-        assert self._task is None  # for mypy
         warn(
             "TrackSys is not linked to a Task object.",
             TopLevelEntityNotLinkedWarning,
@@ -332,7 +467,7 @@ class TrackSys:
         self._task = value
 
     @property
-    def acquisitions(self) -> Iterable[MotionAcquisition]:
+    def acquisitions(self) -> Sequence[MotionAcquisition]:
         if not self._acquisitions:
             self._acquisitions = []
             files = self.root.iterdir()
@@ -350,52 +485,58 @@ class TrackSys:
             for acquisition_id in acquisition_ids:
                 _, json_path = get_tsv_json_files(
                     self.root,
-                    f"*tracksys-{self.tracking_system_id}_acq-{acquisition_id}_*_motion",
+                    f"*{self.tracking_system_id}_acq-{acquisition_id}_*_motion",
                 )
 
                 if json_path:
                     data = parse_motion_json_sidecar(json_path)
-                    acquisition_info = data["motion"]
-                    sampling_frequency = acquisition_info.pop("SamplingFrequency")
+                    acquisition_description = data["motion"]
+                    sampling_frequency = acquisition_description.pop(
+                        "SamplingFrequency"
+                    )
                     self._acquisitions.append(
                         MotionAcquisition(
                             base_path=self.root,
                             acquisition_id="acq-" + acquisition_id,
                             tracking_system=self,
                             sampling_frequency=sampling_frequency,
-                            **acquisition_info,
+                            **acquisition_description,
                         )
                     )
                 else:
                     raise NotImplementedError  # TODO: implement
 
-            # If no acquisitions are found, add a default one from the motion info
+            # If no acquisitions are found, add a default one from
+            # the motion description
             if not self._acquisitions:
                 self._acquisitions.append(
                     MotionAcquisition(
                         acquisition_id="acq-00",
                         base_path=self.root,
                         tracking_system=self,
-                        sampling_frequency=self._motion.pop(
+                        sampling_frequency=self._motion_description.pop(
                             "SamplingFrequency"
-                        ),  # FIXME: can be None
-                        **self._motion,
+                        ),  # FIXME: dict entry can be None
+                        **self._motion_description,
                     )
                 )
 
         return self._acquisitions
+
+    def write(self, output_path: os.PathLike | str) -> None:
+        write_entities(output_path, self.acquisitions)
 
 
 class MotionTask(BaseTask):
     def __init__(
         self, base_path: os.PathLike | str, task_name: str, **kwargs: Any
     ) -> None:
-        self._tracking_systems = None
+        self._tracking_systems: Sequence[TrackSys] | None = None
 
         super().__init__(base_path=base_path, task_name=task_name, **kwargs)
 
     @property
-    def tracking_systems(self) -> Iterable[TrackSys]:
+    def tracking_systems(self) -> Sequence[TrackSys]:
         if not self._tracking_systems:
             self._tracking_systems = []
             files = self.root.iterdir()
@@ -417,29 +558,32 @@ class MotionTask(BaseTask):
 
                 if json_path:
                     data = parse_motion_json_sidecar(json_path)
-                    motion_info = data["motion"]  # FIXME: can be None
-                    hardware_info = data["hardware"]  # FIXME: can be None
-                    institution_info = data["institution"]  # FIXME: can be None
+                    motion_description = data["motion"]  # FIXME: can be None
+                    hardware_description = data["hardware"]  # FIXME: can be None
+                    institution_description = data["institution"]  # FIXME: can be None
                     self._tracking_systems.append(
                         TrackSys(
-                            tracking_system_id=tracking_system_id,
+                            tracking_system_id="tracksys-" + tracking_system_id,
                             base_path=self.root,
                             task=self,
-                            hardware=hardware_info,
-                            institution=institution_info,
-                            motion=motion_info,
+                            hardware=hardware_description,
+                            institution=institution_description,
+                            motion_description=motion_description,
                         )
                     )
                 else:
                     raise NotImplementedError  # TODO: implement
 
-            # TODO: If no tracking systems are found, add a default one?
+            if not self._tracking_systems:
+                pass
+                # raise ...
+                # TODO: If no tracking systems are found raise Error
 
         return self._tracking_systems
 
     @tracking_systems.setter
-    def tracking_systems(self, value: Iterable[Mapping] | Iterable[TrackSys]) -> None:
-        if isinstance(value, Iterable):
+    def tracking_systems(self, value: Sequence[Mapping] | Sequence[TrackSys]) -> None:
+        if isinstance(value, Sequence):
             if all(isinstance(entry, Mapping) for entry in value):
                 self._tracking_systems = []
                 for entry in value:
@@ -454,35 +598,86 @@ class MotionTask(BaseTask):
                 "Field `TrackingSystems` must be a list of TrackSys objects"
             )
 
+    def write(self, output_path: os.PathLike | str) -> None:
+        # write json sidecar to "*_motion.json"
+        task_dict = self.__dict__.copy()
+        for tracking_system in self.tracking_systems:
+            hardware_dict = (
+                asdict(tracking_system.hardware) if tracking_system.hardware else {}
+            )
+            institution_dict = (
+                asdict(tracking_system.institution)
+                if tracking_system.institution
+                else {}
+            )
+            output_path_tracksys = append_path(
+                output_path, f"_{tracking_system.tracking_system_id}"
+            )
+            for acquisition in tracking_system.acquisitions:
+                acquisition_dict = acquisition.__dict__.copy()
+                output_path_acquisition = (
+                    append_path(output_path_tracksys, f"_{acquisition.acquisition_id}")
+                    if len(tracking_system.acquisitions) > 1
+                    else output_path_tracksys
+                )
+                for run in acquisition.runs:
+                    run_dict = run.__dict__.copy()
+                    output_path_run = (
+                        append_path(output_path_acquisition, f"_{run.run_id}")
+                        if len(acquisition.runs) > 1
+                        else output_path_acquisition
+                    )
+
+                    motion_description = {
+                        **task_dict,
+                        **hardware_dict,
+                        **institution_dict,
+                        **acquisition_dict,
+                        **run_dict,
+                    }
+                    motion_description.pop("acquisition_id")
+                    motion_description.pop("run_id")
+                    motion_description = clean_dict(motion_description)
+                    output_path_motion_description = append_path(
+                        output_path_run, "_motion.json"
+                    )
+                    json.dump(
+                        motion_description,
+                        output_path_motion_description.open("w", encoding="utf-8"),
+                        indent=4,
+                    )
+
+        write_entities(output_path, self.tracking_systems)
+
 
 def parse_motion_json_sidecar(sidecar_path: pathlib.Path) -> dict:
     with sidecar_path.open("r", encoding="utf-8") as f:
         data = json.load(f)
-        task_information = {}
-        hardware_information = {}
-        institution_information = {}
-        motion_information = {}
+        task_description = {}
+        hardware_description = {}
+        institution_description = {}
+        motion_description = {}
         for key, value in data.items():
             if re.match(r"^Task[A-Z].*|^Instructions", key):
-                task_information[key] = value
+                task_description[key] = value
             elif re.match(r"^Device[A-Z].*|^Manufacturer.*|^Software[A-Z].*", key):
-                hardware_information[key] = value
+                hardware_description[key] = value
             elif re.match(r"^Institution.*", key):
-                institution_information[key] = value
+                institution_description[key] = value
             else:
-                motion_information[key] = value
+                motion_description[key] = value
 
         return {
-            "task": task_information,
-            "hardware": hardware_information,
-            "institution": institution_information,
-            "motion": motion_information,
+            "task": task_description,
+            "hardware": hardware_description,
+            "institution": institution_description,
+            "motion": motion_description,
         }
 
 
-def get_reference_frames(reference_frames_data: dict) -> dict[str, ReferenceFrame]:
+def get_reference_frames(reference_frames_levels: dict) -> dict[str, ReferenceFrame]:
     reference_frames_dict = {}
-    for ref_frame_name, ref_frame_values in reference_frames_data["Levels"].items():
+    for ref_frame_name, ref_frame_values in reference_frames_levels.items():
         ref_frame_values_snakecase = {}
         for key, val in ref_frame_values.items():
             ref_frame_values_snakecase[to_snakecase(key)] = val
@@ -496,8 +691,8 @@ def get_reference_frames(reference_frames_data: dict) -> dict[str, ReferenceFram
 def get_motion_channels(
     tsv_path: pathlib.Path | None,
     json_path: pathlib.Path | None,
-) -> Iterable[MotionChannel]:
-    motion_channels: Iterable[MotionChannel] = []
+) -> Sequence[MotionChannel]:
+    motion_channels: list[MotionChannel] = []
     columns = []
     reference_frames_dict = None
 
@@ -505,16 +700,18 @@ def get_motion_channels(
         column_data = parse_json_sidecar(json_path)
 
         reference_frames_data = column_data.pop("reference_frame", None)
-        if reference_frames_data:
-            reference_frames_dict = get_reference_frames(reference_frames_data)
+        if isinstance(reference_frames_data, dict):
+            reference_frames_levels = reference_frames_data.pop("Levels")
+            reference_frames_dict = get_reference_frames(reference_frames_levels)
 
+        columns.append(Column(name="reference_frame", **reference_frames_data))
         for column_name, column_values in column_data.items():
-            columns.append(Column(column_name=column_name, **column_values))
+            columns.append(Column(name=column_name, **column_values))
 
     if tsv_path:
         data = parse_descriptive_tsv(tsv_path)
         for motion_channel in data:
-            assert isinstance(motion_channel, dict)
+            assert isinstance(motion_channel, dict), "Must be dicts in Generator."
 
             reference_frame_name = motion_channel.pop("reference_frame")
             if (
@@ -524,7 +721,7 @@ def get_motion_channels(
                 reference_frame = reference_frames_dict[reference_frame_name]
             else:
                 reference_frame = reference_frame_name
-            add_entity_to_list(
+            add_object_to_sequence(
                 entity_list=motion_channels,
                 entity_class=MotionChannel,
                 columns=columns,

@@ -4,15 +4,24 @@
 #  Chair of Informatics for Medical Technology
 #
 #  SPDX-License-Identifier: BSD-3-Clause
-#
-#  SPDX-License-Identifier: BSD-3-Clause
 
+import itertools
 import random
 
 import pytest
 from mimesis import Development
 
 import abidskit as abk
+
+
+class FixtureParameterNotSupportedError(Exception):
+    pass
+
+
+def _permutate_dict(data):
+    # From https://stackoverflow.com/a/61557885
+    product_values = itertools.product(*data.values())
+    return [dict(zip(data.keys(), values, strict=False)) for values in product_values]
 
 
 @pytest.fixture(scope="module")

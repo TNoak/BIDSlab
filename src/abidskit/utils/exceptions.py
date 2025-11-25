@@ -4,8 +4,6 @@
 #  Chair of Informatics for Medical Technology
 #
 #  SPDX-License-Identifier: BSD-3-Clause
-#
-#  SPDX-License-Identifier: BSD-3-Clause
 
 
 class FieldEntryNotValidError(Exception):
@@ -76,6 +74,12 @@ class MultipleFilesFoundError(Exception):
 
 class MultipleFilesFoundWarning(Warning):
     """Raised when multiple files are found, but only one is expected."""
+
+    pass
+
+
+class PathsSameWarning(Warning):
+    """Raised when two paths are the same."""
 
     pass
 

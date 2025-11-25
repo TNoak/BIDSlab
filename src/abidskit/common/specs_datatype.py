@@ -9,8 +9,7 @@
 
 import os
 import pathlib
-from types import SimpleNamespace
-from typing import TYPE_CHECKING, Iterable, Mapping
+from typing import TYPE_CHECKING, Iterable, Mapping, Sequence
 from warnings import warn
 
 from abidskit.common.base import BaseTask
@@ -21,6 +20,7 @@ from abidskit.utils.helpers import (
     get_entity_from_file,
     get_tsv_json_files,
     set_attr_from_dict,
+    write_entities,
 )
 
 if TYPE_CHECKING:
@@ -51,7 +51,7 @@ class Datatype:
 
         self._session: Session | None = None
 
-        self._tasks: Iterable[BaseTask] | None = None
+        self._tasks: Sequence[BaseTask] | None = None
 
         if kwargs:
             set_attr_from_dict(self, kwargs)
@@ -60,13 +60,10 @@ class Datatype:
         return f"<Datatype datatype_name={self.datatype_name}>"
 
     @property
-    def session(self) -> SimpleNamespace | None:
+    def session(self) -> "Session | None":
         if self._session:
-            session_dict = {k.lstrip("_"): v for k, v in vars(self._session).items()}
-            session_dict.pop("datatypes")
-            return SimpleNamespace(**session_dict)
+            return self._session
 
-        assert self._session is None  # for mypy
         warn(
             "Datatype is not linked to a Session object.",
             TopLevelEntityNotLinkedWarning,
@@ -78,7 +75,7 @@ class Datatype:
         self._session = value
 
     @property
-    def tasks(self) -> Iterable[BaseTask]:
+    def tasks(self) -> Sequence[BaseTask]:
         if not self._tasks:
             self._tasks = []
             if self.datatype_name in DATATYPES_WITH_TASKS:
@@ -146,3 +143,6 @@ class Datatype:
                 self._tasks = value  # type: ignore[assignment]  # mypy cannot type narrow on all()
         else:
             raise TypeError("Field `Tasks` must be a list of Task objects")
+
+    def write(self, output_path: os.PathLike | str) -> None:
+        write_entities(output_path, self.tasks)

@@ -6,26 +6,43 @@
 #  SPDX-License-Identifier: BSD-3-Clause
 
 import json
+import os
 import pathlib
 import re
-from typing import TYPE_CHECKING, Any, Iterable, Iterator, List, Mapping, TypeVar
+import shutil
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Iterator,
+    Mapping,
+    MutableSequence,
+    Sequence,
+    TypeVar,
+)
 from warnings import catch_warnings, simplefilter, warn
 
+from abidskit._typing import MC, E, PEntity
 from abidskit.utils.checks import check_dataset_description_present
 from abidskit.utils.exceptions import (
     FieldNotValidError,
     FileTypeUnsupportedWarning,
     MultipleFilesFoundError,
     MultipleFilesFoundWarning,
+    PathsSameWarning,
     TopLevelEntityNotLinkedWarning,
 )
 from abidskit.utils.string_manipulation import to_snakecase
 
 if TYPE_CHECKING:
     from abidskit.common.specs_description import Dataset
-    from abidskit.common.specs_summary import Participant, Scan, Session
+    from abidskit.common.specs_summary import Scan
 
 T = TypeVar("T")
+
+REQUIRED_ENTITIES_FOR_WRITING = {
+    "tracksys",
+    "task",
+}
 
 
 def set_attr_from_dict(obj: T, data: Mapping) -> None:
@@ -82,7 +99,7 @@ def get_root_files(dataset: "Dataset") -> None:
 
 
 def get_matching_subpaths(
-    path: pathlib.Path, matches: Iterable[str], root: pathlib.Path
+    path: pathlib.Path, matches: Sequence[str], root: pathlib.Path
 ) -> list[pathlib.Path]:
     # Get matching subpaths in the root directory
     paths = list(path.relative_to(root).parents) + [path]
@@ -142,10 +159,48 @@ def get_tsv_json_files(
     return tsv_path, json_path
 
 
-def add_entity_to_list(
-    entity_list: List,
-    entity_class: "type[Participant] | type[Session] | type[Scan]",
+def add_object_to_sequence(
+    entity_list: MutableSequence,
+    entity_class: "type[E] | type[MC] | type[Scan]",
     **kwargs: Any,
 ) -> None:
     entity_instance = entity_class(**kwargs)
     entity_list.append(entity_instance)
+
+
+def append_path(
+    input_path: os.PathLike | str,
+    appendix: str,
+) -> pathlib.Path:
+    path = pathlib.Path(input_path)
+    return path.with_stem(path.stem + appendix)
+
+
+def copy_file(
+    source_path: os.PathLike | str,
+    destination_path: os.PathLike | str,
+) -> None:
+    source_path = pathlib.Path(source_path)
+    destination_path = pathlib.Path(destination_path)
+    if source_path == destination_path:
+        warn(
+            "Source and destination paths are the same. Skipping copy.",
+            PathsSameWarning,
+        )
+    elif source_path.exists():
+        shutil.copy(source_path, destination_path)
+    else:
+        raise FileNotFoundError(f"Source file {source_path} does not exist.")
+
+
+def write_entities(
+    output_path: os.PathLike | str, entities: "Sequence[PEntity]"
+) -> None:
+    output_path = pathlib.Path(output_path)
+    for entity in entities:
+        path = (
+            append_path(output_path, f"_{entity._entity_id}")
+            if len(entities) > 1 or entity._entity_name in REQUIRED_ENTITIES_FOR_WRITING
+            else output_path
+        )
+        entity.write(path)
