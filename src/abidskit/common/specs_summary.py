@@ -7,7 +7,7 @@
 
 import os
 import pathlib
-from typing import TYPE_CHECKING, Any, List, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Mapping, MutableSequence, Sequence
 from warnings import warn
 
 import pandas as pd
@@ -336,8 +336,8 @@ class Participant(Entity):
 def get_sessions_from_files(
     participant: Participant,
     tsv_path: pathlib.Path | None,
-) -> List[Session]:
-    sessions: List[Session] = []
+) -> MutableSequence[Session]:
+    sessions: MutableSequence[Session] = []
     if tsv_path:
         data = parse_descriptive_tsv(tsv_path)
         for session in data:
@@ -372,7 +372,7 @@ def get_sessions_from_files(
 def get_scans_from_files(
     session: Session,
     dataset_root: pathlib.Path,
-) -> List[Scan]:
+) -> Sequence[Scan]:
     # For every level before sessions:
     # - scans.json can be in root, subject or session level
     # - scans.tsv can be in subject or session level and the one from the entity
@@ -380,7 +380,7 @@ def get_scans_from_files(
     # TODO: make sure that the order of dir_levels is correct, such that dataset_root
     #  is first and session last
     column_data = {}
-    scans: List[Scan] = []
+    scans: Sequence[Scan] = []
 
     for dir_level in get_matching_subpaths(
         path=session.root,

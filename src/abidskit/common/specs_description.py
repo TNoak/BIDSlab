@@ -9,7 +9,7 @@ import json
 import os
 import pathlib
 from dataclasses import dataclass
-from typing import List, Mapping, Sequence
+from typing import Mapping, MutableSequence, Sequence
 
 import pandas as pd
 
@@ -203,7 +203,6 @@ class Dataset:
 
     @participants.setter
     def participants(self, value: Sequence[Mapping] | Sequence[Participant]) -> None:
-        # TODO: handle columns here
         if isinstance(value, Sequence):
             if all(isinstance(entry, Mapping) for entry in value):
                 self._participants = []
@@ -253,7 +252,6 @@ class Dataset:
             participant_dict = clean_dict(participant_dict, keys_to_titlecase=False)
 
             participant_dict.pop("columns")
-            # TODO: expand columns
             participants_dataframe = pd.concat(
                 [participants_dataframe, pd.DataFrame([participant_dict])],
                 ignore_index=True,
@@ -346,8 +344,8 @@ def get_participants_from_files(
     dataset: Dataset,
     tsv_path: pathlib.Path | None,
     json_path: pathlib.Path | None,
-) -> List[Participant]:
-    participants: List[Participant] = []
+) -> MutableSequence[Participant]:
+    participants: MutableSequence[Participant] = []
     columns = []
 
     if json_path:

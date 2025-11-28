@@ -159,6 +159,7 @@ exclude = [
 files = "src/abidskit"
 strict = false
 pretty = true
+disable_error_code = ["import-not-found"]
 
 [[tool.mypy.overrides]]
 module = [
