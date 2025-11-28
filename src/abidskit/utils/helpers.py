@@ -10,6 +10,7 @@ import os
 import pathlib
 import re
 import shutil
+from functools import wraps
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -20,6 +21,8 @@ from typing import (
     TypeVar,
 )
 from warnings import catch_warnings, simplefilter, warn
+
+import pandas as pd
 
 from abidskit._typing import MC, E, PEntity
 from abidskit.utils.checks import check_dataset_description_present
@@ -36,6 +39,14 @@ from abidskit.utils.string_manipulation import to_snakecase
 if TYPE_CHECKING:
     from abidskit.common.specs_description import Dataset
     from abidskit.common.specs_summary import Scan
+
+try:
+    import datalad.api as dl
+except ImportError:
+    dl = None
+    warn(
+        "Datalad is not installed. Some functionalities may be limited.", ImportWarning
+    )
 
 T = TypeVar("T")
 
@@ -204,3 +215,31 @@ def write_entities(
             else output_path
         )
         entity.write(path)
+
+
+def get_data(pkg):
+    def decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            path = kwargs.get("path")
+            if not path.exists():
+                if pkg:
+                    if pkg.__name__ == "datalad.api":
+                        pkg.get(path)
+                    else:
+                        raise ValueError(
+                            f"Data retrieval for package {pkg.__name__} is not "
+                            f"implemented."
+                        )
+                else:
+                    raise ValueError(f"Package {pkg.__name__} is not available.")
+            return f(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+@get_data(dl)
+def load_tsv_data(*, path: pathlib.Path, header: int | None = None) -> pd.DataFrame:
+    return pd.read_csv(path, sep="\t", header=header)

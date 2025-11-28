@@ -31,6 +31,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+datalad = [
+    "datalad",
+]
 tests = [
     "pytest",
     "pytest-cov",

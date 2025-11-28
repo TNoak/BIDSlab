@@ -27,6 +27,7 @@ from abidskit.utils.helpers import (
     append_path,
     get_entity_from_file,
     get_tsv_json_files,
+    load_tsv_data,
     parse_descriptive_tsv,
     parse_json_sidecar,
     set_attr_from_dict,
@@ -175,7 +176,7 @@ class MotionRun(Run):
                 file_name + "_motion",
             )
             # TODO: put this in a function and write decorator to get files with datalad
-            data_frame = pd.read_csv(tsv_path, sep="\t", header=None)
+            data_frame = load_tsv_data(path=tsv_path, header=None)
             column_names = {}
             for column_number, column in enumerate(self.channels):
                 column_names[column_number] = column.name
