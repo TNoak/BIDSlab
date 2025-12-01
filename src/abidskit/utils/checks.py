@@ -4,14 +4,13 @@
 #  Chair of Informatics for Medical Technology
 #
 #  SPDX-License-Identifier: BSD-3-Clause
-#
-#  SPDX-License-Identifier: BSD-3-Clause
 
 import re
 from warnings import warn
 
 from uritools import isuri
 
+from abidskit.settings import get_settings_values
 from abidskit.utils.exceptions import (
     FieldMissingWarning,
     FieldPresentError,
@@ -19,6 +18,7 @@ from abidskit.utils.exceptions import (
     FileMissingError,
     InvalidURIError,
     MultipleFilesFoundError,
+    VersionMismatchError,
     VersionMismatchWarning,
 )
 from abidskit.utils.string_manipulation import to_titlecase
@@ -32,19 +32,29 @@ def check_readme(dataset, files):
             if not readme_found:
                 readme_found = True
             else:
-                raise MultipleFilesFoundError(
-                    "README[.md|.txt|.rst] file is already present."
+                if not get_settings_values()["OVERRIDE_VALIDATION"]:
+                    raise MultipleFilesFoundError(
+                        "README[.md|.txt|.rst] file is already present."
+                    )
+                warn(
+                    "Multiple README[.md|.txt|.rst] files found. Using the "
+                    "first one found.",
+                    FieldPresentWarning,
                 )
+                break
             dataset.readme_path = dataset.root / file
 
-    if not readme_found:
+    if not readme_found and not get_settings_values()["OVERRIDE_VALIDATION"]:
         raise FileMissingError("README file is missing.")
 
 
 def check_citation(dataset, files):
     for file in files:
         if re.match(r"^CITATION\.cff$", file.name):
-            if dataset.authors is not None:
+            if (
+                dataset.authors is not None
+                and not get_settings_values()["OVERRIDE_VALIDATION"]
+            ):
                 raise FieldPresentError(
                     "Field `Authors` must be omitted in `dataset_description` when "
                     "`CITATION.cff` is present."
@@ -80,18 +90,27 @@ def check_license(dataset, files):
 
 def check_version(cls, version):
     if not cls.bids_version == version:
-        warn(
-            f"BIDS version mismatch! Expected: {cls.bids_version}, Found: {version}. "
-            f"Compatibility issues may arise.",
-            VersionMismatchWarning,
-        )
+        if get_settings_values()["IGNORE_VERSION"]:
+            warn(
+                f"BIDS version mismatch! Expected: {cls.bids_version}, "
+                f"Found: {version}. Compatibility issues may arise.",
+                VersionMismatchWarning,
+            )
+        else:
+            raise VersionMismatchError(
+                f"BIDS version mismatch! Expected: {cls.bids_version}, "
+                f"Found: {version}."
+            )
 
 
 def check_dataset_description_present(dataset):
-    if not (dataset.root / "dataset_description.json").exists():
+    if (
+        not (dataset.root / "dataset_description.json").exists()
+        and not get_settings_values()["OVERRIDE_VALIDATION"]
+    ):
         raise FileMissingError("dataset_description.json file is missing.")
 
 
 def check_if_valid_uri(uri: str):
-    if not isuri(uri):
+    if not isuri(uri) and not get_settings_values()["OVERRIDE_VALIDATION"]:
         raise InvalidURIError(f"Value '{uri}' is not a valid URI.")

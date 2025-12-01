@@ -15,6 +15,7 @@ import pandas as pd
 
 from abidskit.common.specs_misc import Column
 from abidskit.common.specs_summary import Participant
+from abidskit.settings import get_settings_values
 from abidskit.utils.checks import check_if_valid_uri, check_version
 from abidskit.utils.dict_manipulation import add_levels_to_dict, clean_dict
 from abidskit.utils.exceptions import (
@@ -238,11 +239,13 @@ class Dataset:
 
         set_attr_from_dict(self, data)
 
-        if self.name is None:
+        override_validation = get_settings_values()["OVERRIDE_VALIDATION"]
+
+        if self.name is None and not override_validation:
             raise FieldMissingError("Field `Name` is required in Dataset")
-        if self.bids_version is None:
+        if self.bids_version is None and not override_validation:
             raise FieldMissingError("Field `BIDSVersion` is required in Dataset")
-        if self.readme_path is None:
+        if self.readme_path is None and not override_validation:
             raise FieldMissingError("File `README` is required")
 
     def list_participants(self) -> pd.DataFrame:
