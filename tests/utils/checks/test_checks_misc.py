@@ -9,8 +9,13 @@ import pytest
 from mimesis import Development
 
 from abidskit.common.specs_description import Dataset
+from abidskit.settings import override_settings_values
 from abidskit.utils.checks import check_if_valid_uri, check_version
-from abidskit.utils.exceptions import InvalidURIError, VersionMismatchWarning
+from abidskit.utils.exceptions import (
+    InvalidURIError,
+    VersionMismatchError,
+    VersionMismatchWarning,
+)
 
 VALID_URIS = [
     "doi:10.18112/openneuro.ds000001.v1.0.0",
@@ -36,12 +41,21 @@ class TestVersion:
         assert ds.bids_version == vs
         check_version(ds, vs)
 
-    def test_different_version(self, tmp_root):
+    def test_different_version_warning(self, tmp_root):
         dev = Development()
         ds = Dataset(tmp_root, bids_version=dev.version())
         vs = dev.version()
         assert ds.bids_version != vs
-        with pytest.warns(VersionMismatchWarning):
+        with override_settings_values({"IGNORE_VERSION": True}):
+            with pytest.warns(VersionMismatchWarning):
+                check_version(ds, vs)
+
+    def test_different_version_error(self, tmp_root):
+        dev = Development()
+        ds = Dataset(tmp_root, bids_version=dev.version())
+        vs = dev.version()
+        assert ds.bids_version != vs
+        with pytest.raises(VersionMismatchError):
             check_version(ds, vs)
 
 
