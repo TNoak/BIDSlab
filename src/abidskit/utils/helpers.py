@@ -25,11 +25,13 @@ from warnings import catch_warnings, simplefilter, warn
 import pandas as pd
 
 from abidskit._typing import MC, E, PEntity
-from abidskit.utils.checks import check_dataset_description_present
+from abidskit.utils.checks import (
+    check_dataset_description_present,
+    check_file,
+)
 from abidskit.utils.exceptions import (
     FieldNotValidError,
     FileTypeUnsupportedWarning,
-    MultipleFilesFoundError,
     MultipleFilesFoundWarning,
     PathsSameWarning,
     TopLevelEntityNotLinkedWarning,
@@ -89,24 +91,7 @@ def get_root_files(dataset: "Dataset") -> None:
     check_dataset_description_present(dataset)
 
     for file in files:
-        if re.match(r"README(\..*)?", file.name):
-            if dataset.readme_path is None:
-                dataset.readme_path = dataset.root / file
-            else:
-                raise MultipleFilesFoundError("Multiple README files found.")
-        elif re.match(r"CITATION\.cff", file.name):
-            dataset.citation_path = dataset.root / file
-        elif re.match(r"LICENSE(\..*)?", file.name):
-            dataset.license_path = dataset.root / file
-            # TODO: Check how to handle multiple license files
-        elif re.match(r"CHANGES(\..*)?", file.name):
-            dataset.changes_path = dataset.root / file
-        elif re.match(r"sourcedata", file.name):
-            dataset.sourcedata_path = dataset.root / "sourcedata"
-        elif re.match(r"code", file.name):
-            dataset.code_path = dataset.root / "code"
-        elif re.match(r"stimuli", file.name):
-            dataset.stimuli_path = dataset.root / "stimuli"
+        check_file(dataset, file)
 
 
 def get_matching_subpaths(

@@ -14,6 +14,7 @@ from typing import Mapping, MutableSequence, Sequence
 import pandas as pd
 
 from abidskit.common.specs_misc import Column
+from abidskit.common.specs_phenotype import MeasurementTool, PhenotypeColumn
 from abidskit.common.specs_summary import Participant
 from abidskit.settings import get_settings_values
 from abidskit.utils.checks import check_if_valid_uri, check_version
@@ -31,6 +32,14 @@ from abidskit.utils.helpers import (
     parse_json_sidecar,
     set_attr_from_dict,
 )
+
+COLUMNS_TO_REMOVE_FROM_TSV = {
+    "columns",
+    "name",
+    "description",
+    "term_url",
+    "_participant",
+}
 
 
 @dataclass(slots=True)
@@ -127,8 +136,10 @@ class Dataset:
         self.license_path: pathlib.Path | None = None
 
         self.sourcedata_path: pathlib.Path | None = None
+        self.derivatives_path: pathlib.Path | None = None
         self.code_path: pathlib.Path | None = None
         self.stimuli_path: pathlib.Path | None = None
+        self.phenotype_path: pathlib.Path | None = None
 
         self._participants: Sequence[Participant] | None = None
 
@@ -291,9 +302,11 @@ class Dataset:
             dataset_description.pop("license_path", None),
             dataset_description.pop("citation_path", None),
         ]
-        # sourcedata = dataset_description.pop("sourcedata_path", None)
-        # code = dataset_description.pop("code_path", None)
-        # stimuli = dataset_description.pop("stimuli_path", None)
+        _ = dataset_description.pop("sourcedata_path", None)
+        _ = dataset_description.pop("code_path", None)
+        _ = dataset_description.pop("stimuli_path", None)
+        _ = dataset_description.pop("phenotype_path", None)
+        _ = dataset_description.pop("derivatives_path", None)
         dataset_description = clean_dict(dataset_description)
         json.dump(
             dataset_description,
@@ -335,12 +348,86 @@ class Dataset:
             indent=4,
         )
 
+        self.write_phenotype(output_path=output_path, overwrite=overwrite)
+
         # write each participant data
         for participant in self.participants:
             path = pathlib.Path(output_path) / participant.participant_id
             if not path.exists():
                 path.mkdir(parents=True, exist_ok=True)
             participant.write(path)
+
+    def write_phenotype(  # noqa: C901
+        self, output_path: os.PathLike | str, overwrite: bool = False
+    ) -> None:
+        output_path = pathlib.Path(output_path)
+
+        if output_path.exists() and not overwrite:
+            raise FileExistsError(
+                f"The output path {output_path} already exists. "
+                f"Set `overwrite=True` to overwrite existing files."
+            )
+
+        if not output_path.exists():
+            output_path.mkdir(parents=True, exist_ok=True)
+
+        phenotypes = []
+        measurement_tool_names = set()
+        for participant in self.participants:
+            if pht_list := participant.phenotype:
+                phenotypes.append(pht_list)
+                for pht in pht_list:
+                    measurement_tool_names.add(pht.name)
+
+        for toolname in measurement_tool_names:
+            pht_tsv_path = output_path / "phenotype" / f"{toolname}.tsv"
+            pht_json_path = output_path / "phenotype" / f"{toolname}.json"
+
+            measurement_columns: Sequence[PhenotypeColumn] = []
+            for phenotype_list in phenotypes:
+                for phenotype in phenotype_list:
+                    if phenotype.name == toolname and phenotype.columns:
+                        measurement_columns = phenotype.columns
+                        break
+
+            # write phenotype json sidecar
+            phenotype_description = {}
+            for column in measurement_columns:
+                column_dict = column.__dict__.copy()
+                column_name = column_dict.pop("column_name")
+                levels = column_dict.pop("_levels", None)
+
+                phenotype_description[column_name] = column_dict
+
+                if levels is not None:
+                    phenotype_description = add_levels_to_dict(
+                        levels, column_name, phenotype_description
+                    )
+
+            phenotype_description = clean_dict(phenotype_description)
+            if not pht_json_path.parent.exists():
+                pht_json_path.parent.mkdir(parents=True, exist_ok=True)
+            json.dump(
+                phenotype_description,
+                pht_json_path.open("w", encoding="utf-8"),
+                indent=4,
+            )
+
+            # write phenotype tsv
+            rows = []
+            for phenotype_list in phenotypes:
+                for phenotype in phenotype_list:
+                    if phenotype.name == toolname:
+                        row = {}
+                        if phenotype.participant:
+                            row["participant_id"] = phenotype.participant.participant_id
+                        for key, value in phenotype.__dict__.items():
+                            if key not in COLUMNS_TO_REMOVE_FROM_TSV:
+                                row[key] = value
+                        rows.append(row)
+
+            phenotype_df = pd.DataFrame(rows)
+            phenotype_df.to_csv(pht_tsv_path, sep="\t", index=False)
 
 
 def get_participants_from_files(
@@ -350,6 +437,8 @@ def get_participants_from_files(
 ) -> MutableSequence[Participant]:
     participants: MutableSequence[Participant] = []
     columns = []
+
+    measurement_tools = get_phenotypes_from_files(dataset)
 
     if json_path:
         column_data = parse_json_sidecar(json_path)
@@ -371,12 +460,14 @@ def get_participants_from_files(
                 base_path=dataset.root / participant_id,
                 columns=columns,
                 dataset=dataset,
+                phenotype=measurement_tools.get(participant_id, None),
                 **participant,
             )
     else:
         dirs = dataset.root.iterdir()
         for directory in dirs:
             if directory.is_dir() and directory.name.startswith("sub-"):
+                # TODO: Phenotype?
                 add_object_to_sequence(
                     entity_list=participants,
                     entity_class=Participant,
@@ -386,3 +477,47 @@ def get_participants_from_files(
                 )
 
     return participants
+
+
+def get_phenotypes_from_files(
+    dataset: Dataset,
+) -> Mapping[str, Sequence[MeasurementTool]]:
+    measurement_tools: dict[str, MutableSequence] = {}
+
+    if pht_path := dataset.phenotype_path:
+        files = pht_path.iterdir()
+        measurement_tool_names = set()
+        for file in files:
+            measurement_tool_names.add(file.stem)
+        for toolname in measurement_tool_names:
+            measurement_columns = []
+            pht_tsv_path, pht_json_path = get_tsv_json_files(pht_path, toolname)
+
+            if pht_json_path:
+                column_data = parse_json_sidecar(pht_json_path)
+                for column_name, column_values in column_data.items():
+                    measurement_columns.append(
+                        PhenotypeColumn(name=column_name, **column_values)
+                    )
+
+            if pht_tsv_path:
+                data = parse_descriptive_tsv(pht_tsv_path)
+                for pht_participant in data:
+                    assert isinstance(pht_participant, dict)
+                    participant_id = pht_participant.pop("participant_id", None)
+                    if participant_id is None:
+                        raise FieldMissingError(
+                            f"Field `participant_id` is required as column in "
+                            f"phenotype/{toolname}.tsv"
+                        )
+                    if not measurement_tools.get(participant_id, None):
+                        measurement_tools[participant_id] = []
+                    measurement_tools[participant_id].append(
+                        MeasurementTool(
+                            name=toolname,
+                            columns=measurement_columns,
+                            **pht_participant,
+                        )
+                    )
+
+    return measurement_tools

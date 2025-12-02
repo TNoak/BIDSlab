@@ -109,7 +109,7 @@ class Column:
 
         set_attr_from_dict(self, kwargs)
 
-        if self.term_url:
+        if self.term_url and not get_settings_values()["OVERRIDE_VALIDATION"]:
             check_if_valid_uri(self.term_url)
 
     def __repr__(self) -> str:

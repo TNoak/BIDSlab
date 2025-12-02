@@ -5,7 +5,10 @@
 #
 #  SPDX-License-Identifier: BSD-3-Clause
 
+import os
+import pathlib
 import re
+from typing import TYPE_CHECKING, Any, Sequence
 from warnings import warn
 
 from uritools import isuri
@@ -23,8 +26,11 @@ from abidskit.utils.exceptions import (
 )
 from abidskit.utils.string_manipulation import to_titlecase
 
+if TYPE_CHECKING:
+    from abidskit.common.specs_description import Dataset
 
-def check_readme(dataset, files):
+
+def check_readme(dataset: "Dataset", files: Sequence[pathlib.Path]):
     readme_found = False
 
     for file in files:
@@ -48,7 +54,7 @@ def check_readme(dataset, files):
         raise FileMissingError("README file is missing.")
 
 
-def check_citation(dataset, files):
+def check_citation(dataset: "Dataset", files: Sequence[pathlib.Path]):
     for file in files:
         if re.match(r"^CITATION\.cff$", file.name):
             if (
@@ -73,7 +79,7 @@ def check_citation(dataset, files):
                     )
 
 
-def check_license(dataset, files):
+def check_license(dataset: "Dataset", files: Sequence[pathlib.Path]):
     for file in files:
         if re.match(r"^LICENSE(\.md|\.txt|\.rst)?$", file.name):
             dataset.license_path = dataset.root / file
@@ -88,22 +94,26 @@ def check_license(dataset, files):
                 )
 
 
-def check_version(cls, version):
-    if not cls.bids_version == version:
+def check_version(dataset: "Dataset", version: Any):
+    if not isinstance(version, str):
+        raise TypeError(
+            "BIDS version must be a string."
+        )  # for mypy, TODO: change to static type
+    if not dataset.bids_version == version:
         if get_settings_values()["IGNORE_VERSION"]:
             warn(
-                f"BIDS version mismatch! Expected: {cls.bids_version}, "
+                f"BIDS version mismatch! Expected: {dataset.bids_version}, "
                 f"Found: {version}. Compatibility issues may arise.",
                 VersionMismatchWarning,
             )
         else:
             raise VersionMismatchError(
-                f"BIDS version mismatch! Expected: {cls.bids_version}, "
+                f"BIDS version mismatch! Expected: {dataset.bids_version}, "
                 f"Found: {version}."
             )
 
 
-def check_dataset_description_present(dataset):
+def check_dataset_description_present(dataset: "Dataset"):
     if (
         not (dataset.root / "dataset_description.json").exists()
         and not get_settings_values()["OVERRIDE_VALIDATION"]
@@ -114,3 +124,36 @@ def check_dataset_description_present(dataset):
 def check_if_valid_uri(uri: str):
     if not isuri(uri) and not get_settings_values()["OVERRIDE_VALIDATION"]:
         raise InvalidURIError(f"Value '{uri}' is not a valid URI.")
+
+
+def check_file(dataset: "Dataset", file: os.PathLike | str):
+    file = pathlib.Path(file)
+    if re.match(r"README(\..*)?", file.name):
+        check_readme(dataset, [file])
+        # if dataset.readme_path is None:
+        #     dataset.readme_path = dataset.root / file
+        # elif not get_settings_values()["OVERRIDE_VALIDATION"]:
+        #     raise MultipleFilesFoundError("Multiple README files found.")
+        # else:
+        #     warn(
+        #         "Multiple README files found. Using the first one found: "
+        #         f"{dataset.readme_path.name}",
+        #         MultipleFilesFoundWarning,
+        #     )
+    elif re.match(r"CITATION\.cff", file.name):
+        dataset.citation_path = dataset.root / file
+    elif re.match(r"LICENSE(\..*)?", file.name):
+        dataset.license_path = dataset.root / file
+        # TODO: Check how to handle multiple license files
+    elif re.match(r"CHANGES(\..*)?", file.name):
+        dataset.changes_path = dataset.root / file
+    elif re.match(r"sourcedata", file.name):
+        dataset.sourcedata_path = dataset.root / "sourcedata"
+    elif re.match(r"code", file.name):
+        dataset.code_path = dataset.root / "code"
+    elif re.match(r"stimuli", file.name):
+        dataset.stimuli_path = dataset.root / "stimuli"
+    elif re.match(r"phenotype", file.name):
+        dataset.phenotype_path = dataset.root / "phenotype"
+    elif re.match(r"derivatives", file.name):
+        dataset.derivatives_path = dataset.root / "derivatives"

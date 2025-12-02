@@ -15,6 +15,8 @@ import pandas as pd
 from abidskit.common.base import Entity
 from abidskit.common.specs_datatype import Datatype
 from abidskit.common.specs_misc import Column
+from abidskit.common.specs_phenotype import MeasurementTool
+from abidskit.settings import get_settings_values
 from abidskit.utils.dict_manipulation import clean_dict
 from abidskit.utils.exceptions import FieldMissingError, TopLevelEntityNotLinkedWarning
 from abidskit.utils.helpers import (
@@ -222,7 +224,9 @@ class Participant(Entity):
     ) -> None:
         super().__init__(_entity_id=participant_id, _entity_name="sub")
         self.participant_id: str = participant_id  # !: This is required
-        self.species: str | int | None = "homo sapiens"
+        self.species: str | int | None = None
+        if get_settings_values()["SUPPORT_OLD_VERSIONS"] and not self.species:
+            self.species = "homo sapiens"
         self.age: int | None = None
         self.sex: str | None = None
         self.handedness: str | None = None
@@ -235,6 +239,7 @@ class Participant(Entity):
         self._dataset: Dataset | None = None
 
         self.columns: Sequence[Column] | None = None
+        self._phenotype: Sequence[MeasurementTool] | None = None
 
         self._sessions: Sequence[Session] | None = None
 
@@ -258,6 +263,32 @@ class Participant(Entity):
     @dataset.setter
     def dataset(self, value: "Dataset") -> None:
         self._dataset = value
+
+    @property
+    def phenotype(self) -> Sequence[MeasurementTool] | None:
+        return self._phenotype
+
+    @phenotype.setter
+    def phenotype(
+        self, value: Sequence[Mapping] | Sequence[MeasurementTool] | None
+    ) -> None:
+        if isinstance(value, Sequence):
+            if all(isinstance(entry, Mapping) for entry in value):
+                self._phenotype = []
+                for entry in value:
+                    assert isinstance(entry, Mapping)  # for mypy
+                    self._phenotype.append(MeasurementTool(participant=self, **entry))
+            elif all(isinstance(entry, MeasurementTool) for entry in value):
+                for entry in value:
+                    assert isinstance(entry, MeasurementTool)  # for mypy
+                    entry.participant = self
+                self._phenotype = value  # type: ignore[assignment]  # mypy cannot type narrow on all()
+        elif not value:
+            self._phenotype = None
+        else:
+            raise TypeError(
+                "Field `Phenotype` must be a list of MeasurementTool objects or None"
+            )
 
     @property
     def sessions(self) -> Sequence[Session]:
@@ -298,8 +329,6 @@ class Participant(Entity):
             session_dict = session.__dict__.copy()
             session_dict = clean_dict(session_dict, keys_to_titlecase=False)
 
-            # session_dict.pop("columns")
-            # TODO: expand columns
             sessions_dataframe = pd.concat(
                 [sessions_dataframe, pd.DataFrame([session_dict])],
                 ignore_index=True,
