@@ -202,6 +202,16 @@ def write_entities(
         entity.write(path)
 
 
+def write_json(content: dict[str, Any], output_path: os.PathLike | str) -> None:
+    output_path = pathlib.Path(output_path)
+    if content:
+        json.dump(
+            content,
+            output_path.open("w", encoding="utf-8"),
+            indent=4,
+        )
+
+
 def get_data(pkg):
     def decorator(f):
         @wraps(f)

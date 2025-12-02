@@ -340,10 +340,13 @@ class Participant(Entity):
         output_path = pathlib.Path(output_path)
 
         # write sessions description to "sessions.tsv"
-        sessions_dataframe = self.list_sessions()
-        sessions_dataframe.to_csv(
-            output_path / f"{self.participant_id}_sessions.tsv", sep="\t", index=False
-        )
+        if len(self.sessions) > 1:
+            sessions_dataframe = self.list_sessions()
+            sessions_dataframe.to_csv(
+                output_path / f"{self.participant_id}_sessions.tsv",
+                sep="\t",
+                index=False,
+            )
 
         # write each session data
         for session in self.sessions:

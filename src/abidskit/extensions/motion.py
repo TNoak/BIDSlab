@@ -32,6 +32,7 @@ from abidskit.utils.helpers import (
     parse_json_sidecar,
     set_attr_from_dict,
     write_entities,
+    write_json,
 )
 from abidskit.utils.string_manipulation import to_snakecase
 
@@ -259,11 +260,7 @@ class MotionRun(Run):
             }
 
         channel_description = clean_dict(channel_description)
-        json.dump(
-            channel_description,
-            output_path_channel_description.open("w", encoding="utf-8"),
-            indent=4,
-        )
+        write_json(channel_description, output_path_channel_description)
 
 
 class MotionAcquisition(BaseAcquisition):
@@ -642,11 +639,7 @@ class MotionTask(BaseTask):
                     output_path_motion_description = append_path(
                         output_path_run, "_motion.json"
                     )
-                    json.dump(
-                        motion_description,
-                        output_path_motion_description.open("w", encoding="utf-8"),
-                        indent=4,
-                    )
+                    write_json(motion_description, output_path_motion_description)
 
         write_entities(output_path, self.tracking_systems)
 

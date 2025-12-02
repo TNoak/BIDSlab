@@ -5,7 +5,6 @@
 #
 #  SPDX-License-Identifier: BSD-3-Clause
 
-import json
 import os
 import pathlib
 from dataclasses import dataclass
@@ -31,6 +30,7 @@ from abidskit.utils.helpers import (
     parse_descriptive_tsv,
     parse_json_sidecar,
     set_attr_from_dict,
+    write_json,
 )
 
 COLUMNS_TO_REMOVE_FROM_TSV = {
@@ -265,7 +265,7 @@ class Dataset:
             participant_dict = participant.__dict__.copy()
             participant_dict = clean_dict(participant_dict, keys_to_titlecase=False)
 
-            participant_dict.pop("columns")
+            _ = participant_dict.pop("columns", None)
             participants_dataframe = pd.concat(
                 [participants_dataframe, pd.DataFrame([participant_dict])],
                 ignore_index=True,
@@ -308,11 +308,7 @@ class Dataset:
         _ = dataset_description.pop("phenotype_path", None)
         _ = dataset_description.pop("derivatives_path", None)
         dataset_description = clean_dict(dataset_description)
-        json.dump(
-            dataset_description,
-            output_path_dataset_description.open("w", encoding="utf-8"),
-            indent=4,
-        )
+        write_json(dataset_description, output_path_dataset_description)
 
         for file in files_to_copy:
             if file is not None:
@@ -342,11 +338,7 @@ class Dataset:
                 )
 
         participant_description = clean_dict(participant_description)
-        json.dump(
-            participant_description,
-            output_path_participant_description.open("w", encoding="utf-8"),
-            indent=4,
-        )
+        write_json(participant_description, output_path_participant_description)
 
         self.write_phenotype(output_path=output_path, overwrite=overwrite)
 
@@ -407,11 +399,7 @@ class Dataset:
             phenotype_description = clean_dict(phenotype_description)
             if not pht_json_path.parent.exists():
                 pht_json_path.parent.mkdir(parents=True, exist_ok=True)
-            json.dump(
-                phenotype_description,
-                pht_json_path.open("w", encoding="utf-8"),
-                indent=4,
-            )
+            write_json(phenotype_description, pht_json_path)
 
             # write phenotype tsv
             rows = []
