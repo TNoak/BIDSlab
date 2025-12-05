@@ -16,6 +16,12 @@ from abidskit.utils.string_manipulation import to_titlecase
 def dict_keys_to_titlecase(dict_input: dict) -> dict:
     dict_output = {}
     for key, value in list(dict_input.items()):
+        if key == "Levels":
+            if all(isinstance(v, dict) for v in value.values()):
+                for v_key, v_value in value.items():
+                    value[v_key] = dict_keys_to_titlecase(v_value)
+            dict_output[key] = value
+            continue
         if isinstance(value, dict):
             dict_output[to_titlecase(key)] = dict_keys_to_titlecase(value)
         else:
@@ -24,13 +30,20 @@ def dict_keys_to_titlecase(dict_input: dict) -> dict:
     return dict_output
 
 
-def clean_dict(dict_input: dict, keys_to_titlecase: bool = True) -> dict:
+def clean_dict(dict_input: dict, keys_to_titlecase: int = 1) -> dict:
     dict_output = delete_none_from_dict(dict_input)
     dict_output = delete_private_fields_from_dict(dict_output)
     dict_output = dict_paths_to_strings(dict_output)
     _ = dict_output.pop("root", None)
-    if keys_to_titlecase:
+    if keys_to_titlecase not in (0, 1, 2):
+        raise ValueError(
+            f"keys_to_titlecase must be 0, 1, or 2, got {keys_to_titlecase}"
+        )
+    if keys_to_titlecase == 1:
         dict_output = dict_keys_to_titlecase(dict_output)
+    if keys_to_titlecase == 2:
+        for key, value in list(dict_output.items()):
+            dict_output[key] = dict_keys_to_titlecase(value)
     return dict_output
 
 

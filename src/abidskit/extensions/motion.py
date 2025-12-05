@@ -259,7 +259,10 @@ class MotionRun(Run):
                 reference_frame_name: reference_frame_dict
             }
 
-        channel_description = clean_dict(channel_description)
+        channel_description = clean_dict(
+            channel_description,
+            keys_to_titlecase=2,
+        )
         write_json(channel_description, output_path_channel_description)
 
 

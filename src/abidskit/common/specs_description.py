@@ -263,7 +263,7 @@ class Dataset:
         participants_dataframe = pd.DataFrame()
         for participant in self.participants:
             participant_dict = participant.__dict__.copy()
-            participant_dict = clean_dict(participant_dict, keys_to_titlecase=False)
+            participant_dict = clean_dict(participant_dict, keys_to_titlecase=0)
 
             _ = participant_dict.pop("columns", None)
             participants_dataframe = pd.concat(
@@ -337,7 +337,10 @@ class Dataset:
                     levels, column.column_name, participant_description
                 )
 
-        participant_description = clean_dict(participant_description)
+        participant_description = clean_dict(
+            participant_description,
+            keys_to_titlecase=2,
+        )
         write_json(participant_description, output_path_participant_description)
 
         self.write_phenotype(output_path=output_path)
@@ -387,7 +390,10 @@ class Dataset:
                         levels, column_name, phenotype_description
                     )
 
-            phenotype_description = clean_dict(phenotype_description)
+            phenotype_description = clean_dict(
+                phenotype_description,
+                keys_to_titlecase=2,
+            )
             if not pht_json_path.parent.exists():
                 pht_json_path.parent.mkdir(parents=True, exist_ok=True)
             write_json(phenotype_description, pht_json_path)
