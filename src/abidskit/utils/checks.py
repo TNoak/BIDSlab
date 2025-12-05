@@ -5,7 +5,6 @@
 #
 #  SPDX-License-Identifier: BSD-3-Clause
 
-import os
 import pathlib
 import re
 from typing import TYPE_CHECKING, Any, Sequence
@@ -106,7 +105,7 @@ def check_version(dataset: "Dataset", version: Any):
                 f"Found: {version}. Compatibility issues may arise.",
                 VersionMismatchWarning,
             )
-        else:
+        elif not get_settings_values()["OVERRIDE_VALIDATION"]:
             raise VersionMismatchError(
                 f"BIDS version mismatch! Expected: {dataset.bids_version}, "
                 f"Found: {version}."
@@ -126,34 +125,38 @@ def check_if_valid_uri(uri: str):
         raise InvalidURIError(f"Value '{uri}' is not a valid URI.")
 
 
-def check_file(dataset: "Dataset", file: os.PathLike | str):
-    file = pathlib.Path(file)
-    if re.match(r"README(\..*)?", file.name):
-        check_readme(dataset, [file])
-        # if dataset.readme_path is None:
-        #     dataset.readme_path = dataset.root / file
-        # elif not get_settings_values()["OVERRIDE_VALIDATION"]:
-        #     raise MultipleFilesFoundError("Multiple README files found.")
-        # else:
-        #     warn(
-        #         "Multiple README files found. Using the first one found: "
-        #         f"{dataset.readme_path.name}",
-        #         MultipleFilesFoundWarning,
-        #     )
-    elif re.match(r"CITATION\.cff", file.name):
-        dataset.citation_path = dataset.root / file
-    elif re.match(r"LICENSE(\..*)?", file.name):
-        dataset.license_path = dataset.root / file
+def check_files(dataset: "Dataset", files: Sequence[pathlib.Path]):
+    check_readme(dataset, files)
+    # TODO: Enable these checks later --> rewriting of tests required due to
+    #  side effects
+    # check_license(dataset, files)
+    # check_citation(dataset, files)
+    for file in files:
+        # if re.match(r"README(\..*)?", file.name):
+        #     if dataset.readme_path is None:
+        #         dataset.readme_path = dataset.root / file
+        #     elif not get_settings_values()["OVERRIDE_VALIDATION"]:
+        #         raise MultipleFilesFoundError("Multiple README files found.")
+        #     else:
+        #         warn(
+        #             "Multiple README files found. Using the first one found: "
+        #             f"{dataset.readme_path.name}",
+        #             MultipleFilesFoundWarning,
+        #         )
+        if re.match(r"CITATION\.cff", file.name):
+            dataset.citation_path = dataset.root / file
+        elif re.match(r"LICENSE(\..*)?", file.name):
+            dataset.license_path = dataset.root / file
         # TODO: Check how to handle multiple license files
-    elif re.match(r"CHANGES(\..*)?", file.name):
-        dataset.changes_path = dataset.root / file
-    elif re.match(r"sourcedata", file.name):
-        dataset.sourcedata_path = dataset.root / "sourcedata"
-    elif re.match(r"code", file.name):
-        dataset.code_path = dataset.root / "code"
-    elif re.match(r"stimuli", file.name):
-        dataset.stimuli_path = dataset.root / "stimuli"
-    elif re.match(r"phenotype", file.name):
-        dataset.phenotype_path = dataset.root / "phenotype"
-    elif re.match(r"derivatives", file.name):
-        dataset.derivatives_path = dataset.root / "derivatives"
+        if re.match(r"CHANGES(\..*)?", file.name):
+            dataset.changes_path = dataset.root / file
+        elif re.match(r"sourcedata", file.name):
+            dataset.sourcedata_path = dataset.root / "sourcedata"
+        elif re.match(r"code", file.name):
+            dataset.code_path = dataset.root / "code"
+        elif re.match(r"stimuli", file.name):
+            dataset.stimuli_path = dataset.root / "stimuli"
+        elif re.match(r"phenotype", file.name):
+            dataset.phenotype_path = dataset.root / "phenotype"
+        elif re.match(r"derivatives", file.name):
+            dataset.derivatives_path = dataset.root / "derivatives"

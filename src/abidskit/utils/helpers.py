@@ -27,7 +27,7 @@ import pandas as pd
 from abidskit._typing import MC, E, PEntity
 from abidskit.utils.checks import (
     check_dataset_description_present,
-    check_file,
+    check_files,
 )
 from abidskit.utils.exceptions import (
     FieldNotValidError,
@@ -90,8 +90,7 @@ def get_root_files(dataset: "Dataset") -> None:
     files = list(dataset.root.iterdir())
     check_dataset_description_present(dataset)
 
-    for file in files:
-        check_file(dataset, file)
+    check_files(dataset, files)
 
 
 def get_matching_subpaths(

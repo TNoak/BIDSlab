@@ -340,7 +340,7 @@ class Dataset:
         participant_description = clean_dict(participant_description)
         write_json(participant_description, output_path_participant_description)
 
-        self.write_phenotype(output_path=output_path, overwrite=overwrite)
+        self.write_phenotype(output_path=output_path)
 
         # write each participant data
         for participant in self.participants:
@@ -350,18 +350,9 @@ class Dataset:
             participant.write(path)
 
     def write_phenotype(  # noqa: C901
-        self, output_path: os.PathLike | str, overwrite: bool = False
+        self, output_path: os.PathLike | str
     ) -> None:
         output_path = pathlib.Path(output_path)
-
-        if output_path.exists() and not overwrite:
-            raise FileExistsError(
-                f"The output path {output_path} already exists. "
-                f"Set `overwrite=True` to overwrite existing files."
-            )
-
-        if not output_path.exists():
-            output_path.mkdir(parents=True, exist_ok=True)
 
         phenotypes = []
         measurement_tool_names = set()
