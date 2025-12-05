@@ -12,7 +12,7 @@ from warnings import warn
 
 from uritools import isuri
 
-from abidskit.settings import get_settings_values
+from abidskit.settings import get_settings_value
 from abidskit.utils.exceptions import (
     FieldMissingWarning,
     FieldPresentError,
@@ -37,7 +37,7 @@ def check_readme(dataset: "Dataset", files: Sequence[pathlib.Path]):
             if not readme_found:
                 readme_found = True
             else:
-                if not get_settings_values()["OVERRIDE_VALIDATION"]:
+                if not get_settings_value("OVERRIDE_VALIDATION"):
                     raise MultipleFilesFoundError(
                         "README[.md|.txt|.rst] file is already present."
                     )
@@ -49,16 +49,15 @@ def check_readme(dataset: "Dataset", files: Sequence[pathlib.Path]):
                 break
             dataset.readme_path = dataset.root / file
 
-    if not readme_found and not get_settings_values()["OVERRIDE_VALIDATION"]:
+    if not readme_found and not get_settings_value("OVERRIDE_VALIDATION"):
         raise FileMissingError("README file is missing.")
 
 
 def check_citation(dataset: "Dataset", files: Sequence[pathlib.Path]):
     for file in files:
         if re.match(r"^CITATION\.cff$", file.name):
-            if (
-                dataset.authors is not None
-                and not get_settings_values()["OVERRIDE_VALIDATION"]
+            if dataset.authors is not None and not get_settings_value(
+                "OVERRIDE_VALIDATION"
             ):
                 raise FieldPresentError(
                     "Field `Authors` must be omitted in `dataset_description` when "
@@ -99,13 +98,13 @@ def check_version(dataset: "Dataset", version: Any):
             "BIDS version must be a string."
         )  # for mypy, TODO: change to static type
     if not dataset.bids_version == version:
-        if get_settings_values()["IGNORE_VERSION"]:
+        if get_settings_value("IGNORE_VERSION"):
             warn(
                 f"BIDS version mismatch! Expected: {dataset.bids_version}, "
                 f"Found: {version}. Compatibility issues may arise.",
                 VersionMismatchWarning,
             )
-        elif not get_settings_values()["OVERRIDE_VALIDATION"]:
+        elif not get_settings_value("OVERRIDE_VALIDATION"):
             raise VersionMismatchError(
                 f"BIDS version mismatch! Expected: {dataset.bids_version}, "
                 f"Found: {version}."
@@ -113,15 +112,14 @@ def check_version(dataset: "Dataset", version: Any):
 
 
 def check_dataset_description_present(dataset: "Dataset"):
-    if (
-        not (dataset.root / "dataset_description.json").exists()
-        and not get_settings_values()["OVERRIDE_VALIDATION"]
-    ):
+    if not (
+        dataset.root / "dataset_description.json"
+    ).exists() and not get_settings_value("OVERRIDE_VALIDATION"):
         raise FileMissingError("dataset_description.json file is missing.")
 
 
 def check_if_valid_uri(uri: str):
-    if not isuri(uri) and not get_settings_values()["OVERRIDE_VALIDATION"]:
+    if not isuri(uri) and not get_settings_value("OVERRIDE_VALIDATION"):
         raise InvalidURIError(f"Value '{uri}' is not a valid URI.")
 
 
@@ -135,7 +133,7 @@ def check_files(dataset: "Dataset", files: Sequence[pathlib.Path]):
         # if re.match(r"README(\..*)?", file.name):
         #     if dataset.readme_path is None:
         #         dataset.readme_path = dataset.root / file
-        #     elif not get_settings_values()["OVERRIDE_VALIDATION"]:
+        #     elif not get_settings_values("OVERRIDE_VALIDATION"):
         #         raise MultipleFilesFoundError("Multiple README files found.")
         #     else:
         #         warn(

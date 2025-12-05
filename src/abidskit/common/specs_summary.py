@@ -16,7 +16,7 @@ from abidskit.common.base import Entity
 from abidskit.common.specs_datatype import Datatype
 from abidskit.common.specs_misc import Column
 from abidskit.common.specs_phenotype import MeasurementTool
-from abidskit.settings import get_settings_values
+from abidskit.settings import get_settings_value
 from abidskit.utils.dict_manipulation import clean_dict
 from abidskit.utils.exceptions import FieldMissingError, TopLevelEntityNotLinkedWarning
 from abidskit.utils.helpers import (
@@ -225,7 +225,7 @@ class Participant(Entity):
         super().__init__(_entity_id=participant_id, _entity_name="sub")
         self.participant_id: str = participant_id  # !: This is required
         self.species: str | int | None = None
-        if get_settings_values()["SUPPORT_OLD_VERSIONS"] and not self.species:
+        if get_settings_value("SUPPORT_OLD_VERSIONS") and not self.species:
             self.species = "homo sapiens"
         self.age: int | None = None
         self.sex: str | None = None

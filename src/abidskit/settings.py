@@ -53,10 +53,10 @@ def set_settings_values(settings: dict[str, bool] | os.PathLike) -> None:
     SETTINGS = Settings(**{**SETTINGS.__dict__, **settings})
 
 
-def get_settings_values() -> dict[str, bool]:
+def get_settings_value(name: str) -> dict[str, bool]:
     """Get the current value of a setting."""
     global SETTINGS
-    return SETTINGS.__dict__.copy()
+    return SETTINGS.__dict__[name]
 
 
 def save_settings_values(path: os.PathLike) -> None:

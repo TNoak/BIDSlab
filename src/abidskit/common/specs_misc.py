@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Iterable, Mapping, Sequence
 from warnings import warn
 
 from abidskit.common.base import BaseAcquisition, Run
-from abidskit.settings import get_settings_values
+from abidskit.settings import get_settings_value
 from abidskit.utils.checks import check_if_valid_uri
 from abidskit.utils.exceptions import (
     FieldEntryNotValidError,
@@ -102,14 +102,14 @@ class Column:
         self.maximum: int | float | None = None
         self.minimum: int | float | None = None
 
-        if get_settings_values()["SUPPORT_OLD_VERSIONS"]:
+        if get_settings_value("SUPPORT_OLD_VERSIONS"):
             self.unit: str | None = None
 
         self._levels: Iterable[Level] | None = None
 
         set_attr_from_dict(self, kwargs)
 
-        if self.term_url and not get_settings_values()["OVERRIDE_VALIDATION"]:
+        if self.term_url and not get_settings_value("OVERRIDE_VALIDATION"):
             check_if_valid_uri(self.term_url)
 
     def __repr__(self) -> str:

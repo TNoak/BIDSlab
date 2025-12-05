@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, Iterable, Mapping, Sequence
 from warnings import warn
 
 from abidskit.common.specs_misc import Column
-from abidskit.settings import get_settings_values
+from abidskit.settings import get_settings_value
 from abidskit.utils.checks import check_if_valid_uri
 from abidskit.utils.exceptions import TopLevelEntityNotLinkedWarning
 
@@ -51,7 +51,7 @@ class MeasurementTool:
         for key, value in kwargs.items():
             setattr(self, key, value)
 
-        if self.term_url and not get_settings_values()["OVERRIDE_VALIDATION"]:
+        if self.term_url and not get_settings_value("OVERRIDE_VALIDATION"):
             check_if_valid_uri(self.term_url)
 
     def __repr__(self) -> str:
