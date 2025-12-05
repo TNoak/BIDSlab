@@ -209,6 +209,7 @@ def write_json(content: dict[str, Any], output_path: os.PathLike | str) -> None:
             content,
             output_path.open("w", encoding="utf-8"),
             indent=4,
+            ensure_ascii=False,
         )
 
 
