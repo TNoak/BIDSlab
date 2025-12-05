@@ -263,7 +263,7 @@ class Dataset:
         participants_dataframe = pd.DataFrame()
         for participant in self.participants:
             participant_dict = participant.__dict__.copy()
-            participant_dict = clean_dict(participant_dict, keys_to_titlecase=0)
+            participant_dict = clean_dict(participant_dict, skip_keys_to_titlecase=0)
 
             _ = participant_dict.pop("columns", None)
             participants_dataframe = pd.concat(
@@ -307,7 +307,7 @@ class Dataset:
         _ = dataset_description.pop("stimuli_path", None)
         _ = dataset_description.pop("phenotype_path", None)
         _ = dataset_description.pop("derivatives_path", None)
-        dataset_description = clean_dict(dataset_description)
+        dataset_description = clean_dict(dataset_description, skip_keys_to_titlecase=0)
         write_json(dataset_description, output_path_dataset_description)
 
         for file in files_to_copy:
@@ -339,7 +339,7 @@ class Dataset:
 
         participant_description = clean_dict(
             participant_description,
-            keys_to_titlecase=2,
+            skip_keys_to_titlecase=1,
         )
         write_json(participant_description, output_path_participant_description)
 
@@ -392,7 +392,7 @@ class Dataset:
 
             phenotype_description = clean_dict(
                 phenotype_description,
-                keys_to_titlecase=2,
+                skip_keys_to_titlecase=1,
             )
             if not pht_json_path.parent.exists():
                 pht_json_path.parent.mkdir(parents=True, exist_ok=True)

@@ -7,10 +7,17 @@
 
 import pathlib
 from dataclasses import asdict
+from enum import IntEnum
 from typing import Sequence
 
 from abidskit.common.specs_misc import Level
 from abidskit.utils.string_manipulation import to_titlecase
+
+
+class TitleCaseOption(IntEnum):
+    NO_TITLECASE = -1
+    ALL_KEYS_TITLECASE = 0
+    SKIP_TOP_LEVEL_TITLECASE = 1
 
 
 def dict_keys_to_titlecase(dict_input: dict) -> dict:
@@ -30,18 +37,20 @@ def dict_keys_to_titlecase(dict_input: dict) -> dict:
     return dict_output
 
 
-def clean_dict(dict_input: dict, keys_to_titlecase: int = 1) -> dict:
+def clean_dict(dict_input: dict, skip_keys_to_titlecase: int = 0) -> dict:
     dict_output = delete_none_from_dict(dict_input)
     dict_output = delete_private_fields_from_dict(dict_output)
     dict_output = dict_paths_to_strings(dict_output)
     _ = dict_output.pop("root", None)
-    if keys_to_titlecase not in (0, 1, 2):
+    # Will raise DeprecationWarning due to __contains__ raising TypeError in Python
+    # versions < 3.12
+    if skip_keys_to_titlecase not in TitleCaseOption:
         raise ValueError(
-            f"keys_to_titlecase must be 0, 1, or 2, got {keys_to_titlecase}"
+            f"keys_to_titlecase must be -1, 0, or 1, got {skip_keys_to_titlecase}"
         )
-    if keys_to_titlecase == 1:
+    if skip_keys_to_titlecase == TitleCaseOption.ALL_KEYS_TITLECASE:
         dict_output = dict_keys_to_titlecase(dict_output)
-    if keys_to_titlecase == 2:
+    if skip_keys_to_titlecase == TitleCaseOption.SKIP_TOP_LEVEL_TITLECASE:
         for key, value in list(dict_output.items()):
             dict_output[key] = dict_keys_to_titlecase(value)
     return dict_output
@@ -98,7 +107,7 @@ def add_levels_to_dict(
     for level in levels:
         level_value = asdict(level)
         level_name = level_value.pop("level_name")
-        level_value = clean_dict(level_value, keys_to_titlecase=False)
+        level_value = clean_dict(level_value, skip_keys_to_titlecase=0)
         if list(level_value.keys()) == ["description"]:
             level_value = level_value["description"]
         levels_dict[level_name] = level_value

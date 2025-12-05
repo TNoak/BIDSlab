@@ -6,6 +6,7 @@
 #  SPDX-License-Identifier: BSD-3-Clause
 
 import pathlib
+import sys
 
 import pytest
 
@@ -58,18 +59,30 @@ class TestAddLevelsToDict:
 
 
 class TestCleanDict:
+    # Will raise DeprecationWarning in Python versions < 3.12
+    @pytest.mark.xfail(
+        sys.version_info < (3, 12),
+        reason="requires python3.12",
+        raises=(TypeError, DeprecationWarning),
+    )
     def test_clean_dict_titlecase(self, sample_dict, cleaned_sample_dict):
         cleaned_dict = abk.utils.dict_manipulation.clean_dict(
-            sample_dict, keys_to_titlecase=True
+            sample_dict, skip_keys_to_titlecase=0
         )
 
         assert cleaned_dict == abk.utils.dict_manipulation.dict_keys_to_titlecase(
             cleaned_sample_dict
         )
 
+    # Will raise DeprecationWarning in Python versions < 3.12
+    @pytest.mark.xfail(
+        sys.version_info < (3, 12),
+        reason="requires python3.12",
+        raises=(TypeError, DeprecationWarning),
+    )
     def test_clean_dict_no_titlecase(self, sample_dict, cleaned_sample_dict):
         cleaned_dict = abk.utils.dict_manipulation.clean_dict(
-            sample_dict, keys_to_titlecase=False
+            sample_dict, skip_keys_to_titlecase=-1
         )
 
         assert cleaned_dict == cleaned_sample_dict

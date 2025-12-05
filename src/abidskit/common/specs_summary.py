@@ -327,7 +327,7 @@ class Participant(Entity):
         sessions_dataframe = pd.DataFrame()
         for session in self.sessions:
             session_dict = session.__dict__.copy()
-            session_dict = clean_dict(session_dict, keys_to_titlecase=0)
+            session_dict = clean_dict(session_dict, skip_keys_to_titlecase=0)
 
             sessions_dataframe = pd.concat(
                 [sessions_dataframe, pd.DataFrame([session_dict])],

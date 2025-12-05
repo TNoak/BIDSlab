@@ -261,7 +261,7 @@ class MotionRun(Run):
 
         channel_description = clean_dict(
             channel_description,
-            keys_to_titlecase=2,
+            skip_keys_to_titlecase=1,
         )
         write_json(channel_description, output_path_channel_description)
 
@@ -638,7 +638,9 @@ class MotionTask(BaseTask):
                     }
                     motion_description.pop("acquisition_id")
                     motion_description.pop("run_id")
-                    motion_description = clean_dict(motion_description)
+                    motion_description = clean_dict(
+                        motion_description, skip_keys_to_titlecase=0
+                    )
                     output_path_motion_description = append_path(
                         output_path_run, "_motion.json"
                     )
