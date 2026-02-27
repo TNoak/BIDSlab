@@ -6,11 +6,15 @@
 #  SPDX-License-Identifier: BSD-3-Clause
 
 import os
+import pathlib
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Iterable, Mapping, Sequence
 from warnings import warn
 
-from abidskit.common.base import BaseAcquisition, Run
+import pandas as pd
+
+from abidskit._typing import A
+from abidskit.common.base import BaseAcquisition, Entity
 from abidskit.settings import get_settings_value
 from abidskit.utils.checks import check_if_valid_uri
 from abidskit.utils.exceptions import (
@@ -19,6 +23,8 @@ from abidskit.utils.exceptions import (
 )
 from abidskit.utils.helpers import (
     get_entity_from_file,
+    get_tsv_json_files,
+    load_tsv_data,
     set_attr_from_dict,
 )
 from abidskit.utils.string_manipulation import to_snakecase
@@ -150,6 +156,176 @@ class Column:
             self._levels = value
         else:
             raise TypeError("Field `Levels` must be a list of Level objects")
+
+
+class Recording:
+    def __init__(
+        self,
+        recording_id: str,
+        sampling_frequency: int | float,
+        start_time: float,
+        columns: MutableSequence[Column],
+    ):
+        self.recording_id: str = recording_id
+        self.sampling_frequency: int | float = sampling_frequency
+        self.start_time: float = start_time
+        self.columns: MutableSequence[Column] = columns
+
+        self._data: Any = None
+
+        self._run: Run | None = None
+
+    @property
+    def run(self) -> "Run | None":
+        if self._run:
+            return self._run
+
+        warn("Recording is not linked to a Run object.", TopLevelEntityNotLinkedWarning)
+        return self._run
+
+    @run.setter
+    def run(self, value: "Run") -> None:
+        self._run = value
+
+    @property
+    def data(self):
+        if self._data is None:
+            # TODO: Rewrite to generalize for other data types than motion
+            file_name = "*"
+            # file_name = f"*{self.acquisition.tracking_system.tracking_system_id}*"
+            # file_name += (
+            #     f"_{self.acquisition.acquisition_id}"
+            #     if len(self.acquisition.tracking_system.acquisitions) > 1
+            #     else ""
+            # )
+            file_name += (
+                f"_{self.run.run_id}" if len(self.run.acquisition.runs) > 1 else ""
+            )
+            file_name += f"_{self.recording_id}" if len(self.run.physio) > 1 else ""
+            tsv_path, _ = get_tsv_json_files(
+                self.run.root,
+                file_name + "_physio",
+            )
+            data_frame = load_tsv_data(path=tsv_path, header=None)
+            column_names = {}
+            for column_number, column in enumerate(self.columns):
+                column_names[column_number] = column.column_name
+            data_frame.rename(columns=column_names, inplace=True)
+
+            self._data = data_frame
+
+        return self._data
+
+    @data.setter
+    def data(self, value: pd.DataFrame) -> None:
+        self._data = value
+
+
+class PhysioRecording(Recording):
+    def __init__(
+        self,
+        recording_id: str,
+        sampling_frequency: int,
+        start_time: float,
+        columns: MutableSequence[Column],
+        hardware: Hardware | None = None,
+    ):
+        super().__init__(
+            recording_id=recording_id,
+            sampling_frequency=sampling_frequency,
+            start_time=start_time,
+            columns=columns,
+        )
+
+        self.hardware: Hardware | None = hardware
+
+
+class Run(Entity, Generic[A]):
+    def __init__(self, base_path: os.PathLike | str, run_id: str, **kwargs: Any):
+        super().__init__(_entity_id=run_id, _entity_name="run")
+        self.run_id = self._entity_id
+        # TODO: make sure that run_id is "run-<int>"
+
+        self.root: pathlib.Path = pathlib.Path(base_path)
+
+        self._acquisition: A | None = None
+
+        self._physio: Sequence[PhysioRecording] | None = None
+        # self._events = None
+
+        set_attr_from_dict(self, kwargs)
+
+    def __repr__(self):
+        return f"Run id={self.run_id}"
+
+    @property
+    def acquisition(self) -> A | None:
+        if self._acquisition:
+            return self._acquisition
+
+        warn(
+            "Run is not linked to a Acquisition object.", TopLevelEntityNotLinkedWarning
+        )
+        return self._acquisition
+
+    @acquisition.setter
+    def acquisition(self, value: A) -> None:
+        self._acquisition = value
+
+    @property
+    def physio(self):
+        if not get_settings_value("IGNORE_NOT_IMPLEMENTED"):
+            raise NotImplementedError
+        # if not self._physio:
+        #     self._physio = []
+        #     files = self.root.iterdir()
+        #     physio_rec_ids = set()
+        #     for file in files:
+        #         try:
+        #             physio_rec_ids.add(
+        #                 get_entity_from_file(
+        #                     file,
+        #                     "recording",
+        #                 )["recording"]
+        #             )
+        #         except KeyError:
+        #             continue
+        #     for rec_id in physio_rec_ids:
+        #         _, json_path = get_tsv_json_files(
+        #             self.root,
+        #             f"*_{self.run_id}_{rec_id}_physio",
+        #         )
+        #         if json_path:
+        #             data = parse_json_sidecar(json_path)
+        #
+        #             self._physio.append(
+        #                 PhysioRecording(
+        #                     recording_id=rec_id,
+        #                     sampling_frequency=data.get("SamplingFrequency"),
+        #                     start_time=data.get("StartTime"),
+        #                     columns=data.get("Columns"),
+        #                 )
+        #             )
+        #
+        # return self._physio
+
+    @physio.setter
+    def physio(self, value: Sequence[dict] | Sequence[PhysioRecording]):
+        if not get_settings_value("IGNORE_NOT_IMPLEMENTED"):
+            raise NotImplementedError
+
+    # @property
+    # def events(self):
+    #     raise NotImplementedError
+
+    # @events.setter
+    # def events(self, value: Sequence[dict] | Sequence[Event]):
+    #     raise NotImplementedError
+
+    def write(self, output_path: os.PathLike | str) -> None:
+        # TODO: implement writing of basic Run data
+        if not get_settings_value("IGNORE_NOT_IMPLEMENTED"):
+            raise NotImplementedError
 
 
 class Acquisition(BaseAcquisition):

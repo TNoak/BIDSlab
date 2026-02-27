@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Generic, Sequence
 from warnings import warn
 
-from abidskit._typing import A, R
+from abidskit._typing import R
 from abidskit.utils.exceptions import FieldMissingError, TopLevelEntityNotLinkedWarning
 from abidskit.utils.helpers import set_attr_from_dict, write_entities
 from abidskit.utils.string_manipulation import remove_special_characters
@@ -27,57 +27,6 @@ class Entity(ABC):
     _entity_name: str
 
     @abstractmethod
-    def write(self, output_path: os.PathLike | str) -> None: ...
-
-
-class Run(Entity, Generic[A]):
-    def __init__(self, base_path: os.PathLike | str, run_id: str, **kwargs: Any):
-        super().__init__(_entity_id=run_id, _entity_name="run")
-        self.run_id = self._entity_id
-        # TODO: make sure that run_id is "run-<int>"
-
-        self.root: pathlib.Path = pathlib.Path(base_path)
-
-        self._acquisition: A | None = None
-
-        self._recordings = None
-        self._events = None
-
-        set_attr_from_dict(self, kwargs)
-
-    def __repr__(self):
-        return f"Run id={self.run_id}"
-
-    @property
-    def acquisition(self) -> A | None:
-        if self._acquisition:
-            return self._acquisition
-
-        warn(
-            "Run is not linked to a Acquisition object.", TopLevelEntityNotLinkedWarning
-        )
-        return self._acquisition
-
-    @acquisition.setter
-    def acquisition(self, value: A) -> None:
-        self._acquisition = value
-
-    # @property
-    # def recordings(self):
-    #     raise NotImplementedError
-
-    # @recordings.setter
-    # def recordings(self, value: Sequence[dict] | Sequence[Recording]):
-    #     raise NotImplementedError
-
-    # @property
-    # def events(self):
-    #     raise NotImplementedError
-
-    # @events.setter
-    # def events(self, value: Sequence[dict] | Sequence[Event]):
-    #     raise NotImplementedError
-
     def write(self, output_path: os.PathLike | str) -> None:
         # TODO: implement writing of basic Run data
         raise NotImplementedError
