@@ -18,6 +18,9 @@ class Settings:
     OVERRIDE_VALIDATION: bool = False
     SUPPORT_OLD_VERSIONS: bool = False
     IGNORE_VERSION: bool = False
+    IGNORE_NOT_IMPLEMENTED: bool = False
+    DATASET_FETCHING_PACKAGE: PackageFetching | None = None
+    DATA_LOADING_PACKAGE: PackageLoading = PackageLoading.PANDAS
 
 
 SETTINGS: Settings = Settings()

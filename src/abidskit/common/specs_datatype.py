@@ -13,6 +13,7 @@ from warnings import warn
 from abidskit.common.base import BaseTask
 from abidskit.common.specs_task import Task
 from abidskit.extensions.motion import MotionTask, parse_motion_json_sidecar
+from abidskit.settings import get_settings_value
 from abidskit.utils.exceptions import TopLevelEntityNotLinkedWarning
 from abidskit.utils.helpers import (
     get_entity_from_file,
@@ -110,10 +111,10 @@ class Datatype:
                         else:
                             raise NotImplementedError
 
-                    else:
+                    elif not get_settings_value("IGNORE_NOT_IMPLEMENTED"):
                         raise NotImplementedError
 
-            else:
+            elif not get_settings_value("IGNORE_NOT_IMPLEMENTED"):
                 raise NotImplementedError
 
             # If no tasks are found, create a default one

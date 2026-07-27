@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Iterable
 
 from abidskit.common.base import BaseTask
 from abidskit.common.specs_misc import Acquisition
+from abidskit.settings import get_settings_value
 from abidskit.utils.helpers import get_entity_from_file
 
 if TYPE_CHECKING:
@@ -87,4 +88,5 @@ class Task(BaseTask):
 
     def write(self, output_path: os.PathLike | str) -> None:
         # TODO: implement writing of basic Task data
-        raise NotImplementedError
+        if not get_settings_value("IGNORE_NOT_IMPLEMENTED"):
+            raise NotImplementedError

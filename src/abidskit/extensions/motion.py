@@ -15,8 +15,9 @@ from warnings import warn
 
 import pandas as pd
 
-from abidskit.common.base import BaseAcquisition, BaseTask, Entity, Run
-from abidskit.common.specs_misc import Column, Hardware, Institution
+from abidskit.common.base import BaseAcquisition, BaseTask, Entity
+from abidskit.common.specs_misc import Column, Hardware, Institution, Run
+from abidskit.settings import get_settings_value
 from abidskit.utils.dict_manipulation import clean_dict, delete_none_from_dict
 from abidskit.utils.exceptions import (
     FieldEntryNotValidError,
@@ -504,7 +505,7 @@ class TrackSys(Entity):
                             **acquisition_description,
                         )
                     )
-                else:
+                elif not get_settings_value("IGNORE_NOT_IMPLEMENTED"):
                     raise NotImplementedError  # TODO: implement
 
             # If no acquisitions are found, add a default one from
@@ -572,7 +573,7 @@ class MotionTask(BaseTask):
                             motion_description=motion_description,
                         )
                     )
-                else:
+                elif not get_settings_value("IGNORE_NOT_IMPLEMENTED"):
                     raise NotImplementedError  # TODO: implement
 
             if not self._tracking_systems:
