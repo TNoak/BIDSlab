@@ -14,6 +14,7 @@ from typing import (
     Generic,
     Iterable,
     Mapping,
+    MutableMapping,
     MutableSequence,
     Sequence,
 )

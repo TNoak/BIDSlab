@@ -10,7 +10,7 @@ import os
 import pathlib
 import re
 from dataclasses import asdict, dataclass
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping, MutableSequence, Sequence
 from warnings import warn
 
 import pandas as pd
