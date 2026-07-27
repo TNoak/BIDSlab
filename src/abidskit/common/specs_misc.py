@@ -63,6 +63,12 @@ FORMAT_ALLOWED_FIELD_ENTRIES = {
 
 
 @dataclass(slots=True)
+class Filter:
+    name: str
+    parameters: MutableMapping[str, str]
+
+
+@dataclass(slots=True)
 class Level:
     level_name: str
     description: str

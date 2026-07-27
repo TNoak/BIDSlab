@@ -10,6 +10,7 @@ import pathlib
 from typing import TYPE_CHECKING, Iterable, Mapping, Sequence
 from warnings import warn
 
+from abidskit.extensions.emg import parse_emg_json_sidecar
 from abidskit.common.base import BaseTask
 from abidskit.common.specs_task import Task
 from abidskit.extensions.motion import MotionTask, parse_motion_json_sidecar
@@ -34,6 +35,7 @@ DATATYPES_WITH_TASKS = {
     "pet",
     "nirs",
     "motion",
+    "emg",
 }
 
 
@@ -74,7 +76,7 @@ class Datatype:
         self._session = value
 
     @property
-    def tasks(self) -> Sequence[BaseTask]:
+    def tasks(self) -> Sequence[BaseTask | Task | MotionTask]:
         if not self._tasks:
             self._tasks = []
             if self.datatype_name in DATATYPES_WITH_TASKS:
@@ -108,7 +110,19 @@ class Datatype:
                                     **data["task"],
                                 )
                             )
-                        else:
+                        elif self.datatype_name == "emg":
+                            data = parse_emg_json_sidecar(json_path)
+                            task_name = data["task"].pop("TaskName")
+                            self._tasks.append(
+                                Task(
+                                    task_id="task-" + task_id,
+                                    task_name=task_name,
+                                    base_path=self.root,
+                                    datatype=self,
+                                    **data["task"],
+                                )
+                            )
+                        elif not get_settings_value("IGNORE_NOT_IMPLEMENTED"):
                             raise NotImplementedError
 
                     elif not get_settings_value("IGNORE_NOT_IMPLEMENTED"):
