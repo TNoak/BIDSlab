@@ -29,7 +29,7 @@ from abidskit.utils.helpers import (
 )
 
 if TYPE_CHECKING:
-    from abidskit.common.specs_description import Dataset
+    from abidskit.common.specs_dataset import Dataset
 
 ALLOWED_DATATYPES = {
     "func",

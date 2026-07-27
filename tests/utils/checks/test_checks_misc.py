@@ -8,7 +8,7 @@
 import pytest
 from mimesis import Development
 
-from abidskit.common.specs_description import Dataset
+from abidskit.common.specs_dataset import Dataset
 from abidskit.settings import override_settings_values
 from abidskit.utils.checks import check_if_valid_uri, check_version
 from abidskit.utils.exceptions import (
