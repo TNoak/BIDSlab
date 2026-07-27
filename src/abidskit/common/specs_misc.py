@@ -245,10 +245,12 @@ class PhysioRecording(Recording):
 
 
 class Run(Entity, Generic[A]):
-    def __init__(self, base_path: os.PathLike | str, run_id: str, **kwargs: Any):
+    def __init__(self, base_path: os.PathLike | str, run_id: int, **kwargs: Any):
+        if not isinstance(run_id, int):
+            raise TypeError("run_id must be an index of type integer")
+        run_id = str(run_id)
         super().__init__(_entity_id=run_id, _entity_name="run")
-        self.run_id = self._entity_id
-        # TODO: make sure that run_id is "run-<int>"
+        self.run_id: str = self._entity_id
 
         self.root: pathlib.Path = pathlib.Path(base_path)
 
