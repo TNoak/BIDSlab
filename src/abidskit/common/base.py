@@ -9,7 +9,7 @@ import os
 import pathlib
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Generic, Sequence
+from typing import TYPE_CHECKING, Any, Generic, MutableSequence
 from warnings import warn
 
 from abidskit._typing import R
@@ -88,19 +88,26 @@ class BaseAcquisition(Entity, Generic[R], ABC):
 
         self.root: pathlib.Path = pathlib.Path(base_path)
 
-        self._runs: Sequence[R] | None = None
+        self._runs: MutableSequence[R] | None = None
 
     def __repr__(self) -> str:
         return f"<Acquisition id={self.acquisition_id}>"
 
     @property
     @abstractmethod
-    def runs(self) -> Sequence[R]:
+    def runs(self) -> MutableSequence[R]:
+        """
+        Abstract Property to get or set the top-level Run object.
+
+        This property must be implemented by all subclasses of BaseAcquisition to
+        manage the top-level :py:class:`~abidskit.specs_misc.Run` or its inherited
+        objects associated with the Acquisition.
+        """
         pass
 
     @runs.setter
     @abstractmethod
-    def runs(self, value: Sequence[str | R]) -> None:
+    def runs(self, value: MutableSequence[str | R]) -> None:
         pass
 
     def write(self, output_path: os.PathLike | str) -> None:

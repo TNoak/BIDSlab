@@ -8,7 +8,15 @@
 import os
 import pathlib
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Iterable, Mapping, Sequence
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Generic,
+    Iterable,
+    Mapping,
+    MutableSequence,
+    Sequence,
+)
 from warnings import warn
 
 import pandas as pd
@@ -335,7 +343,7 @@ class Acquisition(BaseAcquisition):
         self._task: Task | None = None
 
     @property
-    def runs(self) -> Sequence[Run]:
+    def runs(self) -> MutableSequence[Run]:
         if not self._runs:
             self._runs = []
             files = self.root.iterdir()
