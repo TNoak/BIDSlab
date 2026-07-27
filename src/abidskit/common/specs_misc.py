@@ -171,13 +171,9 @@ class Recording:
         self,
         recording_id: str,
         sampling_frequency: int | float,
-        start_time: float,
-        columns: MutableSequence[Column],
     ):
         self.recording_id: str = recording_id
         self.sampling_frequency: int | float = sampling_frequency
-        self.start_time: float = start_time
-        self.columns: MutableSequence[Column] = columns
 
         self._data: Any = None
 
@@ -234,17 +230,17 @@ class PhysioRecording(Recording):
         self,
         recording_id: str,
         sampling_frequency: int,
-        start_time: float,
+        start_time: int | float,
         columns: MutableSequence[Column],
         hardware: Hardware | None = None,
     ):
         super().__init__(
             recording_id=recording_id,
             sampling_frequency=sampling_frequency,
-            start_time=start_time,
-            columns=columns,
         )
 
+        self.start_time: int | float = start_time
+        self.columns: MutableSequence[Column] = columns
         self.hardware: Hardware | None = hardware
 
 
