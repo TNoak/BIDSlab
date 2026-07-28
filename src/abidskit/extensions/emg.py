@@ -2,7 +2,7 @@
 #  University of Augsburg
 #  Department of Computer Science
 #  Chair of Informatics for Medical Technology
-# 
+#
 #  SPDX-License-Identifier: BSD-3-Clause
 #
 #  SPDX-License-Identifier: BSD-3-Clause
@@ -58,13 +58,25 @@ class EMGCoordinateSystem:
     anchor_electrode: str | None = None
 
     def __post_init__(self):
-        if self.emg_coordinate_system == "Other" and not self.emg_coordinate_system_description:
-            raise FieldMissingError("Field `EMGCoordinateSystemDescription` must be present if field `EMGCoordinateSystem` is 'Other'")
+        if (
+            self.emg_coordinate_system == "Other"
+            and not self.emg_coordinate_system_description
+        ):
+            raise FieldMissingError(
+                "Field `EMGCoordinateSystemDescription` must be present if field "
+                "`EMGCoordinateSystem` is 'Other'"
+            )
         if self.parent_coordinate_system:
             if not self.anchor_coordinates:
-                raise FieldMissingError("Field `AnchorCoordinates` must be present if field `ParentCoordinateSystem` is present")
+                raise FieldMissingError(
+                    "Field `AnchorCoordinates` must be present if field "
+                    "`ParentCoordinateSystem` is present"
+                )
             if not self.anchor_electrode:
-                raise FieldMissingError("Field `AnchorElectrode` must be present if field `ParentCoordinateSystem` is present")
+                raise FieldMissingError(
+                    "Field `AnchorElectrode` must be present if field "
+                    "`ParentCoordinateSystem` is present"
+                )
 
     def __repr__(self) -> str:
         return f"<EMGCoordinateSystem name={self.name}>"
@@ -113,19 +125,18 @@ class EMGChannel:
     def type(self, value: str) -> None:
         if value not in EMG_CHANNEL_TYPE_ALLOWED_FIELD_ENTRIES:
             raise FieldEntryNotValidError(
-                f"Field `Type` must be one "
-                f"of {EMG_CHANNEL_TYPE_ALLOWED_FIELD_ENTRIES}"
+                f"Field `Type` must be one of {EMG_CHANNEL_TYPE_ALLOWED_FIELD_ENTRIES}"
             )
         self._type = value
 
 
 class EMGElectrode:
     def __init__(
-            self,
-            name: str,
-            x: int | float,
-            y: int | float,
-            **kwargs: Any,
+        self,
+        name: str,
+        x: int | float,
+        y: int | float,
+        **kwargs: Any,
     ):
         self.name: str = name
         self.x: int | float = x
@@ -161,9 +172,14 @@ class EMGRecording(Recording):
             self.emg_placement_scheme_description: str | None = None
         else:
             try:
-                self.emg_placement_scheme_description = kwargs.pop("EMGPlacementSchemeDescription")
+                self.emg_placement_scheme_description = kwargs.pop(
+                    "EMGPlacementSchemeDescription"
+                )
             except KeyError:
-                raise FieldMissingError("Field `EMGPlacementSchemeDescription` must be present if field `EMGPlacementScheme` is 'Other'") from None
+                raise FieldMissingError(
+                    "Field `EMGPlacementSchemeDescription` must be present if field "
+                    "`EMGPlacementScheme` is 'Other'"
+                ) from None
         self.emg_reference: str = emg_reference
         self.power_line_frequency: int | float | str = power_line_frequency
         self.recording_type: str = recording_type
@@ -234,7 +250,7 @@ def parse_emg_json_sidecar(sidecar_path: pathlib.Path) -> dict:
             if re.match(r"^Task[A-Z].*|^Instructions", key):
                 task_description[key] = value
             elif re.match(
-                    r"^Device[A-Z].*|^(Electrode)?Manufacturer.*|^SoftwareVersions", key
+                r"^Device[A-Z].*|^(Electrode)?Manufacturer.*|^SoftwareVersions", key
             ):
                 hardware_description[key] = value
             elif re.match(r"^Institution.*", key):
