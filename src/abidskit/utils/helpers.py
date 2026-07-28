@@ -237,4 +237,14 @@ def get_data(pkg):
 
 @get_data(dl)
 def load_tsv_data(*, path: pathlib.Path, header: int | None = None) -> pd.DataFrame:
-    return pd.read_csv(path, sep="\t", header=header)
+    try:  # try catch added to test with datasets not containing any data in the files
+        return pd.read_csv(path, sep="\t", header=header)
+    except pd.errors.EmptyDataError:
+        return pd.DataFrame()
+
+
+def check_entity_mismatch(filename: str, entitylist: Sequence[str]) -> bool:
+    # check if any entity in the string is also contained in the list
+    # check if the string filename only contains entities in the list
+    entities = filename.split("_")
+    return set(entities).issubset(entitylist)

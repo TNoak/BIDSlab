@@ -7,7 +7,7 @@
 
 import os
 import pathlib
-from typing import TYPE_CHECKING, Iterable, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, Sequence
 from warnings import warn
 
 from abidskit.common.base import BaseTask
@@ -141,6 +141,10 @@ class Datatype:
                 self._tasks = value  # type: ignore[assignment]  # mypy cannot type narrow on all()
         else:
             raise TypeError("Field `Tasks` must be a list of Task objects")
+
+    def get_top_level_entities(self) -> list[str | Any]:
+        assert self.session is not None
+        return self.session.get_top_level_entities()
 
     def write(self, output_path: os.PathLike | str) -> None:
         write_entities(output_path, self.tasks)

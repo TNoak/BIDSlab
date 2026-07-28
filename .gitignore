@@ -273,3 +273,7 @@ TODO
 data
 src/abidskit/config
 src/abidskit/parser
+
+bids-examples-master/
+demo/*
+#!demo/*.py

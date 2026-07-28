@@ -231,6 +231,7 @@ class MotionRun(Run):
         return columns_set
 
     def write(self, output_path: os.PathLike | str) -> None:
+        super().write(output_path)
         output_path = pathlib.Path(output_path)
         # write motion data to "*_motion.tsv"
         output_path_data = append_path(output_path, "_motion.tsv")
@@ -386,6 +387,12 @@ class MotionAcquisition(BaseAcquisition):
         else:
             raise TypeError("Field `Runs` must be a list of Run objects")
 
+    def get_top_level_entities(self) -> list[str | Any]:
+        assert self.tracking_system is not None
+        entities = self.tracking_system.get_top_level_entities()
+        entities.append(self.acquisition_id)
+        return entities
+
 
 class TrackSys(Entity):
     def __init__(
@@ -523,6 +530,12 @@ class TrackSys(Entity):
                 )
 
         return self._acquisitions
+
+    def get_top_level_entities(self) -> list[str | Any]:
+        assert self.task is not None
+        entities = self.task.get_top_level_entities()
+        entities.append(self.tracking_system_id)
+        return entities
 
     def write(self, output_path: os.PathLike | str) -> None:
         write_entities(output_path, self.acquisitions)

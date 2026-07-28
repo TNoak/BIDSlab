@@ -204,6 +204,12 @@ class Session(Entity):
         else:
             raise TypeError("Field `Datatypes` must be a list of Datatype objects")
 
+    def get_top_level_entities(self) -> list[str | Any]:
+        assert self.participant is not None
+        entities = self.participant.get_top_level_entities()
+        entities.append(self.session_id)
+        return entities
+
     def write(self, output_path: os.PathLike | str) -> None:
         output_path = pathlib.Path(output_path)
         for datatype in self.datatypes:
@@ -335,6 +341,9 @@ class Participant(Entity):
             )
         sessions_dataframe.dropna(axis=1, how="all", inplace=True)
         return sessions_dataframe
+
+    def get_top_level_entities(self) -> list[str | Any]:
+        return [self.participant_id]
 
     def write(self, output_path: os.PathLike | str) -> None:
         output_path = pathlib.Path(output_path)

@@ -7,7 +7,7 @@
 
 import os
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Iterable, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, Sequence
 from warnings import warn
 
 from abidskit.common.base import BaseAcquisition, Run
@@ -224,3 +224,9 @@ class Acquisition(BaseAcquisition):
     @task.setter
     def task(self, value: "Task") -> None:
         self._task = value
+
+    def get_top_level_entities(self) -> list[str | Any]:
+        assert self.task is not None
+        entities = self.task.get_top_level_entities()
+        entities.append(self.acquisition_id)
+        return entities
