@@ -7,7 +7,7 @@
 
 import os
 import pathlib
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Iterable, Mapping
 from warnings import warn
 
 from abidskit.common.base import BaseTask
@@ -49,7 +49,7 @@ class Datatype:
 
         self._session: Session | None = None
 
-        self._tasks: Sequence[BaseTask] | None = None
+        self._tasks: dict[str, BaseTask] | None = None
 
         if kwargs:
             set_attr_from_dict(self, kwargs)
@@ -73,9 +73,9 @@ class Datatype:
         self._session = value
 
     @property
-    def tasks(self) -> Sequence[BaseTask]:
+    def tasks(self) -> dict[str, BaseTask]:
         if not self._tasks:
-            self._tasks = []
+            self._tasks = {}
             if self.datatype_name in DATATYPES_WITH_TASKS:
                 files = self.root.iterdir()
                 task_ids = set()
@@ -98,14 +98,16 @@ class Datatype:
                         if self.datatype_name == "motion":
                             data = parse_motion_json_sidecar(json_path)
                             task_name = data["task"].pop("TaskName")
-                            self._tasks.append(
-                                MotionTask(
-                                    task_id="task-" + task_id,
-                                    task_name=task_name,
-                                    base_path=self.root,
-                                    datatype=self,
-                                    **data["task"],
-                                )
+                            self._tasks.update(
+                                {
+                                    "task-" + task_id: MotionTask(
+                                        task_id="task-" + task_id,
+                                        task_name=task_name,
+                                        base_path=self.root,
+                                        datatype=self,
+                                        **data["task"],
+                                    )
+                                }
                             )
                         else:
                             raise NotImplementedError
@@ -118,27 +120,39 @@ class Datatype:
 
             # If no tasks are found, create a default one
             if not self._tasks:
-                self._tasks.append(
-                    Task(
-                        task_name="n/a",
-                        task_id="task-00",
-                        base_path=self.root,
-                        datatype=self,
-                    )
+                self._tasks.update(
+                    {
+                        "task-00": Task(
+                            task_name="n/a",
+                            task_id="task-00",
+                            base_path=self.root,
+                            datatype=self,
+                        )
+                    }
                 )
 
         return self._tasks
 
     @tasks.setter
-    def tasks(self, value: Iterable[Mapping] | Iterable[BaseTask]) -> None:
+    def tasks(
+        self, value: Iterable[Mapping] | Iterable[BaseTask] | dict[str, BaseTask]
+    ) -> None:
         if isinstance(value, Iterable):
             if all(isinstance(entry, Mapping) for entry in value):
-                self._tasks = []
+                self._tasks = {}
                 for entry in value:
                     assert isinstance(entry, Mapping)  # for mypy
-                    self._tasks.append(Task(base_path=self.root, **entry))
+                    self._tasks.update(
+                        {entry.task_id: Task(base_path=self.root, **entry)}  # type: ignore[attr-defined]
+                    )
             elif all(isinstance(entry, BaseTask) for entry in value):
-                self._tasks = value  # type: ignore[assignment]  # mypy cannot type narrow on all()
+                self._tasks = {}
+                for entry in value:
+                    assert isinstance(entry, BaseTask)  # for mypy
+                    assert entry.task_id is not None
+                    self._tasks.update({entry.task_id: entry})
+        elif isinstance(value, dict):
+            self._tasks = value
         else:
             raise TypeError("Field `Tasks` must be a list of Task objects")
 
@@ -147,4 +161,4 @@ class Datatype:
         return self.session.get_top_level_entities()
 
     def write(self, output_path: os.PathLike | str) -> None:
-        write_entities(output_path, self.tasks)
+        write_entities(output_path, self.tasks.values())

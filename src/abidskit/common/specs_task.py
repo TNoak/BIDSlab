@@ -26,14 +26,14 @@ class Task(BaseTask):
         self.cog_atlas_id = None  # !: Only for special datatypes
         self.cog_poid = None  # !: Only for special datatypes
 
-        self._acquisitions: Iterable[Acquisition] | None = None
+        self._acquisitions: dict[str, Acquisition] | None = None
 
         super().__init__(base_path=base_path, task_name=task_name, **kwargs)
 
     @property
-    def acquisitions(self) -> Iterable[Acquisition]:
+    def acquisitions(self) -> dict[str, Acquisition]:
         if not self._acquisitions:
-            self._acquisitions = []
+            self._acquisitions = {}
             files = self.root.iterdir()
             acquisition_labels = set()
             for file in files:
@@ -47,39 +47,52 @@ class Task(BaseTask):
                 except KeyError:
                     continue
             for acquisition_label in acquisition_labels:
-                self._acquisitions.append(
-                    Acquisition(
-                        acquisition_id="acq-" + acquisition_label,
-                        base_path=self.root,
-                    )
+                self._acquisitions.update(
+                    {
+                        "acq-" + acquisition_label: Acquisition(
+                            acquisition_id="acq-" + acquisition_label,
+                            base_path=self.root,
+                        )
+                    }
                 )
 
             # If no acquisitions are found, add a default one
             if not self._acquisitions:
-                self._acquisitions.append(
-                    Acquisition(
-                        acquisition_id="acq-00",
-                        base_path=self.root,
-                    )
+                self._acquisitions.update(
+                    {
+                        "acq-00": Acquisition(
+                            acquisition_id="acq-00",
+                            base_path=self.root,
+                        )
+                    }
                 )
 
         return self._acquisitions
 
     @acquisitions.setter
-    def acquisitions(self, value: Iterable[str] | Iterable[Acquisition]) -> None:
+    def acquisitions(
+        self, value: Iterable[str] | Iterable[Acquisition] | dict[str, Acquisition]
+    ) -> None:
         if isinstance(value, Iterable):
             if all(isinstance(entry, str) for entry in value):
-                self._acquisitions = []
+                self._acquisitions = {}
                 for entry in value:
                     assert isinstance(entry, str)  # for mypy
-                    self._acquisitions.append(
-                        Acquisition(
-                            acquisition_id=entry,
-                            base_path=self.root,
-                        )
+                    self._acquisitions.update(
+                        {
+                            entry: Acquisition(
+                                acquisition_id=entry,
+                                base_path=self.root,
+                            )
+                        }
                     )
             elif all(isinstance(v, Acquisition) for v in value):
-                self._acquisitions = value  # type: ignore[assignment]  # mypy cannot type narrow on all()
+                self._acquisitions = {}
+                for entry in value:
+                    assert isinstance(entry, Acquisition)  # for mypy
+                    self._acquisitions.update({entry.acquisition_id: entry})
+        elif isinstance(value, dict):
+            self._acquisitions = value
         else:
             raise TypeError(
                 "Field `Acquisitions` must be a list of Acquisition objects"

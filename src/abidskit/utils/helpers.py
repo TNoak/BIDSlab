@@ -14,6 +14,7 @@ from functools import wraps
 from typing import (
     TYPE_CHECKING,
     Any,
+    Iterable,
     Iterator,
     Mapping,
     MutableSequence,
@@ -189,8 +190,10 @@ def copy_file(
 
 
 def write_entities(
-    output_path: os.PathLike | str, entities: "Sequence[PEntity]"
+    output_path: os.PathLike | str, entities: "Sequence[PEntity]" | Iterable[PEntity]
 ) -> None:
+    if isinstance(entities, Iterable):
+        entities = list(entities)
     output_path = pathlib.Path(output_path)
     for entity in entities:
         path = (

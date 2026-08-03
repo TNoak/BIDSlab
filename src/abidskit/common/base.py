@@ -277,20 +277,20 @@ class BaseAcquisition(Entity, Generic[R], ABC):
 
         self.root: pathlib.Path = pathlib.Path(base_path)
 
-        self._runs: Sequence[R] | None = None
+        self._runs: dict[str, R] | None = None
 
     def __repr__(self) -> str:
         return f"<Acquisition id={self.acquisition_id}>"
 
     @property
     @abstractmethod
-    def runs(self) -> Sequence[R]:
+    def runs(self) -> dict[str, R]:
         pass
 
     @runs.setter
     @abstractmethod
-    def runs(self, value: Sequence[str | R]) -> None:
+    def runs(self, value: Sequence[str | R] | dict[str, R]) -> None:
         pass
 
     def write(self, output_path: os.PathLike | str) -> None:
-        write_entities(output_path, self.runs)
+        write_entities(output_path, self.runs.values())

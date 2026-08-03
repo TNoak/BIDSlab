@@ -105,7 +105,7 @@ class Session(Entity):
         self._participant: Participant | None = None
 
         self._scans: Sequence[Scan] | None = None
-        self._datatypes: Sequence[Datatype] | None = None
+        self._datatypes: dict[str, Datatype] | None = None
 
         for key, value in kwargs.items():
             setattr(self, key, value)
@@ -173,34 +173,47 @@ class Session(Entity):
             raise TypeError("Field `Scans` must be a list of Scan objects")
 
     @property
-    def datatypes(self) -> Sequence[Datatype]:
+    def datatypes(self) -> dict[str, Datatype]:
         if not self._datatypes:
-            self._datatypes = []
+            self._datatypes = {}
             for file in self.root.iterdir():
                 if file.is_dir() and file.name in ALLOWED_DATATYPES:
-                    self._datatypes.append(
-                        Datatype(base_path=file, datatype_name=file.name, session=self)
+                    self._datatypes.update(
+                        {
+                            file.name: Datatype(
+                                base_path=file, datatype_name=file.name, session=self
+                            )
+                        }
                     )
 
         return self._datatypes
 
     @datatypes.setter
-    def datatypes(self, value: Sequence[str] | Sequence[Datatype]) -> None:
+    def datatypes(
+        self, value: Sequence[str] | Sequence[Datatype] | dict[str, Datatype]
+    ) -> None:
         if isinstance(value, Sequence):
             if all(isinstance(entry, str) for entry in value):
-                self._datatypes = []
+                self._datatypes = {}
                 for entry in value:
                     assert isinstance(entry, str)  # for mypy
                     if entry in ALLOWED_DATATYPES:
-                        self._datatypes.append(
-                            Datatype(
-                                base_path=self.root / entry,
-                                datatype_name=entry,
-                                session=self,
-                            )
+                        self._datatypes.update(
+                            {
+                                entry: Datatype(
+                                    base_path=self.root / entry,
+                                    datatype_name=entry,
+                                    session=self,
+                                )
+                            }
                         )
             elif all(isinstance(entry, Datatype) for entry in value):
-                self._datatypes = value  # type: ignore[assignment]  # mypy cannot type narrow on all()
+                self._datatypes = {}
+                for entry in value:
+                    assert isinstance(entry, Datatype)  # for mypy
+                    self._datatypes.update({entry.datatype_name: entry})
+        elif isinstance(value, dict):
+            self._datatypes = value
         else:
             raise TypeError("Field `Datatypes` must be a list of Datatype objects")
 
@@ -212,7 +225,7 @@ class Session(Entity):
 
     def write(self, output_path: os.PathLike | str) -> None:
         output_path = pathlib.Path(output_path)
-        for datatype in self.datatypes:
+        for datatype in self.datatypes.values():
             # Insert datatype level folder
             path = pathlib.Path(output_path.parent) / datatype.datatype_name
             if not path.exists():
@@ -247,7 +260,7 @@ class Participant(Entity):
         self.columns: Sequence[Column] | None = None
         self._phenotype: Sequence[MeasurementTool] | None = None
 
-        self._sessions: Sequence[Session] | None = None
+        self._sessions: dict[str, Session] | None = None
 
         for key, value in kwargs.items():
             setattr(self, key, value)
@@ -297,7 +310,7 @@ class Participant(Entity):
             )
 
     @property
-    def sessions(self) -> Sequence[Session]:
+    def sessions(self) -> dict[str, Session]:
         if not self._sessions:
             tsv_path, _ = get_tsv_json_files(
                 self.root, f"{self.participant_id}_sessions"
@@ -306,32 +319,43 @@ class Participant(Entity):
 
             # If no sessions are found, create a default one
             if len(self._sessions) == 0:
-                self._sessions.append(
-                    Session(
-                        base_path=self.root,
-                        session_id="ses-00",
-                        participant=self,
-                    )
+                self._sessions.update(
+                    {
+                        "ses-00": Session(
+                            base_path=self.root,
+                            session_id="ses-00",
+                            participant=self,
+                        )
+                    }
                 )
 
         return self._sessions
 
     @sessions.setter
-    def sessions(self, value: Sequence[Mapping] | Sequence[Session]) -> None:
+    def sessions(
+        self, value: Sequence[Mapping] | Sequence[Session] | dict[str, Session]
+    ) -> None:
         if isinstance(value, Sequence):
             if all(isinstance(entry, Mapping) for entry in value):
-                self._sessions = []
+                self._sessions = {}
                 for entry in value:
                     assert isinstance(entry, Mapping)  # for mypy
-                    self._sessions.append(Session(base_path=self.root, **entry))
+                    self._sessions.update(
+                        {entry.session_id: Session(base_path=self.root, **entry)}  # type: ignore[attr-defined]
+                    )
             elif all(isinstance(entry, Session) for entry in value):
-                self._sessions = value  # type: ignore[assignment]  # mypy cannot type narrow on all()
+                self._sessions = {}
+                for entry in value:
+                    assert isinstance(entry, Session)  # for mypy
+                    self._sessions.update({entry.session_id: entry})
+        elif isinstance(value, dict):
+            self._sessions = value
         else:
             raise TypeError("Field `Sessions` must be a list of Session objects")
 
     def list_sessions(self) -> pd.DataFrame:
         sessions_dataframe = pd.DataFrame()
-        for session in self.sessions:
+        for session in self.sessions.values():
             session_dict = session.__dict__.copy()
             session_dict = clean_dict(session_dict, skip_keys_to_titlecase=0)
 
@@ -358,7 +382,7 @@ class Participant(Entity):
             )
 
         # write each session data
-        for session in self.sessions:
+        for session in self.sessions.values():
             if len(self.sessions) > 1:
                 path = output_path / session.session_id
                 if not path.exists():
@@ -377,7 +401,7 @@ class Participant(Entity):
 def get_sessions_from_files(
     participant: Participant,
     tsv_path: pathlib.Path | None,
-) -> MutableSequence[Session]:
+) -> dict[str, Session]:
     sessions: MutableSequence[Session] = []
     if tsv_path:
         data = parse_descriptive_tsv(tsv_path)
@@ -407,7 +431,10 @@ def get_sessions_from_files(
                     participant=participant,
                 )
 
-    return sessions
+    sessions_dict: dict[str, Session] = {
+        session.session_id: session for session in sessions
+    }
+    return sessions_dict
 
 
 def get_scans_from_files(

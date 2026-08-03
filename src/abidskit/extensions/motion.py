@@ -231,7 +231,7 @@ class MotionRun(Run):
         return columns_set
 
     def write(self, output_path: os.PathLike | str) -> None:
-        super().write(output_path)
+        # super().write(output_path)
         output_path = pathlib.Path(output_path)
         # write motion data to "*_motion.tsv"
         output_path_data = append_path(output_path, "_motion.tsv")
@@ -324,7 +324,7 @@ class MotionAcquisition(BaseAcquisition):
         self._tracking_system = value
 
     @property
-    def runs(self) -> Sequence[MotionRun]:
+    def runs(self) -> dict[str, MotionRun]:
         if not self._runs:
             if self.tracking_system:
                 file_name = f"*{self.tracking_system.tracking_system_id}*"
@@ -336,7 +336,7 @@ class MotionAcquisition(BaseAcquisition):
                 file_name + "_channels",
             )
             channels = get_motion_channels(tsv_path=tsv_path, json_path=json_path)
-            self._runs = []
+            self._runs = {}
             files = self.root.iterdir()
             run_ids = set()
             for file in files:
@@ -350,40 +350,54 @@ class MotionAcquisition(BaseAcquisition):
                 except KeyError:
                     continue
             for run_id in run_ids:
-                self._runs.append(
-                    MotionRun(
-                        run_id=run_id,
-                        base_path=self.root,
-                        acquisition=self,
-                        channels=channels,
-                    )
+                self._runs.update(
+                    {
+                        run_id: MotionRun(
+                            run_id=run_id,
+                            base_path=self.root,
+                            acquisition=self,
+                            channels=channels,
+                        )
+                    }
                 )
 
             # If no runs are found, add a default one
             if not self._runs:
-                self._runs.append(
-                    MotionRun(
-                        run_id="run-00",
-                        base_path=self.root,
-                        acquisition=self,
-                        channels=channels,
-                    )
+                self._runs.update(
+                    {
+                        "run-00": MotionRun(
+                            run_id="run-00",
+                            base_path=self.root,
+                            acquisition=self,
+                            channels=channels,
+                        )
+                    }
                 )
 
         return self._runs
 
     @runs.setter
-    def runs(self, value: Sequence[str | MotionRun]) -> None:
+    def runs(self, value: Sequence[str | MotionRun] | dict[str, Run]) -> None:
         if isinstance(value, Sequence):
             if all(isinstance(entry, str) for entry in value):
-                self._runs = []
+                self._runs = {}
                 for entry in value:
                     assert isinstance(entry, str)  # for mypy
-                    self._runs.append(
-                        MotionRun(run_id=entry, base_path=self.root, acquisition=self)
+                    self._runs.update(
+                        {
+                            entry: MotionRun(
+                                run_id=entry, base_path=self.root, acquisition=self
+                            )
+                        }
                     )
             elif all(isinstance(v, MotionRun) for v in value):
-                self._runs = value  # type: ignore[assignment]  # mypy cannot type narrow on all()
+                self._runs = {}
+                for entry in value:
+                    assert isinstance(entry, MotionRun)  # for mypy
+                    assert entry.run_id is not None
+                    self._runs.update({entry.run_id: entry})
+        elif isinstance(value, dict):
+            self._runs = value
         else:
             raise TypeError("Field `Runs` must be a list of Run objects")
 
@@ -418,7 +432,7 @@ class TrackSys(Entity):
 
         self._task: MotionTask | None = None
 
-        self._acquisitions: Sequence[MotionAcquisition] | None = None
+        self._acquisitions: dict[str, MotionAcquisition] | None = None
 
         set_attr_from_dict(self, kwargs)
 
@@ -475,9 +489,9 @@ class TrackSys(Entity):
         self._task = value
 
     @property
-    def acquisitions(self) -> Sequence[MotionAcquisition]:
+    def acquisitions(self) -> dict[str, MotionAcquisition]:
         if not self._acquisitions:
-            self._acquisitions = []
+            self._acquisitions = {}
             files = self.root.iterdir()
             acquisition_ids = set()
             for file in files:
@@ -502,14 +516,16 @@ class TrackSys(Entity):
                     sampling_frequency = acquisition_description.pop(
                         "SamplingFrequency"
                     )
-                    self._acquisitions.append(
-                        MotionAcquisition(
-                            base_path=self.root,
-                            acquisition_id="acq-" + acquisition_id,
-                            tracking_system=self,
-                            sampling_frequency=sampling_frequency,
-                            **acquisition_description,
-                        )
+                    self._acquisitions.update(
+                        {
+                            "acq-" + acquisition_id: MotionAcquisition(
+                                base_path=self.root,
+                                acquisition_id="acq-" + acquisition_id,
+                                tracking_system=self,
+                                sampling_frequency=sampling_frequency,
+                                **acquisition_description,
+                            )
+                        }
                     )
                 else:
                     raise NotImplementedError  # TODO: implement
@@ -517,16 +533,18 @@ class TrackSys(Entity):
             # If no acquisitions are found, add a default one from
             # the motion description
             if not self._acquisitions:
-                self._acquisitions.append(
-                    MotionAcquisition(
-                        acquisition_id="acq-00",
-                        base_path=self.root,
-                        tracking_system=self,
-                        sampling_frequency=self._motion_description.pop(
-                            "SamplingFrequency"
-                        ),  # FIXME: dict entry can be None
-                        **self._motion_description,
-                    )
+                self._acquisitions.update(
+                    {
+                        "acq-00": MotionAcquisition(
+                            acquisition_id="acq-00",
+                            base_path=self.root,
+                            tracking_system=self,
+                            sampling_frequency=self._motion_description.pop(
+                                "SamplingFrequency"
+                            ),  # FIXME: dict entry can be None
+                            **self._motion_description,
+                        )
+                    }
                 )
 
         return self._acquisitions
@@ -538,21 +556,21 @@ class TrackSys(Entity):
         return entities
 
     def write(self, output_path: os.PathLike | str) -> None:
-        write_entities(output_path, self.acquisitions)
+        write_entities(output_path, self.acquisitions.values())
 
 
 class MotionTask(BaseTask):
     def __init__(
         self, base_path: os.PathLike | str, task_name: str, **kwargs: Any
     ) -> None:
-        self._tracking_systems: Sequence[TrackSys] | None = None
+        self._tracking_systems: dict[str, TrackSys] | None = None
 
         super().__init__(base_path=base_path, task_name=task_name, **kwargs)
 
     @property
-    def tracking_systems(self) -> Sequence[TrackSys]:
+    def tracking_systems(self) -> dict[str, TrackSys]:
         if not self._tracking_systems:
-            self._tracking_systems = []
+            self._tracking_systems = {}
             files = self.root.iterdir()
             tracking_systems_ids = set()
             for file in files:
@@ -575,15 +593,17 @@ class MotionTask(BaseTask):
                     motion_description = data["motion"]  # FIXME: can be None
                     hardware_description = data["hardware"]  # FIXME: can be None
                     institution_description = data["institution"]  # FIXME: can be None
-                    self._tracking_systems.append(
-                        TrackSys(
-                            tracking_system_id="tracksys-" + tracking_system_id,
-                            base_path=self.root,
-                            task=self,
-                            hardware=hardware_description,
-                            institution=institution_description,
-                            motion_description=motion_description,
-                        )
+                    self._tracking_systems.update(
+                        {
+                            "tracksys-" + tracking_system_id: TrackSys(
+                                tracking_system_id="tracksys-" + tracking_system_id,
+                                base_path=self.root,
+                                task=self,
+                                hardware=hardware_description,
+                                institution=institution_description,
+                                motion_description=motion_description,
+                            )
+                        }
                     )
                 else:
                     raise NotImplementedError  # TODO: implement
@@ -596,17 +616,29 @@ class MotionTask(BaseTask):
         return self._tracking_systems
 
     @tracking_systems.setter
-    def tracking_systems(self, value: Sequence[Mapping] | Sequence[TrackSys]) -> None:
+    def tracking_systems(
+        self, value: Sequence[Mapping] | Sequence[TrackSys] | dict[str, TrackSys]
+    ) -> None:
         if isinstance(value, Sequence):
             if all(isinstance(entry, Mapping) for entry in value):
-                self._tracking_systems = []
+                self._tracking_systems = {}
                 for entry in value:
                     assert isinstance(entry, Mapping)  # for mypy
-                    self._tracking_systems.append(
-                        TrackSys(base_path=self.root, task=self, **entry)
+                    self._tracking_systems.update(
+                        {
+                            entry.tracking_system_id: TrackSys(  # type: ignore[attr-defined]
+                                base_path=self.root, task=self, **entry
+                            )
+                        }
                     )
             elif all(isinstance(entry, TrackSys) for entry in value):
-                self._tracking_systems = value  # type: ignore[assignment]  # mypy cannot type narrow on all()
+                self._tracking_systems = {}
+                for entry in value:
+                    assert isinstance(entry, TrackSys)  # for mypy
+                    assert entry.tracking_system_id is not None
+                    self._tracking_systems.update({entry.tracking_system_id: entry})
+        elif isinstance(value, dict):
+            self._tracking_systems = value
         else:
             raise TypeError(
                 "Field `TrackingSystems` must be a list of TrackSys objects"
@@ -615,7 +647,7 @@ class MotionTask(BaseTask):
     def write(self, output_path: os.PathLike | str) -> None:
         # write json sidecar to "*_motion.json"
         task_dict = self.__dict__.copy()
-        for tracking_system in self.tracking_systems:
+        for tracking_system in self.tracking_systems.values():
             hardware_dict = (
                 asdict(tracking_system.hardware) if tracking_system.hardware else {}
             )
@@ -627,14 +659,14 @@ class MotionTask(BaseTask):
             output_path_tracksys = append_path(
                 output_path, f"_{tracking_system.tracking_system_id}"
             )
-            for acquisition in tracking_system.acquisitions:
+            for acquisition in tracking_system.acquisitions.values():
                 acquisition_dict = acquisition.__dict__.copy()
                 output_path_acquisition = (
                     append_path(output_path_tracksys, f"_{acquisition.acquisition_id}")
                     if len(tracking_system.acquisitions) > 1
                     else output_path_tracksys
                 )
-                for run in acquisition.runs:
+                for run in acquisition.runs.values():
                     run_dict = run.__dict__.copy()
                     output_path_run = (
                         append_path(output_path_acquisition, f"_{run.run_id}")
@@ -659,7 +691,7 @@ class MotionTask(BaseTask):
                     )
                     write_json(motion_description, output_path_motion_description)
 
-        write_entities(output_path, self.tracking_systems)
+        write_entities(output_path, self.tracking_systems.values())
 
 
 def parse_motion_json_sidecar(sidecar_path: pathlib.Path) -> dict:

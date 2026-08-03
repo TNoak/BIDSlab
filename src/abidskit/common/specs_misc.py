@@ -159,9 +159,9 @@ class Acquisition(BaseAcquisition):
         self._task: Task | None = None
 
     @property
-    def runs(self) -> Sequence[Run]:
+    def runs(self) -> dict[str, Run]:
         if not self._runs:
-            self._runs = []
+            self._runs = {}
             files = self.root.iterdir()
             run_ids = set()
             for file in files:
@@ -175,40 +175,52 @@ class Acquisition(BaseAcquisition):
                 except KeyError:
                     continue
             for run_id in run_ids:
-                self._runs.append(
-                    Run(
-                        run_id=run_id,
-                        base_path=self.root,
-                        acquisition=self,
-                    )
+                self._runs.update(
+                    {
+                        run_id: Run(
+                            run_id=run_id,
+                            base_path=self.root,
+                            acquisition=self,
+                        )
+                    }
                 )
 
             # If no runs are found, add a default one
             if not self._runs:
-                self._runs.append(
-                    Run(
-                        run_id="run-00",
-                        base_path=self.root,
-                        acquisition=self,
-                    )
+                self._runs.update(
+                    {
+                        "run-00": Run(
+                            run_id="run-00",
+                            base_path=self.root,
+                            acquisition=self,
+                        )
+                    }
                 )
 
         return self._runs
 
     @runs.setter
-    def runs(self, value: Sequence[str | Run]) -> None:
+    def runs(self, value: Sequence[str | Run] | dict[str, Run]) -> None:
         if isinstance(value, Sequence):
             if all(isinstance(entry, str) for entry in value):
-                self._runs = []
+                self._runs = {}
                 for entry in value:
                     assert isinstance(entry, str)  # for mypy
-                    self._runs.append(
-                        Run(run_id=entry, base_path=self.root, acquisition=self)
+                    self._runs.update(
+                        {
+                            entry: Run(
+                                run_id=entry, base_path=self.root, acquisition=self
+                            )
+                        }
                     )
             elif all(isinstance(v, Run) for v in value):
-                self._runs = value  # type: ignore[assignment]  # mypy cannot type narrow on all()
-        else:
-            raise TypeError("Field `Runs` must be a list of Run objects")
+                self._runs = {}
+                for entry in value:
+                    assert isinstance(entry, Run)  # for mypy
+                    self._runs.update({entry.run_id: entry})
+        elif isinstance(value, dict):
+            self._runs = value
+        raise TypeError("Field `Runs` must be a list of Run objects")
 
     @property
     def task(self) -> "Task | None":

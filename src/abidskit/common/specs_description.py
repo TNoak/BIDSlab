@@ -141,7 +141,7 @@ class Dataset:
         self.stimuli_path: pathlib.Path | None = None
         self.phenotype_path: pathlib.Path | None = None
 
-        self._participants: Sequence[Participant] | None = None
+        self._participants: dict[str, Participant] | None = None
 
         if kwargs:
             set_attr_from_dict(self, kwargs)
@@ -196,7 +196,7 @@ class Dataset:
             )
 
     @property
-    def participants(self) -> Sequence[Participant]:
+    def participants(self) -> dict[str, Participant]:
         if not self._participants:
             tsv_path, json_path = get_tsv_json_files(self.root, "participants")
             self._participants = get_participants_from_files(
@@ -205,30 +205,42 @@ class Dataset:
 
             # If no participants are found, create a default one
             if len(self._participants) == 0:
-                self._participants.append(
-                    Participant(
-                        base_path=self.root, participant_id="sub-00", dataset=self
-                    )
+                self._participants.update(
+                    {
+                        "sub-00": Participant(
+                            base_path=self.root, participant_id="sub-00", dataset=self
+                        )
+                    }
                 )
 
         return self._participants
 
     @participants.setter
-    def participants(self, value: Sequence[Mapping] | Sequence[Participant]) -> None:
+    def participants(
+        self, value: Sequence[Mapping] | Sequence[Participant] | dict[str, Participant]
+    ) -> None:
         if isinstance(value, Sequence):
             if all(isinstance(entry, Mapping) for entry in value):
-                self._participants = []
+                self._participants = {}
                 for entry in value:
                     assert isinstance(entry, Mapping)  # for mypy
-                    self._participants.append(
-                        Participant(
-                            base_path=self.root / entry.get("participant_id", "sub-01"),
-                            dataset=self,
-                            **entry,
-                        )
+                    self._participants.update(
+                        {
+                            entry.get("participant_id", "sub-01"): Participant(
+                                base_path=self.root
+                                / entry.get("participant_id", "sub-01"),
+                                dataset=self,
+                                **entry,
+                            )
+                        }
                     )
             elif all(isinstance(entry, Participant) for entry in value):
-                self._participants = value  # type: ignore[assignment]  # mypy cannot type narrow on all()
+                self._participants = {}
+                for entry in value:
+                    assert isinstance(entry, Participant)  # for mypy
+                    self._participants.update({entry.participant_id: entry})
+        elif isinstance(value, dict):
+            self._participants = value
         else:
             raise TypeError(
                 "Field `Participants` must be a list of Participant objects"
@@ -261,7 +273,7 @@ class Dataset:
 
     def list_participants(self) -> pd.DataFrame:
         participants_dataframe = pd.DataFrame()
-        for participant in self.participants:
+        for participant in self.participants.values():
             participant_dict = participant.__dict__.copy()
             participant_dict = clean_dict(participant_dict, skip_keys_to_titlecase=0)
 
@@ -275,7 +287,7 @@ class Dataset:
 
     def _columns(self) -> set[Column]:
         columns_set = set()
-        for participant in self.participants:
+        for participant in self.participants.values():
             for column in participant.columns if participant.columns else []:
                 columns_set.add(column)
         return columns_set
@@ -307,6 +319,7 @@ class Dataset:
         _ = dataset_description.pop("stimuli_path", None)
         _ = dataset_description.pop("phenotype_path", None)
         _ = dataset_description.pop("derivatives_path", None)
+        _ = dataset_description.pop("_participants", None)
         dataset_description = clean_dict(dataset_description, skip_keys_to_titlecase=0)
         write_json(dataset_description, output_path_dataset_description)
 
@@ -346,20 +359,18 @@ class Dataset:
         self.write_phenotype(output_path=output_path)
 
         # write each participant data
-        for participant in self.participants:
+        for participant in self.participants.values():
             path = pathlib.Path(output_path) / participant.participant_id
             if not path.exists():
                 path.mkdir(parents=True, exist_ok=True)
             participant.write(path)
 
-    def write_phenotype(  # noqa: C901
-        self, output_path: os.PathLike | str
-    ) -> None:
+    def write_phenotype(self, output_path: os.PathLike | str) -> None:  # noqa: C901
         output_path = pathlib.Path(output_path)
 
         phenotypes = []
         measurement_tool_names = set()
-        for participant in self.participants:
+        for participant in self.participants.values():
             if pht_list := participant.phenotype:
                 phenotypes.append(pht_list)
                 for pht in pht_list:
@@ -419,7 +430,7 @@ def get_participants_from_files(
     dataset: Dataset,
     tsv_path: pathlib.Path | None,
     json_path: pathlib.Path | None,
-) -> MutableSequence[Participant]:
+) -> dict[str, Participant]:
     participants: MutableSequence[Participant] = []
     columns = []
 
@@ -460,8 +471,10 @@ def get_participants_from_files(
                     participant_id=directory.name,
                     dataset=dataset,
                 )
-
-    return participants
+    participants_dict: dict[str, Participant] = {
+        participant.participant_id: participant for participant in participants
+    }
+    return participants_dict
 
 
 def get_phenotypes_from_files(
