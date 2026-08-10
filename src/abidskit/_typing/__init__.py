@@ -8,10 +8,14 @@
 __all__ = [
     "A",
     "E",
+    "EC",
+    "EE",
     "MC",
-    "R",
     "PEntity",
+    "R",
+    "T",
     "Writable",
 ]
 
-from .base import MC, A, E, PEntity, R, Writable
+from .base import A, E, PEntity, R, T, Writable
+from .extensions import EC, EE, MC
