@@ -173,14 +173,18 @@ class Column:
             raise TypeError("Field `Levels` must be a list of Level objects")
 
 
-class Recording:
+class Recording(Entity):
     def __init__(
         self,
+        base_path: os.PathLike | str,
         recording_id: str,
         sampling_frequency: int | float,
     ):
-        self.recording_id: str = recording_id
+        super().__init__(_entity_id=recording_id, _entity_name="recording")
+        self.recording_id: str = self._entity_id
         self.sampling_frequency: int | float = sampling_frequency
+
+        self.root: pathlib.Path = pathlib.Path(base_path)
 
         self._data: Any = None
 
@@ -231,10 +235,16 @@ class Recording:
     def data(self, value: pd.DataFrame) -> None:
         self._data = value
 
+    def write(self, output_path: os.PathLike | str) -> None:
+        # TODO: implement writing of basic Recording data
+        if not get_settings_value("IGNORE_NOT_IMPLEMENTED"):
+            raise NotImplementedError
+
 
 class PhysioRecording(Recording):
     def __init__(
         self,
+        base_path: os.PathLike | str,
         recording_id: str,
         sampling_frequency: int,
         start_time: int | float,
@@ -242,6 +252,7 @@ class PhysioRecording(Recording):
         hardware: Hardware | None = None,
     ):
         super().__init__(
+            base_path=base_path,
             recording_id=recording_id,
             sampling_frequency=sampling_frequency,
         )
