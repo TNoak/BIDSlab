@@ -4,8 +4,6 @@
 #  Chair of Informatics for Medical Technology
 #
 #  SPDX-License-Identifier: BSD-3-Clause
-#
-#  SPDX-License-Identifier: BSD-3-Clause
 
 import json
 import pathlib
@@ -228,7 +226,7 @@ class EMGRecording(Recording):
         elif isinstance(value, EMGHardware):
             self._hardware = value
         else:
-            raise TypeError("Field `Hardware` must be a EMGHardware object")
+            raise TypeError("Field `Hardware` must be an EMGHardware object")
 
     @property
     def institution(self) -> Institution | None:
