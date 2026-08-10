@@ -525,6 +525,25 @@ class TrackSys(Entity):
 
         return self._acquisitions
 
+    @acquisitions.setter
+    def acquisitions(self, value: MutableSequence[Mapping | MotionAcquisition]) -> None:
+        if isinstance(value, MutableSequence):
+            if all(isinstance(entry, Mapping) for entry in value):
+                self._acquisitions = []
+                for entry in value:
+                    assert isinstance(entry, Mapping)  # for mypy
+                    self._acquisitions.append(
+                        MotionAcquisition(
+                            base_path=self.root, tracking_system=self, **entry
+                        )
+                    )
+            elif all(isinstance(entry, MotionAcquisition) for entry in value):
+                self._acquisitions = value  # type: ignore[assignment]  # mypy cannot type narrow on all()
+        else:
+            raise TypeError(
+                "Field `Acquisitions` must be a list of Acquisition objects"
+            )
+
     def write(self, output_path: os.PathLike | str) -> None:
         write_entities(output_path, self.acquisitions)
 
