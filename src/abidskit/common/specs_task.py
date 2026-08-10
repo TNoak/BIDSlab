@@ -6,7 +6,7 @@
 #  SPDX-License-Identifier: BSD-3-Clause
 
 import os
-from typing import TYPE_CHECKING, Iterable
+from typing import TYPE_CHECKING, MutableSequence
 
 from abidskit.common.base import BaseTask
 from abidskit.common.specs_misc import Acquisition
@@ -22,17 +22,17 @@ class Task(BaseTask):
         self,
         base_path: os.PathLike | str,
         task_name: str,
-        **kwargs: "str | Datatype | Iterable",
+        **kwargs: "str | Datatype | MutableSequence",
     ) -> None:
         self.cog_atlas_id = None  # !: Only for special datatypes
         self.cog_poid = None  # !: Only for special datatypes
 
-        self._acquisitions: Iterable[Acquisition] | None = None
+        self._acquisitions: MutableSequence[Acquisition] | None = None
 
         super().__init__(base_path=base_path, task_name=task_name, **kwargs)
 
     @property
-    def acquisitions(self) -> Iterable[Acquisition]:
+    def acquisitions(self) -> MutableSequence[Acquisition]:
         if not self._acquisitions:
             self._acquisitions = []
             files = self.root.iterdir()
@@ -67,8 +67,8 @@ class Task(BaseTask):
         return self._acquisitions
 
     @acquisitions.setter
-    def acquisitions(self, value: Iterable[str] | Iterable[Acquisition]) -> None:
-        if isinstance(value, Iterable):
+    def acquisitions(self, value: MutableSequence[str | Acquisition]) -> None:
+        if isinstance(value, MutableSequence):
             if all(isinstance(entry, str) for entry in value):
                 self._acquisitions = []
                 for entry in value:

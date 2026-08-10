@@ -10,7 +10,7 @@ import os
 import pathlib
 import re
 from dataclasses import asdict, dataclass
-from typing import Any, Mapping, MutableSequence, Sequence
+from typing import Any, Mapping, MutableSequence
 from warnings import warn
 
 import pandas as pd
@@ -98,7 +98,7 @@ class MotionChannel:
         self.sampling_frequency: int | float | None = None
         self.status: str | None = None
         self.status_description: str | None = None
-        self.columns: Sequence[Column] | None = None
+        self.columns: MutableSequence[Column] | None = None
 
         set_attr_from_dict(self, kwargs)
 
@@ -136,7 +136,7 @@ class MotionRun(Run):
     def __init__(self, base_path: os.PathLike | str, run_id: str, **kwargs):
         super().__init__(base_path=base_path, run_id=run_id)
 
-        self._channels: Sequence[MotionChannel] | None = None
+        self._channels: MutableSequence[MotionChannel] | None = None
         self._data: Any = None
 
         set_attr_from_dict(self, kwargs)
@@ -156,11 +156,11 @@ class MotionRun(Run):
         self._acquisition = value
 
     @property
-    def channels(self) -> Sequence[MotionChannel] | None:
+    def channels(self) -> MutableSequence[MotionChannel] | None:
         return self._channels
 
     @channels.setter
-    def channels(self, value: Sequence[MotionChannel]) -> None:
+    def channels(self, value: MutableSequence[MotionChannel]) -> None:
         self._channels = value
 
     @property
@@ -324,7 +324,7 @@ class MotionAcquisition(BaseAcquisition):
         self._tracking_system = value
 
     @property
-    def runs(self) -> Sequence[MotionRun]:
+    def runs(self) -> MutableSequence[MotionRun]:
         if not self._runs:
             if self.tracking_system:
                 file_name = f"*{self.tracking_system.tracking_system_id}*"
@@ -373,9 +373,9 @@ class MotionAcquisition(BaseAcquisition):
         return self._runs
 
     @runs.setter
-    def runs(self, value: Sequence[str | MotionRun]) -> None:
-        if isinstance(value, Sequence):
             if all(isinstance(entry, str) for entry in value):
+    def runs(self, value: MutableSequence[str | MotionRun]) -> None:
+        if isinstance(value, MutableSequence):
                 self._runs = []
                 for entry in value:
                     assert isinstance(entry, str)  # for mypy
@@ -394,7 +394,7 @@ class TrackSys(Entity):
         base_path: os.PathLike | str,
         tracking_system_id: str,
         motion_description: dict | None = None,
-        **kwargs: "dict | Hardware | Institution | MotionTask | Sequence",
+        **kwargs: "dict | Hardware | Institution | MotionTask | MutableSequence",
     ) -> None:
         super().__init__(_entity_id=tracking_system_id, _entity_name="tracksys")
         self._hardware: Hardware | None = None
@@ -412,7 +412,7 @@ class TrackSys(Entity):
 
         self._task: MotionTask | None = None
 
-        self._acquisitions: Sequence[MotionAcquisition] | None = None
+        self._acquisitions: MutableSequence[MotionAcquisition] | None = None
 
         set_attr_from_dict(self, kwargs)
 
@@ -469,7 +469,7 @@ class TrackSys(Entity):
         self._task = value
 
     @property
-    def acquisitions(self) -> Sequence[MotionAcquisition]:
+    def acquisitions(self) -> MutableSequence[MotionAcquisition]:
         if not self._acquisitions:
             self._acquisitions = []
             files = self.root.iterdir()
@@ -552,12 +552,12 @@ class MotionTask(BaseTask):
     def __init__(
         self, base_path: os.PathLike | str, task_name: str, **kwargs: Any
     ) -> None:
-        self._tracking_systems: Sequence[TrackSys] | None = None
+        self._tracking_systems: MutableSequence[TrackSys] | None = None
 
         super().__init__(base_path=base_path, task_name=task_name, **kwargs)
 
     @property
-    def tracking_systems(self) -> Sequence[TrackSys]:
+    def tracking_systems(self) -> MutableSequence[TrackSys]:
         if not self._tracking_systems:
             self._tracking_systems = []
             files = self.root.iterdir()
@@ -603,8 +603,8 @@ class MotionTask(BaseTask):
         return self._tracking_systems
 
     @tracking_systems.setter
-    def tracking_systems(self, value: Sequence[Mapping] | Sequence[TrackSys]) -> None:
-        if isinstance(value, Sequence):
+    def tracking_systems(self, value: MutableSequence[Mapping | TrackSys]) -> None:
+        if isinstance(value, MutableSequence):
             if all(isinstance(entry, Mapping) for entry in value):
                 self._tracking_systems = []
                 for entry in value:
@@ -710,7 +710,7 @@ def get_reference_frames(reference_frames_levels: dict) -> dict[str, ReferenceFr
 def get_motion_channels(
     tsv_path: pathlib.Path | None,
     json_path: pathlib.Path | None,
-) -> Sequence[MotionChannel]:
+) -> MutableSequence[MotionChannel]:
     motion_channels: list[MotionChannel] = []
     columns = []
     reference_frames_dict = None
