@@ -19,7 +19,11 @@ from abidskit.common.specs_phenotype import MeasurementTool, PhenotypeColumn
 from abidskit.common.specs_summary import Participant
 from abidskit.settings import get_settings_value
 from abidskit.utils.checks import check_if_valid_uri, check_version
-from abidskit.utils.dict_manipulation import add_levels_to_dict, clean_dict
+from abidskit.utils.dict_manipulation import (
+    ManipulateKeysOption,
+    add_levels_to_dict,
+    clean_dict,
+)
 from abidskit.utils.exceptions import (
     FieldMissingError,
     VersionMismatchError,
@@ -439,7 +443,10 @@ class Dataset:
         participants_dataframe = pd.DataFrame()
         for participant in self.participants:
             participant_dict = participant.__dict__.copy()
-            participant_dict = clean_dict(participant_dict, skip_keys_to_titlecase=0)
+            participant_dict = clean_dict(
+                participant_dict,
+                skip_keys_to_manipulate=ManipulateKeysOption.ALL_KEYS_MANIPULATE,
+            )
 
             _ = participant_dict.pop("columns", None)
             participants_dataframe = pd.concat(
@@ -503,7 +510,10 @@ class Dataset:
         _ = dataset_description.pop("stimuli_path", None)
         _ = dataset_description.pop("phenotype_path", None)
         _ = dataset_description.pop("derivatives_path", None)
-        dataset_description = clean_dict(dataset_description, skip_keys_to_titlecase=0)
+        dataset_description = clean_dict(
+            dataset_description,
+            skip_keys_to_manipulate=ManipulateKeysOption.ALL_KEYS_MANIPULATE,
+        )
         write_json(dataset_description, output_path_dataset_description)
 
         for file in files_to_copy:
@@ -535,7 +545,7 @@ class Dataset:
 
         participant_description = clean_dict(
             participant_description,
-            skip_keys_to_titlecase=1,
+            skip_keys_to_manipulate=ManipulateKeysOption.SKIP_TOP_LEVEL_MANIPULATE,
         )
         write_json(participant_description, output_path_participant_description)
 
@@ -596,7 +606,7 @@ class Dataset:
 
             phenotype_description = clean_dict(
                 phenotype_description,
-                skip_keys_to_titlecase=1,
+                skip_keys_to_manipulate=ManipulateKeysOption.SKIP_TOP_LEVEL_MANIPULATE,
             )
             if not pht_json_path.parent.exists():
                 pht_json_path.parent.mkdir(parents=True, exist_ok=True)

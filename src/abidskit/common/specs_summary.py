@@ -17,7 +17,7 @@ from abidskit.common.specs_datatype import Datatype
 from abidskit.common.specs_misc import Column
 from abidskit.common.specs_phenotype import MeasurementTool
 from abidskit.settings import get_settings_value
-from abidskit.utils.dict_manipulation import clean_dict
+from abidskit.utils.dict_manipulation import ManipulateKeysOption, clean_dict
 from abidskit.utils.exceptions import FieldMissingError, TopLevelEntityNotLinkedWarning
 from abidskit.utils.helpers import (
     add_object_to_sequence,
@@ -327,7 +327,10 @@ class Participant(Entity):
         sessions_dataframe = pd.DataFrame()
         for session in self.sessions:
             session_dict = session.__dict__.copy()
-            session_dict = clean_dict(session_dict, skip_keys_to_titlecase=0)
+            session_dict = clean_dict(
+                session_dict,
+                skip_keys_to_manipulate=ManipulateKeysOption.ALL_KEYS_MANIPULATE,
+            )
 
             sessions_dataframe = pd.concat(
                 [sessions_dataframe, pd.DataFrame([session_dict])],

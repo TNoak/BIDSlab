@@ -18,7 +18,11 @@ import pandas as pd
 from abidskit.common.base import BaseAcquisition, BaseTask, Entity
 from abidskit.common.specs_misc import Column, Hardware, Institution, Run
 from abidskit.settings import get_settings_value
-from abidskit.utils.dict_manipulation import clean_dict, delete_none_from_dict
+from abidskit.utils.dict_manipulation import (
+    ManipulateKeysOption,
+    clean_dict,
+    delete_none_from_dict,
+)
 from abidskit.utils.exceptions import (
     FieldEntryNotValidError,
     TopLevelEntityNotLinkedWarning,
@@ -261,7 +265,7 @@ class MotionRun(Run):
 
         channel_description = clean_dict(
             channel_description,
-            skip_keys_to_titlecase=1,
+            skip_keys_to_manipulate=ManipulateKeysOption.SKIP_TOP_LEVEL_MANIPULATE,
         )
         write_json(channel_description, output_path_channel_description)
 
@@ -659,7 +663,8 @@ class MotionTask(BaseTask):
                     motion_description.pop("acquisition_id")
                     motion_description.pop("run_id")
                     motion_description = clean_dict(
-                        motion_description, skip_keys_to_titlecase=0
+                        motion_description,
+                        skip_keys_to_manipulate=ManipulateKeysOption.ALL_KEYS_MANIPULATE,
                     )
                     output_path_motion_description = append_path(
                         output_path_run, "_motion.json"
