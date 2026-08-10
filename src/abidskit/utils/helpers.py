@@ -125,7 +125,14 @@ def get_tsv_json_files(
     json_path = None
     for file in files:
         match file.suffix:
-            case ".tsv":
+            case ".tsv" | ".gz":
+                if file.suffix == ".gz" and not file.stem.endswith(".tsv"):
+                    warn(
+                        f"File {file} has an unsupported extension. Only .tsv[.gz] and "
+                        f".json are supported.",
+                        FileTypeUnsupportedWarning,
+                    )
+                    continue
                 if not tsv_path:
                     tsv_path = file
                 else:
