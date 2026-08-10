@@ -68,8 +68,8 @@ def override_settings_values(
         with pathlib.Path(settings).open("r", encoding="utf-8") as f:
             settings = json.load(f)
 
-    assert isinstance(settings, dict)  # for mypy
-    SETTINGS = Settings(**{**SETTINGS.__dict__, **settings})
+    if isinstance(settings, dict):
+        SETTINGS = Settings(**{**SETTINGS.__dict__, **settings})
     try:
         yield
     finally:
@@ -106,8 +106,10 @@ def set_settings_values(settings: dict[str, bool | str] | os.PathLike) -> None:
         SETTINGS = Settings(**{**SETTINGS.__dict__, **settings})
 
 
-def get_settings_value(name: str) -> dict[str, bool]:
-    """Get the current value of a setting."""
+def get_settings_value(name: str) -> str | bool | None:
+    """
+    Get the current value of a setting.
+    """
     global SETTINGS
     return SETTINGS.__dict__[name]
 
