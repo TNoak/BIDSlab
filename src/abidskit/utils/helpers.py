@@ -219,10 +219,15 @@ def write_json(content: dict[str, Any], output_path: os.PathLike | str) -> None:
         )
 
 
-def get_data(pkg):
-    def decorator(f):
+def get_data() -> Any:
+    def decorator(f):  # numpydoc ignore=GL08
         @wraps(f)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args, **kwargs):  # numpydoc ignore=GL08
+            pkg_str = get_settings_value("DATASET_FETCHING_PACKAGE")
+            if pkg_str in PackageFetching:
+                pkg = eval(pkg_str)
+            else:
+                pkg = None
             path = kwargs.get("path")
             if not path.exists():
                 if pkg:
@@ -233,8 +238,15 @@ def get_data(pkg):
                             f"Data retrieval for package {pkg.__name__} is not "
                             f"implemented."
                         )
+                elif pkg is None:
+                    raise ValueError(
+                        f"Path '{path}' does not exist and no supported data fetching "
+                        f"package is configured."
+                    )
                 else:
-                    raise ValueError(f"Package {pkg.__name__} is not available.")
+                    raise ValueError(
+                        f"Package '{_pkg_str_to_pkg_name(pkg_str)}' is not available."
+                    )
             return f(*args, **kwargs)
 
         return wrapper
@@ -242,6 +254,31 @@ def get_data(pkg):
     return decorator
 
 
-@get_data(dl)
 def load_tsv_data(*, path: pathlib.Path, header: int | None = None) -> pd.DataFrame:
     return pd.read_csv(path, sep="\t", header=header)
+@get_data()
+
+
+def _pkg_str_to_pkg_name(pkg_str: str) -> str:
+    """
+    Convert package string from settings to actual package name.
+
+    Parameters
+    ----------
+    pkg_str : str
+        The package string from settings.
+
+    Returns
+    -------
+    str
+        The actual package name.
+    """
+    match pkg_str:
+        case "PackageFetching.DATALAD":
+            return "datalad"
+        case "PackageLoading.PANDAS":
+            return "pandas"
+        case "PackageLoading.NUMPY":
+            return "numpy"
+        case _:
+            raise ValueError(f"Unknown package string: {pkg_str}")

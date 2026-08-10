@@ -177,7 +177,6 @@ class MotionRun(Run):
                 self.root,
                 file_name + "_motion",
             )
-            # TODO: put this in a function and write decorator to get files with datalad
             data_frame = load_tsv_data(path=tsv_path, header=None)
             column_names = {}
             for column_number, column in enumerate(self.channels):
