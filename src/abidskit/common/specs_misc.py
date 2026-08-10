@@ -266,8 +266,8 @@ class Run(Entity, Generic[A]):
     def __init__(self, base_path: os.PathLike | str, run_id: int, **kwargs: Any):
         if not isinstance(run_id, int):
             raise TypeError("run_id must be an index of type integer")
-        run_id = str(run_id)
-        super().__init__(_entity_id=run_id, _entity_name="run")
+        run_id_str = str(run_id)
+        super().__init__(_entity_id=run_id_str, _entity_name="run")
         self.run_id: str = self._entity_id
 
         self.root: pathlib.Path = pathlib.Path(base_path)
@@ -375,9 +375,10 @@ class Acquisition(BaseAcquisition):
                 except KeyError:
                     continue
             for run_id in run_ids:
+                run_id_int = int(run_id.split("-")[1])
                 self._runs.append(
                     Run(
-                        run_id=run_id,
+                        run_id=run_id_int,
                         base_path=self.root,
                         acquisition=self,
                     )
@@ -387,7 +388,7 @@ class Acquisition(BaseAcquisition):
             if not self._runs:
                 self._runs.append(
                     Run(
-                        run_id="run-00",
+                        run_id=0,
                         base_path=self.root,
                         acquisition=self,
                     )
@@ -396,12 +397,12 @@ class Acquisition(BaseAcquisition):
         return self._runs
 
     @runs.setter
-    def runs(self, value: Sequence[str | Run]) -> None:
+    def runs(self, value: Sequence[int | Run]) -> None:
         if isinstance(value, Sequence):
-            if all(isinstance(entry, str) for entry in value):
+            if all(isinstance(entry, int) for entry in value):
                 self._runs = []
                 for entry in value:
-                    assert isinstance(entry, str)  # for mypy
+                    assert isinstance(entry, int)  # for mypy
                     self._runs.append(
                         Run(run_id=entry, base_path=self.root, acquisition=self)
                     )

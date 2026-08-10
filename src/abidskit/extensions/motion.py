@@ -133,7 +133,7 @@ class MotionChannel:
 
 
 class MotionRun(Run):
-    def __init__(self, base_path: os.PathLike | str, run_id: str, **kwargs):
+    def __init__(self, base_path: os.PathLike | str, run_id: int, **kwargs):
         super().__init__(base_path=base_path, run_id=run_id)
 
         self._channels: MutableSequence[MotionChannel] | None = None
@@ -350,9 +350,10 @@ class MotionAcquisition(BaseAcquisition):
                 except KeyError:
                     continue
             for run_id in run_ids:
+                run_id_int = int(run_id.split("-")[1])
                 self._runs.append(
                     MotionRun(
-                        run_id=run_id,
+                        run_id=run_id_int,
                         base_path=self.root,
                         acquisition=self,
                         channels=channels,
@@ -363,7 +364,7 @@ class MotionAcquisition(BaseAcquisition):
             if not self._runs:
                 self._runs.append(
                     MotionRun(
-                        run_id="run-00",
+                        run_id=0,
                         base_path=self.root,
                         acquisition=self,
                         channels=channels,
@@ -373,12 +374,12 @@ class MotionAcquisition(BaseAcquisition):
         return self._runs
 
     @runs.setter
-            if all(isinstance(entry, str) for entry in value):
-    def runs(self, value: MutableSequence[str | MotionRun]) -> None:
+    def runs(self, value: MutableSequence[int | MotionRun]) -> None:
         if isinstance(value, MutableSequence):
+            if all(isinstance(entry, int) for entry in value):
                 self._runs = []
                 for entry in value:
-                    assert isinstance(entry, str)  # for mypy
+                    assert isinstance(entry, int)  # for mypy
                     self._runs.append(
                         MotionRun(run_id=entry, base_path=self.root, acquisition=self)
                     )

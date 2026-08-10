@@ -106,7 +106,7 @@ class BaseAcquisition(Entity, Generic[R], ABC):
 
     @runs.setter
     @abstractmethod
-    def runs(self, value: MutableSequence[str | R]) -> None:
+    def runs(self, value: MutableSequence[int | R]) -> None:
         pass
 
     def write(self, output_path: os.PathLike | str) -> None:
