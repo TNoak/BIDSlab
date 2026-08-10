@@ -38,6 +38,7 @@ from abidskit.utils.helpers import (
     set_attr_from_dict,
     write_json,
 )
+from abidskit.utils.string_manipulation import to_snakecase
 
 COLUMNS_TO_REMOVE_FROM_TSV = {
     "columns",
@@ -658,6 +659,11 @@ def get_participants_from_files(
 
     if json_path:
         column_data = parse_json_sidecar(json_path)
+        column_data = clean_dict(
+            column_data,
+            skip_keys_to_manipulate=ManipulateKeysOption.SKIP_TOP_LEVEL_MANIPULATE,
+            string_manipulation=to_snakecase,
+        )
         for column_name, column_values in column_data.items():
             columns.append(Column(name=column_name, **column_values))
 
