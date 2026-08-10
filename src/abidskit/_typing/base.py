@@ -11,8 +11,8 @@ import os
 from typing import TYPE_CHECKING, Protocol, TypeVar
 
 if TYPE_CHECKING:
-    from abidskit.common.base import BaseAcquisition, Entity, Run
-    from abidskit.extensions.motion import MotionChannel
+    from abidskit.common.base import BaseAcquisition, BaseTask, Entity
+    from abidskit.common.specs_misc import Run
 
 
 #: Type alias for BaseAcquisition and its subclasses.
@@ -23,6 +23,9 @@ E = TypeVar("E", bound="Entity")
 
 #: Type alias for Run and its subclasses.
 R = TypeVar("R", bound="Run")
+
+#: Type alias for Task and its subclasses.
+T = TypeVar("T", bound="BaseTask")
 
 
 class Writable(Protocol):
