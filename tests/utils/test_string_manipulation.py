@@ -37,7 +37,8 @@ TITLES = [
     ("Velocity vel", "VelocityVEL"),
     ("Miscellaneous misc", "MiscellaneousMISC"),
     ("Latency", "LATENCY"),
-    ("This is an URL and an URI", "ThisIsAnURLAndAnURI"),
+    ("This is an URL and an uri", "ThisIsAnURLAndAnURI"),
+    ("The term url should be possible as well", "TheTermURLShouldBePossibleAsWell"),
 ]
 
 SNAKES = [
@@ -63,6 +64,7 @@ SNAKES = [
     ("MiscellaneousMISC", "miscellaneous_misc"),
     ("LATENCY", "latency"),
     ("ThisIsAnURLAndAnURI", "this_is_an_url_and_an_uri"),
+    ("TheTermURLShouldBePossibleAsWell", "the_term_url_should_be_possible_as_well"),
 ]
 
 
