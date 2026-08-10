@@ -201,10 +201,10 @@ class MotionRun(Run):
 
             channel_dict = delete_none_from_dict(channel_dict)
 
-            reference_frame = channel_dict.pop("reference_frame")
+            reference_frame = channel_dict.pop("reference_frame", None)
             if isinstance(reference_frame, ReferenceFrame):
                 channel_dict["reference_frame"] = reference_frame.name
-            else:
+            elif reference_frame:
                 channel_dict["reference_frame"] = reference_frame
 
             channel_dict.pop("columns")
