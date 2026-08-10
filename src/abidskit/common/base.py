@@ -28,8 +28,7 @@ class Entity(ABC):
 
     @abstractmethod
     def write(self, output_path: os.PathLike | str) -> None:
-        # TODO: implement writing of basic Run data
-        raise NotImplementedError
+        ...
 
 
 class BaseTask(Entity, ABC):
