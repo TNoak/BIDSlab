@@ -11,7 +11,15 @@ import json
 import pathlib
 import re
 from dataclasses import dataclass
-from typing import Any, MutableMapping, MutableSequence, Sequence
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Mapping,
+    MutableMapping,
+    MutableSequence,
+    Sequence,
+)
+from warnings import warn
 
 from abidskit.common.specs_misc import (
     Column,
@@ -211,8 +219,8 @@ class EMGRecording(Recording):
         return self._hardware
 
     @hardware.setter
-    def hardware(self, value: dict | EMGHardware) -> None:
-        if isinstance(value, dict):
+    def hardware(self, value: Mapping | EMGHardware) -> None:
+        if isinstance(value, Mapping):
             hardware_data = {}
             for k, v in value.items():
                 hardware_data[to_snakecase(k)] = v
@@ -227,8 +235,8 @@ class EMGRecording(Recording):
         return self._institution
 
     @institution.setter
-    def institution(self, value: dict | Institution) -> None:
-        if isinstance(value, dict):
+    def institution(self, value: Mapping | Institution) -> None:
+        if isinstance(value, Mapping):
             institution_data = {}
             for k, v in value.items():
                 institution_data[to_snakecase(k)] = v

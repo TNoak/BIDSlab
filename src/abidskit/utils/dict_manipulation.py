@@ -70,7 +70,7 @@ def dict_paths_to_strings(dict_input: dict) -> dict:
     return dict_output
 
 
-def delete_private_fields_from_dict(dict_input: dict) -> dict:
+def delete_private_fields_from_dict(dict_input: MutableMapping) -> dict:
     dict_output = {}
     for key, value in list(dict_input.items()):
         if isinstance(value, dict):
