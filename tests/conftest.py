@@ -64,7 +64,7 @@ def bad_file_structure(tmp_root, request):
 
 @pytest.fixture
 def test_dataset(tmp_root):
-    return abk.common.specs_description.Dataset(
+    return abk.common.specs_dataset.Dataset(
         tmp_root, name="Test Dataset", bids_version=Development().version()
     )
 
