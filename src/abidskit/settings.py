@@ -27,6 +27,20 @@ class PackageFetching(StrEnum):
     DATALAD = ("dl",)
 
 
+class PackageLoading(StrEnum):
+    """
+    Packages for data loading.
+
+    Attributes
+    ----------
+    PANDAS : str
+        Use Pandas for data loading.
+    """
+
+    PANDAS = ("pd",)
+    NUMPY = ("np",)
+
+
 PACKAGE_OPTIONS = ["DATASET_FETCHING_PACKAGE", "DATA_LOADING_PACKAGE"]
 
 
@@ -62,7 +76,6 @@ def override_settings_values(
         SETTINGS = Settings(**{**SETTINGS.__dict__, **original_settings})
 
 
-    """Set the value of a setting."""
 def set_settings_values(settings: dict[str, bool | str] | os.PathLike) -> None:
     global SETTINGS
     if isinstance(settings, os.PathLike):
@@ -78,6 +91,10 @@ def set_settings_values(settings: dict[str, bool | str] | os.PathLike) -> None:
                 match setting_name, setting_value.lower():
                     case "DATASET_FETCHING_PACKAGE", "datalad" | "dl":
                         setting_value = PackageFetching.DATALAD
+                    case "DATA_LOADING_PACKAGE", "pandas" | "pd":
+                        setting_value = PackageLoading.PANDAS
+                    case "DATA_LOADING_PACKAGE", "numpy" | "np":
+                        setting_value = PackageLoading.NUMPY
                     case _:
                         raise ValueError(
                             f"Invalid value '{setting_value}' for setting "

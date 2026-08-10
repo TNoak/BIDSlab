@@ -25,6 +25,7 @@ from warnings import catch_warnings, simplefilter, warn
 import pandas as pd
 
 from abidskit._typing import MC, E, PEntity
+from abidskit.settings import PackageFetching, PackageLoading, get_settings_value
 from abidskit.utils.checks import (
     check_dataset_description_present,
     check_files,
@@ -254,9 +255,39 @@ def get_data() -> Any:
     return decorator
 
 
-def load_tsv_data(*, path: pathlib.Path, header: int | None = None) -> pd.DataFrame:
-    return pd.read_csv(path, sep="\t", header=header)
 @get_data()
+def load_tsv_data(
+    *, path: pathlib.Path, header: int | None = None
+) -> pd.DataFrame | np.ndarray:
+    """
+    Load TSV data from a file using the specified data loading package.
+
+    Parameters
+    ----------
+    path : pathlib.Path
+        The path to the TSV file.
+    header : int | None, optional
+        The row number to use as the column names. Default is None.
+
+    Returns
+    -------
+    pd.DataFrame | np.ndarray
+        The loaded TSV data in a format depending on the data loading package.
+    """
+    data: pd.DataFrame | np.ndarray
+    data_load_package = get_settings_value("DATA_LOADING_PACKAGE")
+    if data_load_package == PackageLoading.PANDAS:
+        if path.suffix == ".gz":
+            data = pd.read_csv(path, sep="\t", header=header, compression="gzip")
+        else:
+            data = pd.read_csv(path, sep="\t", header=header)
+    elif data_load_package == PackageLoading.NUMPY:
+        data = np.loadtxt(path, delimiter="\t", skiprows=header or 0, encoding="utf-8")
+    else:
+        raise ValueError(
+            f"Data loading for package {data_load_package} is not implemented."
+        )
+    return data
 
 
 def _pkg_str_to_pkg_name(pkg_str: str) -> str:
