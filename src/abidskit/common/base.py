@@ -114,11 +114,13 @@ class Run(Entity, Generic[A]):
     @property
     def events(self):
         # TODO json sidecar may be in higher directory levels
+        # TODO create stimuli folder if respective column exists
         if self._events is None:
             # get list of top level entities
             entities = self.get_top_level_entities()
 
             # get all possible files with _events.json
+            # TODO include higher directories if no matches founds
             files_json = list(self.root.glob("*_events.json"))
             filenames_json = [f.name for f in files_json]
             file_entities_json = [
@@ -172,7 +174,7 @@ class Run(Entity, Generic[A]):
         output_path_json = append_path(output_path, "_events.json")
         output_path_tsv = append_path(output_path, "_events.tsv")
 
-        if self.events is not None:
+        if self.events:
             data_json = self.events[0].columns
             data_tsv = pd.DataFrame(event.__dict__ for event in self.events)
             data_tsv = data_tsv.drop(columns=["columns"], errors="ignore")

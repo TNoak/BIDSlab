@@ -26,6 +26,7 @@ from abidskit.utils.helpers import (
     get_tsv_json_files,
     parse_descriptive_tsv,
     parse_json_sidecar,
+    write_json,
 )
 
 if TYPE_CHECKING:
@@ -54,13 +55,9 @@ class Scan:
         self, base_path: os.PathLike | str, filename: os.PathLike | str, **kwargs: Any
     ) -> None:
         self.filename: pathlib.Path = pathlib.Path(filename)
-        self.acq_time: str | None = None
-        self.hed: str | None = None
         self.columns: Sequence[str] | None = None
 
         self.root: pathlib.Path = pathlib.Path(base_path)
-
-        self._session: Session | None = None
 
         for key, value in kwargs.items():
             setattr(self, key, value)
@@ -74,18 +71,6 @@ class Scan:
     @property
     def filepath(self) -> pathlib.Path:
         return self.root / self.filename
-
-    @property
-    def session(self) -> "Session | None":
-        if self._session:
-            return self._session
-
-        warn("Scan is not linked to a Session object.", TopLevelEntityNotLinkedWarning)
-        return self._session
-
-    @session.setter
-    def session(self, value: "Session") -> None:
-        self._session = value
 
 
 class Session(Entity):
@@ -154,8 +139,37 @@ class Session(Entity):
                 )
 
             self._scans = get_scans_from_files(self, dataset_root=dataset_root)
+            if self._scans:
+                return self._scans
 
-        # TODO: implement automatic scan detection
+            # TODO: implement automatic scan detection
+            self._scans = []
+            assert self.datatypes is not None
+            for key in self.datatypes:
+                match key:
+                    case "motion":
+                        print("motion scan created")
+                        # idk where to get acq_time from
+                        files = list(self.datatypes[key].root.glob("*_motion.tsv"))
+                        for file in files:
+                            add_object_to_sequence(
+                                entity_list=self._scans,
+                                entity_class=Scan,
+                                base_path=self.root,
+                                filename="motion/" + file.name,
+                            )
+                    case "eeg":
+                        files = list(self.datatypes[key].root.glob("*.vhdr"))
+                        files.extend(list(self.datatypes[key].root.glob("*.set")))
+                        for file in files:
+                            add_object_to_sequence(
+                                entity_list=self._scans,
+                                entity_class=Scan,
+                                base_path=self.root,
+                                filename="eeg/" + file.name,
+                            )
+                    case _:
+                        raise NotImplementedError
         return self._scans
 
     @scans.setter
@@ -225,6 +239,21 @@ class Session(Entity):
 
     def write(self, output_path: os.PathLike | str) -> None:
         output_path = pathlib.Path(output_path)
+
+        output_path_json = append_path(output_path, "_scans.json")
+        output_path_tsv = append_path(output_path, "_scans.tsv")
+
+        # write scans.tsv / scans.json file
+        if self.scans:
+            print(self.scans)
+            data_json = self.scans[0].columns
+            data_tsv = pd.DataFrame(scan.__dict__ for scan in self.scans)
+            data_tsv = data_tsv.drop(columns=["columns", "root"], errors="ignore")
+
+            if isinstance(data_json, dict):
+                write_json(content=data_json, output_path=output_path_json)
+            data_tsv.to_csv(output_path_tsv, sep="\t", index=False, header=True)
+
         for datatype in self.datatypes.values():
             # Insert datatype level folder
             path = pathlib.Path(output_path.parent) / datatype.datatype_name
@@ -471,7 +500,6 @@ def get_scans_from_files(
                     entity_list=scans,
                     entity_class=Scan,
                     base_path=session.root,
-                    session=session,
                     **scan,
                     columns=columns,
                 )
