@@ -231,7 +231,7 @@ class MotionRun(Run):
         return columns_set
 
     def write(self, output_path: os.PathLike | str) -> None:
-        # super().write(output_path)
+        super().write(output_path)
         output_path = pathlib.Path(output_path)
         # write motion data to "*_motion.tsv"
         output_path_data = append_path(output_path, "_motion.tsv")

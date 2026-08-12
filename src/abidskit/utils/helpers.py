@@ -99,12 +99,13 @@ def get_matching_subpaths(
 ) -> list[pathlib.Path]:
     # Get matching subpaths in the root directory
     paths = list(path.relative_to(root).parents) + [path]
-    return [
+    matching_subpaths = [
         root / dir_level
         for dir_level in paths
         for match in matches
         if dir_level.match(match)
     ]
+    return matching_subpaths[::-1]
 
 
 def get_entity_from_file(path: pathlib.Path, entity_name: str) -> dict[str, str]:
