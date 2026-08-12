@@ -18,13 +18,13 @@ import pandas as pd
 from abidskit._typing import A, R
 from abidskit.utils.exceptions import (
     FieldMissingError,
-    FileMissingWarning,
     TopLevelEntityNotLinkedWarning,
 )
 from abidskit.utils.helpers import (
+    add_object_to_sequence,
     append_path,
     check_entity_mismatch,
-    load_tsv_data,
+    parse_descriptive_tsv,
     parse_json_sidecar,
     set_attr_from_dict,
     write_entities,
@@ -49,104 +49,23 @@ class Entity(ABC):
     def get_top_level_entities(self) -> list[str | Any]: ...
 
 
-class Event(Generic[A]):
-    # TODO events files may be in higher directory levels (especially the .json sidecar)
+@dataclass
+class Event:
     @abstractmethod
     def __init__(
         self,
-        base_path: os.PathLike | str,
+        onset: float,
+        duration: float,
         **kwargs: Any,
     ) -> None:
-        self.root: pathlib.Path = pathlib.Path(base_path)
+        self.onset: float = onset
 
-        self._run: A | None = None
+        self.duration: float = duration
 
-        self._data: pd.DataFrame | None = None
+        self.columns: dict[str, Any] | None = None
 
-        self._columns: dict[str, Any] | None = None
-
-        set_attr_from_dict(self, kwargs)
-
-    @property
-    def run(self) -> A | None:
-        if self._run:
-            return self._run
-
-        warn("Event is not linked to a Run object.", TopLevelEntityNotLinkedWarning)
-        return self._run
-
-    @run.setter
-    def run(self, value: A) -> None:
-        self._run = value
-
-    @property
-    def columns(self) -> dict[str, Any] | None:
-        if self._columns is None and self.run is not None:
-            # get list of top level entities
-            entities = self.run.get_top_level_entities()
-
-            # get all possible files with _events.json
-            files = list(self.root.glob("*_events.json"))
-            filenames = [f.name for f in files]
-            file_entities = [f.removesuffix("_events.json") for f in filenames]
-
-            # check for entity mismatches and use first one working
-            for file in file_entities:
-                if check_entity_mismatch(file, entities):
-                    # load .json file and save it
-                    self._columns = parse_json_sidecar(
-                        self.root / (file + "_events.json")
-                    )
-                    return self._columns
-
-            warn(
-                "No matching Events file found.",
-                FileMissingWarning,
-            )
-
-        return self._columns
-
-    @columns.setter
-    def columns(self, value: dict[str, Any]) -> None:
-        self._columns = value
-
-    @property
-    def data(self) -> pd.DataFrame | None:
-        if self._data is None and self.run is not None:
-            # get list of top level entities
-            entities = self.run.get_top_level_entities()
-
-            # get all possible files with _events.tsv
-            files = list(self.root.glob("*_events.tsv"))
-            filenames = [f.name for f in files]
-            file_entities = [f.removesuffix("_events.tsv") for f in filenames]
-
-            # check for entity mismatches and use first one working
-            for file in file_entities:
-                if check_entity_mismatch(file, entities):
-                    # load .tsv file and save a dataframe
-                    self._data = load_tsv_data(path=self.root / (file + "_events.tsv"))
-                    return self._data
-
-            warn(
-                "No matching Events file found.",
-                FileMissingWarning,
-            )
-
-        return self._data
-
-    @data.setter
-    def data(self, value: pd.DataFrame) -> None:
-        self._data = value
-
-    def write(self, output_path: os.PathLike | str) -> None:
-        output_path_json = append_path(output_path, "_events.json")
-        output_path_tsv = append_path(output_path, "_events.tsv")
-
-        if self.columns is not None:
-            write_json(content=self.columns, output_path=output_path_json)
-        if self.data is not None:
-            self.data.to_csv(output_path_tsv, sep="\t", index=False, header=False)
+        for key, value in kwargs.items():
+            setattr(self, key, value)
 
 
 class Run(Entity, Generic[A]):
@@ -163,7 +82,7 @@ class Run(Entity, Generic[A]):
         self._acquisition: A | None = None
 
         self._recordings = None
-        self._events: Sequence[dict] | Sequence[Event] | None = None
+        self._events: Sequence[Event] | None = None
 
         set_attr_from_dict(self, kwargs)
 
@@ -194,13 +113,53 @@ class Run(Entity, Generic[A]):
 
     @property
     def events(self):
+        # TODO json sidecar may be in higher directory levels
         if self._events is None:
-            self._events = []
-            self._events.append(Event(base_path=self.root, run=self))
+            # get list of top level entities
+            entities = self.get_top_level_entities()
+
+            # get all possible files with _events.json
+            files_json = list(self.root.glob("*_events.json"))
+            filenames_json = [f.name for f in files_json]
+            file_entities_json = [
+                f.removesuffix("_events.json") for f in filenames_json
+            ]
+
+            columns = []
+            # check for entity mismatches and use first one working
+            for file in file_entities_json:
+                if check_entity_mismatch(file, entities):
+                    # load .json file and save it
+                    columns = parse_json_sidecar(self.root / (file + "_events.json"))
+                    break
+
+            # get all possible files with _events.tsv
+            files_tsv = list(self.root.glob("*_events.tsv"))
+            filenames_tsv = [f.name for f in files_tsv]
+            file_entities_tsv = [f.removesuffix("_events.tsv") for f in filenames_tsv]
+
+            data = []
+            # check for entity mismatches and use first one working
+            for file in file_entities_tsv:
+                if check_entity_mismatch(file, entities):
+                    # load .tsv file and save it
+                    data = parse_descriptive_tsv(
+                        tsv_path=self.root / (file + "_events.tsv")
+                    )
+                    self._events = []
+                    for event in data:
+                        add_object_to_sequence(
+                            entity_list=self._events,
+                            entity_class=Event,
+                            **event,
+                            columns=columns,
+                        )
+                    break
+
         return self._events
 
     @events.setter
-    def events(self, value: Sequence[dict] | Sequence[Event]) -> None:
+    def events(self, value: Sequence[Event]) -> None:
         self._events = value
 
     def get_top_level_entities(self) -> list[str | Any]:
@@ -210,9 +169,17 @@ class Run(Entity, Generic[A]):
         return entities
 
     def write(self, output_path: os.PathLike | str) -> None:
-        event = self.events
-        if event is not None:
-            [e.write(output_path) for e in event]
+        output_path_json = append_path(output_path, "_events.json")
+        output_path_tsv = append_path(output_path, "_events.tsv")
+
+        if self.events is not None:
+            data_json = self.events[0].columns
+            data_tsv = pd.DataFrame(event.__dict__ for event in self.events)
+            data_tsv = data_tsv.drop(columns=["columns"], errors="ignore")
+
+            if isinstance(data_json, dict):
+                write_json(content=data_json, output_path=output_path_json)
+            data_tsv.to_csv(output_path_tsv, sep="\t", index=False, header=True)
 
 
 class BaseTask(Entity, ABC):

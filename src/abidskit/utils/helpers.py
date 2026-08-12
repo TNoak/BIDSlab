@@ -40,6 +40,7 @@ from abidskit.utils.exceptions import (
 from abidskit.utils.string_manipulation import to_snakecase
 
 if TYPE_CHECKING:
+    from abidskit.common.base import Event
     from abidskit.common.specs_description import Dataset
     from abidskit.common.specs_summary import Scan
 
@@ -158,7 +159,7 @@ def get_tsv_json_files(
 
 def add_object_to_sequence(
     entity_list: MutableSequence,
-    entity_class: "type[E] | type[MC] | type[Scan]",
+    entity_class: "type[E] | type[MC] | type[Scan] | type[Event]",
     **kwargs: Any,
 ) -> None:
     entity_instance = entity_class(**kwargs)

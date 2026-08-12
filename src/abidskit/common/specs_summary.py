@@ -445,8 +445,6 @@ def get_scans_from_files(
     # - scans.json can be in root, subject or session level
     # - scans.tsv can be in subject or session level and the one from the entity
     #   furthest down the hierarchy is used
-    # TODO: make sure that the order of dir_levels is correct, such that dataset_root
-    #  is first and session last
     column_data = {}
     scans: Sequence[Scan] = []
 
