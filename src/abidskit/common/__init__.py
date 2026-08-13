@@ -14,7 +14,9 @@ __all__ = [
     "GeneratedBy",
     "Hardware",
     "Institution",
+    "Level",
     "Participant",
+    "Run",
     "Scan",
     "Session",
     "SourceDataset",
@@ -28,6 +30,13 @@ from abidskit.common.specs_dataset import (
     SourceDataset,
 )
 from abidskit.common.specs_datatype import Datatype
-from abidskit.common.specs_misc import Acquisition, Column, Hardware, Institution
+from abidskit.common.specs_misc import (
+    Acquisition,
+    Column,
+    Hardware,
+    Institution,
+    Level,
+    Run,
+)
 from abidskit.common.specs_summary import Participant, Scan, Session
 from abidskit.common.specs_task import Task
