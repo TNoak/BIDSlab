@@ -15,7 +15,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Iterator,
-    Mapping,
     MutableSequence,
     Sequence,
     TypeVar,
@@ -29,6 +28,10 @@ from abidskit.settings import PackageFetching, PackageLoading, get_settings_valu
 from abidskit.utils.checks import (
     check_dataset_description_present,
     check_files,
+)
+from abidskit.utils.dict_manipulation import (
+    ManipulateKeysOption,
+    clean_dict,
 )
 from abidskit.utils.exceptions import (
     FieldNotValidError,
@@ -59,9 +62,14 @@ REQUIRED_ENTITIES_FOR_WRITING = {
 }
 
 
-def set_attr_from_dict(obj: T, data: Mapping) -> None:
+def set_attr_from_dict(obj: T, data: dict) -> None:
+    data = clean_dict(
+        data,
+        skip_keys_to_manipulate=ManipulateKeysOption.ALL_KEYS_MANIPULATE,
+        string_manipulation=to_snakecase,
+        include_sequences=True,
+    )
     for key, value in data.items():
-        key = to_snakecase(key)
         with catch_warnings():
             simplefilter("ignore", category=TopLevelEntityNotLinkedWarning)
             if hasattr(obj, key):
