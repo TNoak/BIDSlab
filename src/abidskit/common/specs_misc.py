@@ -280,7 +280,7 @@ class Run(Entity, Generic[A]):
         set_attr_from_dict(self, kwargs)
 
     def __repr__(self):
-        return f"Run id={self.run_id}"
+        return f"Run id=run-{self.run_id}"
 
     @property
     def acquisition(self) -> A | None:
