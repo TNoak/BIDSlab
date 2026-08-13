@@ -25,6 +25,7 @@ from abidskit.utils.exceptions import (
 from abidskit.utils.helpers import (
     add_object_to_sequence,
     append_path,
+    check_entity_mismatch,
     get_entity_from_file,
     get_tsv_json_files,
     load_tsv_data,
@@ -165,17 +166,26 @@ class MotionRun(Run):
     @property
     def data(self):
         if self._data is None:
-            file_name = f"*{self.acquisition.tracking_system.tracking_system_id}*"
-            file_name += (
-                f"_{self.acquisition.acquisition_id}"
-                if len(self.acquisition.tracking_system.acquisitions) > 1
-                else ""
-            )
-            file_name += f"_{self.run_id}" if len(self.acquisition.runs) > 1 else ""
+            file_name = ""
+
+            # get list of top level entities
+            entities = self.get_top_level_entities()
+
+            # get all possible files with _motion.*
+            files = list(self.root.glob("*_motion.*"))
+            filenames = [f.name for f in files]
+            file_entities = [f.split(".")[0].removesuffix("_motion") for f in filenames]
+
+            # check for entity mismatches and use first one working
+            for file in file_entities:
+                if check_entity_mismatch(file, entities):
+                    file_name = file
+
             tsv_path, _ = get_tsv_json_files(
                 self.root,
                 file_name + "_motion",
             )
+            print(tsv_path)
             # TODO: put this in a function and write decorator to get files with datalad
             data_frame = load_tsv_data(path=tsv_path, header=None)
             column_names = {}
@@ -326,10 +336,22 @@ class MotionAcquisition(BaseAcquisition):
     @property
     def runs(self) -> dict[str, MotionRun]:
         if not self._runs:
-            if self.tracking_system:
-                file_name = f"*{self.tracking_system.tracking_system_id}*"
-            else:
-                file_name = "*"
+            file_name = ""
+
+            # get list of top level entities
+            entities = self.get_top_level_entities()
+
+            # get all possible files with _motion.*
+            files_e = list(self.root.glob("*_channels.*"))
+            filenames = [f.name for f in files_e]
+            file_entities = [
+                f.split(".")[0].removesuffix("_channels") for f in filenames
+            ]
+
+            # check for entity mismatches and use first one working
+            for file in file_entities:
+                if check_entity_mismatch(file, entities):
+                    file_name = file
 
             tsv_path, json_path = get_tsv_json_files(
                 self.root,
@@ -339,11 +361,11 @@ class MotionAcquisition(BaseAcquisition):
             self._runs = {}
             files = self.root.iterdir()
             run_ids = set()
-            for file in files:
+            for file in files:  # type: ignore [assignment]
                 try:
                     run_ids.add(
                         get_entity_from_file(
-                            file,
+                            file,  # type: ignore [arg-type]
                             "run",
                         )["run"]
                     )
@@ -571,7 +593,7 @@ class MotionTask(BaseTask):
     def tracking_systems(self) -> dict[str, TrackSys]:
         if not self._tracking_systems:
             self._tracking_systems = {}
-            files = self.root.iterdir()
+            files = list(self.root.glob(f"*_{self.task_id}_*"))
             tracking_systems_ids = set()
             for file in files:
                 try:
