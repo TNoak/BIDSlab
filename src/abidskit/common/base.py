@@ -71,7 +71,7 @@ class Event:
 class Run(Entity, Generic[A]):
     def __init__(self, base_path: os.PathLike | str, run_id: str, **kwargs: Any):
         super().__init__(_entity_id=run_id, _entity_name="run")
-        self.run_id = "run-" + self._entity_id
+        self.run_id = self._entity_id
         # make sure that run_id is "run-<int>"
         assert re.match(r"run-[0-9]+", self.run_id), (
             "run_id does not follow the pattern run-<int>"

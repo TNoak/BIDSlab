@@ -148,7 +148,6 @@ class Session(Entity):
             for key in self.datatypes:
                 match key:
                     case "motion":
-                        print("motion scan created")
                         # idk where to get acq_time from
                         files = list(self.datatypes[key].root.glob("*_motion.tsv"))
                         for file in files:
@@ -245,7 +244,6 @@ class Session(Entity):
 
         # write scans.tsv / scans.json file
         if self.scans:
-            print(self.scans)
             data_json = self.scans[0].columns
             data_tsv = pd.DataFrame(scan.__dict__ for scan in self.scans)
             data_tsv = data_tsv.drop(columns=["columns", "root"], errors="ignore")

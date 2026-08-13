@@ -178,6 +178,7 @@ class MotionRun(Run):
 
             # check for entity mismatches and use first one working
             for file in file_entities:
+                # print(file, entities)
                 if check_entity_mismatch(file, entities):
                     file_name = file
 
@@ -185,7 +186,6 @@ class MotionRun(Run):
                 self.root,
                 file_name + "_motion",
             )
-            print(tsv_path)
             # TODO: put this in a function and write decorator to get files with datalad
             data_frame = load_tsv_data(path=tsv_path, header=None)
             column_names = {}
@@ -375,7 +375,7 @@ class MotionAcquisition(BaseAcquisition):
                 self._runs.update(
                     {
                         run_id: MotionRun(
-                            run_id=run_id,
+                            run_id="run-" + run_id,
                             base_path=self.root,
                             acquisition=self,
                             channels=channels,
