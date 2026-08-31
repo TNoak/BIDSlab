@@ -10,11 +10,12 @@ import pathlib
 from typing import TYPE_CHECKING, Iterable, Mapping, Sequence
 from warnings import warn
 
-from abidskit.extensions.emg import parse_emg_json_sidecar
 from abidskit.common.base import BaseTask
 from abidskit.common.specs_task import Task
+from abidskit.extensions.emg import EMGTask, parse_emg_json_sidecar
 from abidskit.extensions.motion import MotionTask, parse_motion_json_sidecar
 from abidskit.settings import get_settings_value
+from abidskit.utils.dict_manipulation import ManipulateKeysOption, clean_dict
 from abidskit.utils.exceptions import TopLevelEntityNotLinkedWarning
 from abidskit.utils.helpers import (
     get_entity_from_file,
@@ -22,6 +23,7 @@ from abidskit.utils.helpers import (
     set_attr_from_dict,
     write_entities,
 )
+from abidskit.utils.string_manipulation import to_snakecase
 
 if TYPE_CHECKING:
     from abidskit.common.specs_summary import Session
@@ -112,14 +114,25 @@ class Datatype:
                             )
                         elif self.datatype_name == "emg":
                             data = parse_emg_json_sidecar(json_path)
-                            task_name = data["task"].pop("TaskName")
+                            data_desc = clean_dict(
+                                data,
+                                skip_keys_to_manipulate=ManipulateKeysOption.ALL_KEYS_MANIPULATE,
+                                string_manipulation=to_snakecase,
+                            )
+                            # TODO: add electrodes here
+                            task_description = data_desc.pop("task", None)
+                            task_name = task_description.pop("task_name", None)
+                            description = {
+                                "_description": data_desc,
+                                **task_description,
+                            }
                             self._tasks.append(
-                                Task(
+                                EMGTask(
                                     task_id="task-" + task_id,
                                     task_name=task_name,
                                     base_path=self.root,
                                     datatype=self,
-                                    **data["task"],
+                                    **description,
                                 )
                             )
                         elif not get_settings_value("IGNORE_NOT_IMPLEMENTED"):

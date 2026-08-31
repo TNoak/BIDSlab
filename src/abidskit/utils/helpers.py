@@ -21,9 +21,11 @@ from typing import (
 )
 from warnings import catch_warnings, simplefilter, warn
 
+import edf_reader
+import numpy as np
 import pandas as pd
 
-from abidskit._typing import MC, E, PEntity
+from abidskit._typing import EC, EE, MC, E, PEntity
 from abidskit.settings import PackageFetching, PackageLoading, get_settings_value
 from abidskit.utils.checks import (
     check_dataset_description_present,
@@ -170,9 +172,63 @@ def get_tsv_json_files(
     return tsv_path, json_path
 
 
+def get_edf_json_files(
+    path: pathlib.Path, file_name: str
+) -> tuple[pathlib.Path | None, pathlib.Path | None]:
+    """
+    Get EDF and JSON files matching the specified file name in the given path.
+
+    Parameters
+    ----------
+    path : pathlib.Path
+        The directory path to search for files.
+    file_name : str
+        The base name of the files to search for (without extension).
+
+    Returns
+    -------
+    tuple[pathlib.Path | None, pathlib.Path | None]
+        A tuple containing the paths to the found EDF and JSON files. If a file
+        type is not found, its corresponding value in the tuple will be None. The first
+        element is the EDF file path, the second element is the JSON file path.
+    """
+    files = path.glob(f"{file_name}.*")
+    edf_path = None
+    json_path = None
+    for file in files:
+        match file.suffix:
+            case ".edf" | ".bdf":
+                if not edf_path:
+                    edf_path = file
+                else:
+                    warn(
+                        f"Multiple EDF or BDF files found for {file_name}. "
+                        f"Using the first one found: {edf_path.name}",
+                        MultipleFilesFoundWarning,
+                    )
+                continue
+            case ".json":
+                if not json_path:
+                    json_path = file
+                else:
+                    warn(
+                        f"Multiple JSON files found for {file_name}. Using the first "
+                        f"one found: {json_path.name}",
+                        MultipleFilesFoundWarning,
+                    )
+                continue
+            case _:
+                warn(
+                    f"File {file} has an unsupported extension. Only .edf, "
+                    f".bdf and .json are supported.",
+                    FileTypeUnsupportedWarning,
+                )
+    return edf_path, json_path
+
+
 def add_object_to_sequence(
     entity_list: MutableSequence,
-    entity_class: "type[E] | type[MC] | type[Scan]",
+    entity_class: "type[E] | type[EC] | type[EE] | type[MC] | type[Scan]",
     **kwargs: Any,
 ) -> None:
     entity_instance = entity_class(**kwargs)
@@ -295,6 +351,24 @@ def load_tsv_data(
         raise ValueError(
             f"Data loading for package {data_load_package} is not implemented."
         )
+    return data
+
+
+# TODO: write tests, especially with multi-channel data
+@get_data()
+def load_edf_data(*, path: pathlib.Path) -> pd.DataFrame | np.ndarray:
+    data: pd.DataFrame | np.ndarray
+
+    reader = edf_reader.EdfWrapper(str(path))
+    data = reader.read_ts_channels_uutc(
+        [channel["name"] for channel in reader.read_ts_channel_basic_info()],
+        [None, None],
+    )
+
+    data_load_package = get_settings_value("DATA_LOADING_PACKAGE")
+    if data_load_package == PackageLoading.PANDAS:
+        data = pd.DataFrame(data.T)
+
     return data
 
 

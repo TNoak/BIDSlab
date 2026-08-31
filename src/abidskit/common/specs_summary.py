@@ -46,6 +46,7 @@ ALLOWED_DATATYPES = {
     "nirs",
     "motion",
     "mrs",
+    "emg",
 }
 
 

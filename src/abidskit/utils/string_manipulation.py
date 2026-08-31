@@ -25,6 +25,7 @@ SHORT_FORMS = {
     "pos": "POS",
     "vel": "VEL",
     "hed": "HED",
+    "emg": "EMG",
 }
 
 

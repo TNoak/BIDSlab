@@ -11,6 +11,7 @@ __all__ = [
     "Container",
     "Dataset",
     "Datatype",
+    "Filter",
     "GeneratedBy",
     "Hardware",
     "Institution",
@@ -33,6 +34,7 @@ from abidskit.common.specs_datatype import Datatype
 from abidskit.common.specs_misc import (
     Acquisition,
     Column,
+    Filter,
     Hardware,
     Institution,
     Level,

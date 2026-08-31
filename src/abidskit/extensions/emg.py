@@ -6,6 +6,7 @@
 #  SPDX-License-Identifier: BSD-3-Clause
 
 import json
+import os
 import pathlib
 import re
 from dataclasses import dataclass
@@ -19,19 +20,39 @@ from typing import (
 )
 from warnings import warn
 
+import pandas as pd
+
+from abidskit.common.base import BaseAcquisition, BaseTask
 from abidskit.common.specs_misc import (
     Column,
     Filter,
     Hardware,
     Institution,
     Recording,
+    Run,
 )
+from abidskit.settings import get_settings_value
+from abidskit.utils.dict_manipulation import ManipulateKeysOption, clean_dict
 from abidskit.utils.exceptions import (
     FieldEntryNotValidError,
     FieldMissingError,
+    FileNotFoundWarning,
+    TopLevelEntityNotLinkedWarning,
 )
-from abidskit.utils.helpers import set_attr_from_dict
+from abidskit.utils.helpers import (
+    add_object_to_sequence,
+    get_edf_json_files,
+    get_entity_from_file,
+    get_tsv_json_files,
+    load_edf_data,
+    parse_descriptive_tsv,
+    parse_json_sidecar,
+    set_attr_from_dict,
+)
 from abidskit.utils.string_manipulation import to_snakecase
+
+if TYPE_CHECKING:
+    from abidskit.common import Datatype
 
 EMG_CHANNEL_TYPE_ALLOWED_FIELD_ENTRIES = {
     "ECG",
@@ -157,29 +178,44 @@ class EMGElectrode:
 
         set_attr_from_dict(self, kwargs)
 
+    def __repr__(self) -> str:
+        return f"<EMGElectrode name={self.name}>"
+
 
 class EMGRecording(Recording):
     def __init__(
         self,
+        base_path: os.PathLike | str,
         recording_id: str,
         sampling_frequency: int | float,
-        placement_scheme: str,
+        emg_placement_scheme: str,
         emg_reference: str,
         power_line_frequency: int | float | str,
         recording_type: str,
         software_filters: MutableMapping[str, Filter] | str,
         **kwargs: Any,
     ):
-        self.recording_id: str = recording_id
+        # TODO: filters should be filter objects
+        description = kwargs.pop("_description", None)
+        if description is not None and not isinstance(description, MutableMapping):
+            raise TypeError(
+                "Parameter type for argument `_description` must be MutableMapping"
+            )
+        self._description: MutableMapping | None = description
 
-        self.sampling_frequency: int | float = sampling_frequency
-        self.emg_placement_scheme: str = placement_scheme
+        super().__init__(
+            base_path=base_path,
+            recording_id=recording_id,
+            sampling_frequency=sampling_frequency,
+        )
+
+        self.emg_placement_scheme: str = emg_placement_scheme
         if self.emg_placement_scheme != "Other":
             self.emg_placement_scheme_description: str | None = None
         else:
             try:
                 self.emg_placement_scheme_description = kwargs.pop(
-                    "EMGPlacementSchemeDescription"
+                    "emg_placement_scheme_description"
                 )
             except KeyError:
                 raise FieldMissingError(
@@ -209,8 +245,23 @@ class EMGRecording(Recording):
 
         self._electrodes: MutableSequence[EMGElectrode] | None = None
         self._channels: MutableSequence[EMGChannel] | None = None
+        self._coordinate_system: EMGCoordinateSystem | None = None
 
+        self._run: "EMGRun | None" = None
+
+        # Try to set attributes from arguments
         set_attr_from_dict(self, kwargs)
+
+        self._update_description()
+
+        # Update values from self._description
+        if self._description:
+            emg_description = self._description.pop("emg", {})
+            _ = self._description.pop("task", None)
+            set_attr_from_dict(self, {**self._description, **emg_description})
+
+    def __repr__(self) -> str:
+        return f"<Recording id={self.recording_id}>"
 
     @property
     def hardware(self) -> EMGHardware | None:
@@ -242,7 +293,385 @@ class EMGRecording(Recording):
         elif isinstance(value, Institution):
             self._institution = value
         else:
-            raise TypeError("Field `Institution` must be a Institution object")
+            raise TypeError("Field `Institution` must be an Institution object")
+
+    @property
+    def channels(self) -> MutableSequence[EMGChannel] | None:
+        return self._channels
+
+    @channels.setter
+    def channels(self, value: MutableSequence[Mapping | EMGChannel]) -> None:
+        if isinstance(value, MutableSequence):
+            if all(isinstance(entry, Mapping) for entry in value):
+                self._channels = []
+                for entry in value:
+                    assert isinstance(entry, Mapping)  # for mypy
+                    self._channels.append(EMGChannel(**entry))
+            elif all(isinstance(entry, EMGChannel) for entry in value):
+                self._channels = value  # type: ignore[assignment]  # mypy cannot type narrow on all()
+        else:
+            raise TypeError("Field `Channels` must be a list of EMGChannel object")
+
+    @property
+    def electrodes(self) -> MutableSequence[EMGElectrode] | None:
+        return self._electrodes
+
+    @electrodes.setter
+    def electrodes(self, value: MutableSequence[Mapping | EMGElectrode]) -> None:
+        if isinstance(value, MutableSequence):
+            if all(isinstance(entry, Mapping) for entry in value):
+                self._electrodes = []
+                for entry in value:
+                    assert isinstance(entry, Mapping)  # for mypy
+                    self._electrodes.append(EMGElectrode(**entry))
+            elif all(isinstance(e, EMGElectrode) for e in value):
+                self._electrodes = value  # type: ignore[assignment]  # mypy cannot type narrow on all()
+        else:
+            raise TypeError("Field `Electrodes` must be a list of EMGElectrodes object")
+
+    # @property
+    # def coordinate_system(self) -> EMGCoordinateSystem | None:
+    #     return self._coordinate_system
+    #
+    # @coordinate_system.setter
+    # def coordinate_system(self, value: EMGCoordinateSystem) -> None:
+    #     self._coordinate_system = value
+
+    @property
+    def data(self):
+        if self._data is None:
+            file_name = f"*{self.run.acquisition.task.task_id}*"
+            file_name += (
+                f"_{self.run.acquisition.acquisition_id}"
+                if len(self.run.acquisition.task.acquisitions) > 1
+                else ""
+            )
+            file_name += (
+                f"_{self.run.run_id}" if len(self.run.acquisition.runs) > 1 else ""
+            )
+            file_name += f"_{self.recording_id}" if len(self.run.recordings) > 1 else ""
+            edf_path, _ = get_edf_json_files(
+                self.root,
+                file_name + "_emg",
+            )
+            data_frame = load_edf_data(path=edf_path)
+            column_names = {}
+            for channel_number, channel in enumerate(self.channels):
+                column_names[channel_number] = channel.name
+            data_frame.rename(columns=column_names, inplace=True)
+
+            self._data = data_frame
+
+        return self._data
+
+    @data.setter
+    def data(self, value: pd.DataFrame) -> None:
+        self._data = value
+
+    def _update_description(self) -> None:
+        file_name = f"*_{self.recording_id}_"
+        _update_description_data(self, file_name)
+
+
+class EMGRun(Run):
+    def __init__(self, base_path: os.PathLike | str, run_id: int, **kwargs: Any):
+        description = kwargs.pop("_description", {})
+        if not isinstance(description, MutableMapping):
+            raise TypeError(
+                "Parameter type for argument `_description` must be MutableMapping"
+            )
+        self._description: MutableMapping = description
+
+        super().__init__(base_path=base_path, run_id=run_id, **kwargs)
+
+        self._recordings: MutableSequence[EMGRecording] | None = None
+
+        self._update_description()
+
+    # def __repr__(self) -> str:
+    #     return f"<Run id=run-{self.run_id}>"
+
+    @property
+    def recordings(self) -> MutableSequence[EMGRecording] | None:
+        if not self._recordings:
+            # TODO make this more elegant
+            file_name = f"*{self.acquisition.task.task_id}"
+            file_name += (
+                f"_{self.acquisition.acquisition_id}"
+                if len(self.acquisition.task.acquisitions) > 1
+                else ""
+            )
+            file_name += f"_{self.run_id}" if len(self.acquisition.runs) > 1 else ""
+
+            self._recordings = []
+            files = self.root.iterdir()
+            recording_labels = set()
+            for file in files:
+                try:
+                    recording_labels.add(
+                        get_entity_from_file(
+                            file,
+                            "recording",
+                        )["recording"]
+                    )
+                except KeyError:
+                    continue
+
+            # values in self._description get passed forward as fallback / to follow the
+            # inheritance principle of BIDS but will be updated downstream
+            for recording_label in recording_labels:
+                self._recordings.append(
+                    EMGRecording(
+                        recording_id="recording-" + recording_label,
+                        base_path=self.root,
+                        run=self,
+                        hardware=self._description.get("hardware", None),
+                        institution=self._description.get("institution", None),
+                        channels=get_emg_channels(
+                            *get_tsv_json_files(
+                                self.root,
+                                file_name + f"_recording-{recording_label}_channels",
+                            )
+                        ),
+                        electrodes=self._description.get("electrodes", None),
+                        **self._description.get("emg", None),
+                    )
+                )
+
+            # If no recordings are found, add a default one
+            if not self._recordings:
+                self._recordings.append(
+                    EMGRecording(
+                        recording_id="recording-00",
+                        base_path=self.root,
+                        run=self,
+                        hardware=self._description.get("hardware", None),
+                        institution=self._description.get("institution", None),
+                        channels=get_emg_channels(
+                            *get_tsv_json_files(
+                                self.root,
+                                file_name + "_channels",
+                            )
+                        ),
+                        electrodes=self._description.get("electrodes", None),
+                        **self._description.get("emg", None),
+                    )
+                )
+
+        return self._recordings
+
+    @recordings.setter
+    def recordings(self, value: MutableSequence[MutableMapping | EMGRecording]) -> None:
+        if isinstance(value, MutableSequence):
+            if all(isinstance(entry, MutableMapping) for entry in value):
+                self._recordings = []
+                for entry in value:
+                    assert isinstance(entry, MutableMapping)  # for mypy
+                    self._recordings.append(
+                        EMGRecording(
+                            base_path=self.root,
+                            run=self,
+                            **entry,
+                        )
+                    )
+            elif all(isinstance(entry, EMGRecording) for entry in value):
+                self._recordings = value  # type: ignore[assignment]  # mypy cannot type narrow on all()
+        else:
+            raise TypeError(
+                "Field `Recordings` must be a list of EMGRecordings objects"
+            )
+
+    def _update_description(self) -> None:
+        file_name = f"*_run-{self.run_id}_*_"
+        _update_description_data(self, file_name)
+
+
+class EMGAcquisition(BaseAcquisition):
+    def __init__(
+        self,
+        base_path: os.PathLike | str,
+        acquisition_id: str,
+        **kwargs: Any,
+    ):
+        description = kwargs.pop("_description", {})
+        if not isinstance(description, MutableMapping):
+            raise TypeError(
+                "Parameter type for argument `_description` must be MutableMapping"
+            )
+        self._description: MutableMapping = description
+
+        super().__init__(base_path=base_path, acquisition_id=acquisition_id)
+
+        self._task: "EMGTask | None" = None
+
+        self._update_description()
+
+        set_attr_from_dict(self, kwargs)
+
+    @property
+    def runs(self) -> MutableSequence[EMGRun]:
+        if not self._runs:
+            self._runs = []
+            files = self.root.iterdir()
+            run_ids = set()
+            for file in files:
+                try:
+                    run_ids.add(
+                        get_entity_from_file(
+                            file,
+                            "run",
+                        )["run"]
+                    )
+                except KeyError:
+                    continue
+            for run_id in run_ids:
+                run_id_int = int(run_id.split("-")[1])
+                self._runs.append(
+                    EMGRun(
+                        run_id=run_id_int,
+                        base_path=self.root,
+                        acquisition=self,
+                        _description=self._description,
+                    )
+                )
+
+            # If no runs are found, add a default one
+            if not self._runs:
+                self._runs.append(
+                    EMGRun(
+                        run_id=0,
+                        base_path=self.root,
+                        acquisition=self,
+                        _description=self._description,
+                    )
+                )
+
+        return self._runs
+
+    @runs.setter
+    def runs(self, value: MutableSequence[int | EMGRun]) -> None:
+        if isinstance(value, MutableSequence):
+            if all(isinstance(entry, int) for entry in value):
+                self._runs = []
+                for entry in value:
+                    assert isinstance(entry, int)  # for mypy
+                    self._runs.append(
+                        EMGRun(
+                            run_id=entry,
+                            base_path=self.root,
+                            acquisition=self,
+                            _description=self._description,
+                        )
+                    )
+            elif all(isinstance(v, EMGRun) for v in value):
+                self._runs = value  # type: ignore[assignment]  # mypy cannot type narrow on all()
+        else:
+            raise TypeError("Field `Runs` must be a list of EMGRun objects")
+
+    @property
+    def task(self) -> "EMGTask | None":
+        if self._task:
+            return self._task
+
+        warn(
+            "Acquisition is not linked to a EMGTask object.",
+            TopLevelEntityNotLinkedWarning,
+        )
+        return self._task
+
+    @task.setter
+    def task(self, value: "EMGTask") -> None:
+        self._task = value
+
+    def _update_description(self) -> None:
+        file_name = f"*_{self.acquisition_id}_*_"
+        _update_description_data(self, file_name)
+
+
+class EMGTask(BaseTask):
+    def __init__(
+        self,
+        base_path: os.PathLike | str,
+        task_name: str,
+        **kwargs: "str | Datatype | MutableSequence | MutableMapping",
+    ) -> None:
+        description = kwargs.pop("_description", {})
+        if not isinstance(description, MutableMapping):
+            raise TypeError(
+                "Parameter type for argument `_description` must be MutableMapping"
+            )
+        self._description: MutableMapping = description
+
+        super().__init__(base_path=base_path, task_name=task_name, **kwargs)
+
+        self._acquisitions: MutableSequence[EMGAcquisition] | None = None
+
+    @property
+    def acquisitions(self) -> MutableSequence[EMGAcquisition]:
+        if not self._acquisitions:
+            self._acquisitions = []
+            files = self.root.iterdir()
+            acquisition_labels = set()
+            for file in files:
+                try:
+                    acquisition_labels.add(
+                        get_entity_from_file(
+                            file,
+                            "acq",
+                        )["acq"]
+                    )
+                except KeyError:
+                    continue
+            for acquisition_label in acquisition_labels:
+                self._acquisitions.append(
+                    EMGAcquisition(
+                        acquisition_id="acq-" + acquisition_label,
+                        base_path=self.root,
+                        task=self,
+                        _description=self._description,
+                    )
+                )
+
+            # If no acquisitions are found, add a default one
+            if not self._acquisitions:
+                self._acquisitions.append(
+                    EMGAcquisition(
+                        acquisition_id="acq-00",
+                        base_path=self.root,
+                        task=self,
+                        _description=self._description,
+                    )
+                )
+
+        return self._acquisitions
+
+    @acquisitions.setter
+    def acquisitions(
+        self, value: MutableSequence[str] | MutableSequence[EMGAcquisition]
+    ) -> None:
+        if isinstance(value, MutableSequence):
+            if all(isinstance(entry, str) for entry in value):
+                self._acquisitions = []
+                for entry in value:
+                    assert isinstance(entry, str)  # for mypy
+                    self._acquisitions.append(
+                        EMGAcquisition(
+                            acquisition_id=entry,
+                            base_path=self.root,
+                            _description=self._description,
+                        )
+                    )
+            elif all(isinstance(entry, EMGAcquisition) for entry in value):
+                self._acquisitions = value  # type: ignore[assignment]  # mypy cannot type narrow on all()
+        else:
+            raise TypeError(
+                "Field `Acquisitions` must be a list of EMGAcquisition objects"
+            )
+
+    def write(self, output_path: os.PathLike | str) -> None:  # noqa: ARG002 TODO: Remove
+        # TODO: implement writing of basic Task data
+        if not get_settings_value("IGNORE_NOT_IMPLEMENTED"):
+            raise NotImplementedError
 
 
 def parse_emg_json_sidecar(sidecar_path: pathlib.Path) -> dict:
@@ -270,3 +699,103 @@ def parse_emg_json_sidecar(sidecar_path: pathlib.Path) -> dict:
             "institution": institution_description,
             "emg": emg_description,
         }
+
+
+def get_emg_channels(
+    tsv_path: pathlib.Path | None,
+    json_path: pathlib.Path | None,
+) -> MutableSequence[EMGChannel]:
+    emg_channels: list[EMGChannel] = []
+    columns = []
+
+    if json_path:
+        column_data = parse_json_sidecar(json_path)
+
+        for column_name, column_values in column_data.items():
+            columns.append(Column(name=column_name, **column_values))
+
+    if tsv_path:
+        data = parse_descriptive_tsv(tsv_path)
+        for emg_channel in data:
+            assert isinstance(emg_channel, dict), "Must be dicts in Generator."
+
+            add_object_to_sequence(
+                entity_list=emg_channels,
+                entity_class=EMGChannel,
+                columns=columns,
+                **emg_channel,
+            )
+
+    return emg_channels
+
+
+def get_emg_electrodes(
+    tsv_path: pathlib.Path | None,
+    json_path: pathlib.Path | None,
+) -> MutableSequence[EMGElectrode]:
+    emg_electrodes: list[EMGElectrode] = []
+    columns = []
+
+    if json_path:
+        column_data = parse_json_sidecar(json_path)
+
+        for column_name, column_values in column_data.items():
+            columns.append(Column(name=column_name, **column_values))
+
+    if tsv_path:
+        data = parse_descriptive_tsv(tsv_path)
+        for emg_electrode in data:
+            assert isinstance(emg_electrode, dict), "Must be dicts in Generator."
+
+            add_object_to_sequence(
+                entity_list=emg_electrodes,
+                entity_class=EMGElectrode,
+                columns=columns,
+                **emg_electrode,
+            )
+
+    return emg_electrodes
+
+
+def _update_description_data(
+    cls: EMGRecording | EMGRun | EMGAcquisition, file_name: str
+):
+    _, json_path = get_tsv_json_files(cls.root, file_name + "emg")
+
+    if json_path:
+        if not cls._description:
+            data = parse_emg_json_sidecar(json_path)
+            data_clean = clean_dict(
+                data,
+                skip_keys_to_manipulate=ManipulateKeysOption.ALL_KEYS_MANIPULATE,
+                string_manipulation=to_snakecase,
+            )
+            cls._description = data_clean
+        else:
+            data = parse_emg_json_sidecar(json_path)
+            data_clean = clean_dict(
+                data,
+                skip_keys_to_manipulate=ManipulateKeysOption.ALL_KEYS_MANIPULATE,
+                string_manipulation=to_snakecase,
+            )
+            cls._description.update(data_clean)
+    else:
+        warn(
+            f"No EMG JSON sidecar file found for {cls._entity_name} {cls._entity_id} "
+            f"in {cls.root}",
+            FileNotFoundWarning,
+        )
+
+    tsv_path, json_path = get_tsv_json_files(cls.root, file_name + "electrodes")
+    if tsv_path:
+        electrodes = {"electrodes": get_emg_electrodes(tsv_path, json_path)}
+        if not cls._description:
+            cls._description = electrodes
+        else:
+            cls._description.update(electrodes)
+    else:
+        warn(
+            f"No EMG electrodes TSV and JSON sidecar file found for {cls._entity_name} "
+            f"{cls._entity_id} in {cls.root}",
+            FileNotFoundWarning,
+        )
