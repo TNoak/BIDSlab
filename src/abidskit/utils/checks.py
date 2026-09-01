@@ -26,7 +26,7 @@ from abidskit.utils.exceptions import (
 from abidskit.utils.string_manipulation import to_titlecase
 
 if TYPE_CHECKING:
-    from abidskit.common.specs_description import Dataset
+    from abidskit.common.specs_dataset import Dataset
 
 
 def check_readme(dataset: "Dataset", files: Sequence[pathlib.Path]):

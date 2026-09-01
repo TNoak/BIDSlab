@@ -67,10 +67,10 @@ class TestCleanDict:
     )
     def test_clean_dict_titlecase(self, sample_dict, cleaned_sample_dict):
         cleaned_dict = abk.utils.dict_manipulation.clean_dict(
-            sample_dict, skip_keys_to_titlecase=0
+            sample_dict, skip_keys_to_manipulate=0
         )
 
-        assert cleaned_dict == abk.utils.dict_manipulation.dict_keys_to_titlecase(
+        assert cleaned_dict == abk.utils.dict_manipulation.manipulate_dictkeys(
             cleaned_sample_dict
         )
 
@@ -82,7 +82,7 @@ class TestCleanDict:
     )
     def test_clean_dict_no_titlecase(self, sample_dict, cleaned_sample_dict):
         cleaned_dict = abk.utils.dict_manipulation.clean_dict(
-            sample_dict, skip_keys_to_titlecase=-1
+            sample_dict, skip_keys_to_manipulate=-1
         )
 
         assert cleaned_dict == cleaned_sample_dict
@@ -108,7 +108,7 @@ class TestDeletePrivateFieldsFromDict:
 
 class TestDictKeysToTitlecase:
     def test_dict_keys_to_titlecase(self, sample_dict):
-        titled_dict = abk.utils.dict_manipulation.dict_keys_to_titlecase(sample_dict)
+        titled_dict = abk.utils.dict_manipulation.manipulate_dictkeys(sample_dict)
 
         assert "Level1" in titled_dict
         assert "Level2" in titled_dict["Level1"]

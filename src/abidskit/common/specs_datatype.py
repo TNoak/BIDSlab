@@ -12,7 +12,9 @@ from warnings import warn
 
 from abidskit.common.base import BaseTask
 from abidskit.common.specs_task import Task
+from abidskit.extensions.emg import parse_emg_json_sidecar
 from abidskit.extensions.motion import MotionTask, parse_motion_json_sidecar
+from abidskit.settings import get_settings_value
 from abidskit.utils.exceptions import TopLevelEntityNotLinkedWarning
 from abidskit.utils.helpers import (
     get_entity_from_file,
@@ -33,6 +35,7 @@ DATATYPES_WITH_TASKS = {
     "pet",
     "nirs",
     "motion",
+    "emg",
 }
 
 
@@ -109,13 +112,27 @@ class Datatype:
                                     )
                                 }
                             )
-                        else:
+                        elif self.datatype_name == "emg":
+                            data = parse_emg_json_sidecar(json_path)
+                            task_name = data["task"].pop("TaskName")
+                            self._tasks.update(
+                                {
+                                    "task-" + task_id: Task(
+                                        task_id="task-" + task_id,
+                                        task_name=task_name,
+                                        base_path=self.root,
+                                        datatype=self,
+                                        **data["task"],
+                                    )
+                                }
+                            )
+                        elif not get_settings_value("IGNORE_NOT_IMPLEMENTED"):
                             raise NotImplementedError
 
-                    else:
+                    elif not get_settings_value("IGNORE_NOT_IMPLEMENTED"):
                         raise NotImplementedError
 
-            else:
+            elif not get_settings_value("IGNORE_NOT_IMPLEMENTED"):
                 raise NotImplementedError
 
             # If no tasks are found, create a default one
@@ -134,9 +151,7 @@ class Datatype:
         return self._tasks
 
     @tasks.setter
-    def tasks(
-        self, value: Iterable[Mapping] | Iterable[BaseTask] | dict[str, BaseTask]
-    ) -> None:
+    def tasks(self, value: Iterable[Mapping] | Iterable[BaseTask]) -> None:
         if isinstance(value, Iterable):
             if all(isinstance(entry, Mapping) for entry in value):
                 self._tasks = {}
@@ -151,8 +166,6 @@ class Datatype:
                     assert isinstance(entry, BaseTask)  # for mypy
                     assert entry.task_id is not None
                     self._tasks.update({entry.task_id: entry})
-        elif isinstance(value, dict):
-            self._tasks = value
         else:
             raise TypeError("Field `Tasks` must be a list of Task objects")
 

@@ -18,12 +18,13 @@ __author__ = "Lukas Behammer"
 __all__ = [
     "get_version",
     "load_dataset",
+    "write_dataset",
     "override_settings",
     "update_settings",
     "save_settings",
 ]
 
-from .io import load_dataset
+from .io import load_dataset, write_dataset
 from .settings import override_settings_values as override_settings
 from .settings import save_settings_values as save_settings
 from .settings import set_settings_values as update_settings

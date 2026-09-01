@@ -6,10 +6,11 @@
 #  SPDX-License-Identifier: BSD-3-Clause
 
 import os
-from typing import TYPE_CHECKING, Iterable
+from typing import TYPE_CHECKING, MutableSequence
 
 from abidskit.common.base import BaseTask
 from abidskit.common.specs_misc import Acquisition
+from abidskit.settings import get_settings_value
 from abidskit.utils.helpers import get_entity_from_file
 
 if TYPE_CHECKING:
@@ -21,7 +22,7 @@ class Task(BaseTask):
         self,
         base_path: os.PathLike | str,
         task_name: str,
-        **kwargs: "str | Datatype | Iterable",
+        **kwargs: "str | Datatype | MutableSequence",
     ) -> None:
         self.cog_atlas_id = None  # !: Only for special datatypes
         self.cog_poid = None  # !: Only for special datatypes
@@ -71,9 +72,9 @@ class Task(BaseTask):
 
     @acquisitions.setter
     def acquisitions(
-        self, value: Iterable[str] | Iterable[Acquisition] | dict[str, Acquisition]
+        self, value: MutableSequence[str | Acquisition] | dict[str, Acquisition]
     ) -> None:
-        if isinstance(value, Iterable):
+        if isinstance(value, MutableSequence):
             if all(isinstance(entry, str) for entry in value):
                 self._acquisitions = {}
                 for entry in value:
@@ -100,4 +101,5 @@ class Task(BaseTask):
 
     def write(self, output_path: os.PathLike | str) -> None:
         # TODO: implement writing of basic Task data
-        raise NotImplementedError
+        if not get_settings_value("IGNORE_NOT_IMPLEMENTED"):
+            raise NotImplementedError

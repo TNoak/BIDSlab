@@ -17,7 +17,7 @@ from abidskit.common.specs_datatype import Datatype
 from abidskit.common.specs_misc import Column
 from abidskit.common.specs_phenotype import MeasurementTool
 from abidskit.settings import get_settings_value
-from abidskit.utils.dict_manipulation import clean_dict
+from abidskit.utils.dict_manipulation import ManipulateKeysOption, clean_dict
 from abidskit.utils.exceptions import FieldMissingError, TopLevelEntityNotLinkedWarning
 from abidskit.utils.helpers import (
     add_object_to_sequence,
@@ -30,7 +30,7 @@ from abidskit.utils.helpers import (
 )
 
 if TYPE_CHECKING:
-    from abidskit.common.specs_description import Dataset
+    from abidskit.common.specs_dataset import Dataset
 
 ALLOWED_DATATYPES = {
     "func",
@@ -359,9 +359,7 @@ class Participant(Entity):
         return self._sessions
 
     @sessions.setter
-    def sessions(
-        self, value: Sequence[Mapping] | Sequence[Session] | dict[str, Session]
-    ) -> None:
+    def sessions(self, value: Sequence[Mapping] | Sequence[Session]) -> None:
         if isinstance(value, Sequence):
             if all(isinstance(entry, Mapping) for entry in value):
                 self._sessions = {}
@@ -375,8 +373,6 @@ class Participant(Entity):
                 for entry in value:
                     assert isinstance(entry, Session)  # for mypy
                     self._sessions.update({entry.session_id: entry})
-        elif isinstance(value, dict):
-            self._sessions = value
         else:
             raise TypeError("Field `Sessions` must be a list of Session objects")
 
@@ -384,7 +380,10 @@ class Participant(Entity):
         sessions_dataframe = pd.DataFrame()
         for session in self.sessions.values():
             session_dict = session.__dict__.copy()
-            session_dict = clean_dict(session_dict, skip_keys_to_titlecase=0)
+            session_dict = clean_dict(
+                session_dict,
+                skip_keys_to_manipulate=ManipulateKeysOption.ALL_KEYS_MANIPULATE,
+            )
 
             sessions_dataframe = pd.concat(
                 [sessions_dataframe, pd.DataFrame([session_dict])],

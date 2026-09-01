@@ -54,6 +54,12 @@ class FileMissingWarning(Warning):
     pass
 
 
+class FileNotFoundWarning(Warning):
+    """Raised when a file is not found."""
+
+    pass
+
+
 class FileTypeUnsupportedWarning(Warning):
     """Raised when a file type is unsupported."""
 

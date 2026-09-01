@@ -16,19 +16,24 @@ from typing import (
     Any,
     Iterable,
     Iterator,
-    Mapping,
     MutableSequence,
     Sequence,
     TypeVar,
 )
 from warnings import catch_warnings, simplefilter, warn
 
+import numpy as np
 import pandas as pd
 
 from abidskit._typing import MC, E, PEntity
+from abidskit.settings import PackageFetching, PackageLoading, get_settings_value
 from abidskit.utils.checks import (
     check_dataset_description_present,
     check_files,
+)
+from abidskit.utils.dict_manipulation import (
+    ManipulateKeysOption,
+    clean_dict,
 )
 from abidskit.utils.exceptions import (
     FieldNotValidError,
@@ -41,7 +46,7 @@ from abidskit.utils.string_manipulation import to_snakecase
 
 if TYPE_CHECKING:
     from abidskit.common.base import Event
-    from abidskit.common.specs_description import Dataset
+    from abidskit.common.specs_dataset import Dataset
     from abidskit.common.specs_summary import Scan
 
 try:
@@ -60,9 +65,14 @@ REQUIRED_ENTITIES_FOR_WRITING = {
 }
 
 
-def set_attr_from_dict(obj: T, data: Mapping) -> None:
+def set_attr_from_dict(obj: T, data: dict) -> None:
+    data = clean_dict(
+        data,
+        skip_keys_to_manipulate=ManipulateKeysOption.ALL_KEYS_MANIPULATE,
+        string_manipulation=to_snakecase,
+        include_sequences=True,
+    )
     for key, value in data.items():
-        key = to_snakecase(key)
         with catch_warnings():
             simplefilter("ignore", category=TopLevelEntityNotLinkedWarning)
             if hasattr(obj, key):
@@ -128,7 +138,14 @@ def get_tsv_json_files(
     json_path = None
     for file in files:
         match file.suffix:
-            case ".tsv":
+            case ".tsv" | ".gz":
+                if file.suffix == ".gz" and not file.stem.endswith(".tsv"):
+                    warn(
+                        f"File {file} has an unsupported extension. Only .tsv[.gz] and "
+                        f".json are supported.",
+                        FileTypeUnsupportedWarning,
+                    )
+                    continue
                 if not tsv_path:
                     tsv_path = file
                 else:
@@ -217,10 +234,15 @@ def write_json(content: dict[str, Any], output_path: os.PathLike | str) -> None:
         )
 
 
-def get_data(pkg):
-    def decorator(f):
+def get_data() -> Any:
+    def decorator(f):  # numpydoc ignore=GL08
         @wraps(f)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args, **kwargs):  # numpydoc ignore=GL08
+            pkg_str = get_settings_value("DATASET_FETCHING_PACKAGE")
+            if pkg_str in PackageFetching:
+                pkg = eval(pkg_str)
+            else:
+                pkg = None
             path = kwargs.get("path")
             if not path.exists():
                 if pkg:
@@ -231,8 +253,15 @@ def get_data(pkg):
                             f"Data retrieval for package {pkg.__name__} is not "
                             f"implemented."
                         )
+                elif pkg is None:
+                    raise ValueError(
+                        f"Path '{path}' does not exist and no supported data fetching "
+                        f"package is configured."
+                    )
                 else:
-                    raise ValueError(f"Package {pkg.__name__} is not available.")
+                    raise ValueError(
+                        f"Package '{_pkg_str_to_pkg_name(pkg_str)}' is not available."
+                    )
             return f(*args, **kwargs)
 
         return wrapper
@@ -240,12 +269,64 @@ def get_data(pkg):
     return decorator
 
 
-@get_data(dl)
-def load_tsv_data(*, path: pathlib.Path, header: int | None = None) -> pd.DataFrame:
-    try:  # try catch added to test with datasets not containing any data in the files
-        return pd.read_csv(path, sep="\t", header=header)
-    except pd.errors.EmptyDataError:
-        return pd.DataFrame()
+@get_data()
+def load_tsv_data(
+    *, path: pathlib.Path, header: int | None = None
+) -> pd.DataFrame | np.ndarray:
+    """
+    Load TSV data from a file using the specified data loading package.
+
+    Parameters
+    ----------
+    path : pathlib.Path
+        The path to the TSV file.
+    header : int | None, optional
+        The row number to use as the column names. Default is None.
+
+    Returns
+    -------
+    pd.DataFrame | np.ndarray
+        The loaded TSV data in a format depending on the data loading package.
+    """
+    data: pd.DataFrame | np.ndarray
+    data_load_package = get_settings_value("DATA_LOADING_PACKAGE")
+    if data_load_package == PackageLoading.PANDAS:
+        if path.suffix == ".gz":
+            data = pd.read_csv(path, sep="\t", header=header, compression="gzip")
+        else:
+            data = pd.read_csv(path, sep="\t", header=header)
+    elif data_load_package == PackageLoading.NUMPY:
+        data = np.loadtxt(path, delimiter="\t", skiprows=header or 0, encoding="utf-8")
+    else:
+        raise ValueError(
+            f"Data loading for package {data_load_package} is not implemented."
+        )
+    return data
+
+
+def _pkg_str_to_pkg_name(pkg_str: str) -> str:
+    """
+    Convert package string from settings to actual package name.
+
+    Parameters
+    ----------
+    pkg_str : str
+        The package string from settings.
+
+    Returns
+    -------
+    str
+        The actual package name.
+    """
+    match pkg_str:
+        case "PackageFetching.DATALAD":
+            return "datalad"
+        case "PackageLoading.PANDAS":
+            return "pandas"
+        case "PackageLoading.NUMPY":
+            return "numpy"
+        case _:
+            raise ValueError(f"Unknown package string: {pkg_str}")
 
 
 def check_entity_mismatch(filename: str, entitylist: Sequence[str]) -> bool:

@@ -10,14 +10,19 @@ import os
 import pathlib
 import re
 from dataclasses import asdict, dataclass
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping, MutableSequence
 from warnings import warn
 
 import pandas as pd
 
-from abidskit.common.base import BaseAcquisition, BaseTask, Entity, Run
-from abidskit.common.specs_misc import Column, Hardware, Institution
-from abidskit.utils.dict_manipulation import clean_dict, delete_none_from_dict
+from abidskit.common.base import BaseAcquisition, BaseTask, Entity
+from abidskit.common.specs_misc import Column, Hardware, Institution, Run
+from abidskit.settings import get_settings_value
+from abidskit.utils.dict_manipulation import (
+    ManipulateKeysOption,
+    clean_dict,
+    delete_none_from_dict,
+)
 from abidskit.utils.exceptions import (
     FieldEntryNotValidError,
     TopLevelEntityNotLinkedWarning,
@@ -98,7 +103,7 @@ class MotionChannel:
         self.sampling_frequency: int | float | None = None
         self.status: str | None = None
         self.status_description: str | None = None
-        self.columns: Sequence[Column] | None = None
+        self.columns: MutableSequence[Column] | None = None
 
         set_attr_from_dict(self, kwargs)
 
@@ -133,10 +138,10 @@ class MotionChannel:
 
 
 class MotionRun(Run):
-    def __init__(self, base_path: os.PathLike | str, run_id: str, **kwargs):
+    def __init__(self, base_path: os.PathLike | str, run_id: int, **kwargs):
         super().__init__(base_path=base_path, run_id=run_id)
 
-        self._channels: Sequence[MotionChannel] | None = None
+        self._channels: MutableSequence[MotionChannel] | None = None
         self._data: Any = None
 
         set_attr_from_dict(self, kwargs)
@@ -156,11 +161,11 @@ class MotionRun(Run):
         self._acquisition = value
 
     @property
-    def channels(self) -> Sequence[MotionChannel] | None:
+    def channels(self) -> MutableSequence[MotionChannel] | None:
         return self._channels
 
     @channels.setter
-    def channels(self, value: Sequence[MotionChannel]) -> None:
+    def channels(self, value: MutableSequence[MotionChannel]) -> None:
         self._channels = value
 
     @property
@@ -186,11 +191,10 @@ class MotionRun(Run):
                 self.root,
                 file_name + "_motion",
             )
-            # TODO: put this in a function and write decorator to get files with datalad
             data_frame = load_tsv_data(path=tsv_path, header=None)
             column_names = {}
-            for column_number, column in enumerate(self.channels):
-                column_names[column_number] = column.name
+            for channel_number, channel in enumerate(self.channels):
+                column_names[channel_number] = channel.name
             data_frame.rename(columns=column_names, inplace=True)
 
             self._data = data_frame
@@ -210,10 +214,10 @@ class MotionRun(Run):
 
             channel_dict = delete_none_from_dict(channel_dict)
 
-            reference_frame = channel_dict.pop("reference_frame")
+            reference_frame = channel_dict.pop("reference_frame", None)
             if isinstance(reference_frame, ReferenceFrame):
                 channel_dict["reference_frame"] = reference_frame.name
-            else:
+            elif reference_frame:
                 channel_dict["reference_frame"] = reference_frame
 
             channel_dict.pop("columns")
@@ -272,7 +276,7 @@ class MotionRun(Run):
 
         channel_description = clean_dict(
             channel_description,
-            skip_keys_to_titlecase=1,
+            skip_keys_to_manipulate=ManipulateKeysOption.SKIP_TOP_LEVEL_MANIPULATE,
         )
         write_json(channel_description, output_path_channel_description)
 
@@ -372,10 +376,11 @@ class MotionAcquisition(BaseAcquisition):
                 except KeyError:
                     continue
             for run_id in run_ids:
+                run_id_int = int(run_id.split("-")[1])
                 self._runs.update(
                     {
                         run_id: MotionRun(
-                            run_id="run-" + run_id,
+                            run_id=run_id_int,
                             base_path=self.root,
                             acquisition=self,
                             channels=channels,
@@ -387,8 +392,8 @@ class MotionAcquisition(BaseAcquisition):
             if not self._runs:
                 self._runs.update(
                     {
-                        "run-00": MotionRun(
-                            run_id="run-00",
+                        "run-0": MotionRun(
+                            run_id=0,
                             base_path=self.root,
                             acquisition=self,
                             channels=channels,
@@ -399,12 +404,12 @@ class MotionAcquisition(BaseAcquisition):
         return self._runs
 
     @runs.setter
-    def runs(self, value: Sequence[str | MotionRun] | dict[str, Run]) -> None:
-        if isinstance(value, Sequence):
-            if all(isinstance(entry, str) for entry in value):
-                self._runs = {}
+    def runs(self, value: MutableSequence[int | MotionRun] | dict[str, Run]) -> None:
+        if isinstance(value, MutableSequence):
+            if all(isinstance(entry, int) for entry in value):
+                self._runs = []
                 for entry in value:
-                    assert isinstance(entry, str)  # for mypy
+                    assert isinstance(entry, int)  # for mypy
                     self._runs.update(
                         {
                             entry: MotionRun(
@@ -436,7 +441,7 @@ class TrackSys(Entity):
         base_path: os.PathLike | str,
         tracking_system_id: str,
         motion_description: dict | None = None,
-        **kwargs: "dict | Hardware | Institution | MotionTask | Sequence",
+        **kwargs: "dict | Hardware | Institution | MotionTask | MutableSequence",
     ) -> None:
         super().__init__(_entity_id=tracking_system_id, _entity_name="tracksys")
         self._hardware: Hardware | None = None
@@ -549,7 +554,7 @@ class TrackSys(Entity):
                             )
                         }
                     )
-                else:
+                elif not get_settings_value("IGNORE_NOT_IMPLEMENTED"):
                     raise NotImplementedError  # TODO: implement
 
             # If no acquisitions are found, add a default one from
@@ -570,6 +575,34 @@ class TrackSys(Entity):
                 )
 
         return self._acquisitions
+
+    @acquisitions.setter
+    def acquisitions(
+        self,
+        value: MutableSequence[Mapping | MotionAcquisition],
+    ) -> None:
+        if isinstance(value, MutableSequence):
+            if all(isinstance(entry, Mapping) for entry in value):
+                self._acquisitions = {}
+                for entry in value:
+                    assert isinstance(entry, Mapping)  # for mypy
+                    self._acquisitions.update(
+                        {
+                            entry.acquisition_id: MotionAcquisition(  # type: ignore[attr-defined]
+                                base_path=self.root, tracking_system=self, **entry
+                            )
+                        }
+                    )
+            elif all(isinstance(entry, MotionAcquisition) for entry in value):
+                self.acquisitions = {}
+                for entry in value:
+                    assert isinstance(entry, MotionAcquisition)  # for mypy
+                    assert entry.acquisition_id is not None
+                    self._acquisitions.update({entry.acquisition_id: entry})
+        else:
+            raise TypeError(
+                "Field `Acquisitions` must be a list or dict of Acquisition objects"
+            )
 
     def get_top_level_entities(self) -> list[str | Any]:
         assert self.task is not None
@@ -627,7 +660,7 @@ class MotionTask(BaseTask):
                             )
                         }
                     )
-                else:
+                elif not get_settings_value("IGNORE_NOT_IMPLEMENTED"):
                     raise NotImplementedError  # TODO: implement
 
             if not self._tracking_systems:
@@ -638,10 +671,8 @@ class MotionTask(BaseTask):
         return self._tracking_systems
 
     @tracking_systems.setter
-    def tracking_systems(
-        self, value: Sequence[Mapping] | Sequence[TrackSys] | dict[str, TrackSys]
-    ) -> None:
-        if isinstance(value, Sequence):
+    def tracking_systems(self, value: MutableSequence[Mapping | TrackSys]) -> None:
+        if isinstance(value, MutableSequence):
             if all(isinstance(entry, Mapping) for entry in value):
                 self._tracking_systems = {}
                 for entry in value:
@@ -659,8 +690,6 @@ class MotionTask(BaseTask):
                     assert isinstance(entry, TrackSys)  # for mypy
                     assert entry.tracking_system_id is not None
                     self._tracking_systems.update({entry.tracking_system_id: entry})
-        elif isinstance(value, dict):
-            self._tracking_systems = value
         else:
             raise TypeError(
                 "Field `TrackingSystems` must be a list of TrackSys objects"
@@ -706,7 +735,8 @@ class MotionTask(BaseTask):
                     motion_description.pop("acquisition_id")
                     motion_description.pop("run_id")
                     motion_description = clean_dict(
-                        motion_description, skip_keys_to_titlecase=0
+                        motion_description,
+                        skip_keys_to_manipulate=ManipulateKeysOption.ALL_KEYS_MANIPULATE,
                     )
                     output_path_motion_description = append_path(
                         output_path_run, "_motion.json"
@@ -757,7 +787,7 @@ def get_reference_frames(reference_frames_levels: dict) -> dict[str, ReferenceFr
 def get_motion_channels(
     tsv_path: pathlib.Path | None,
     json_path: pathlib.Path | None,
-) -> Sequence[MotionChannel]:
+) -> MutableSequence[MotionChannel]:
     motion_channels: list[MotionChannel] = []
     columns = []
     reference_frames_dict = None
