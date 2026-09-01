@@ -64,6 +64,7 @@ class Task(BaseTask):
                         "acq-00": Acquisition(
                             acquisition_id="acq-00",
                             base_path=self.root,
+                            virtual_entity=True,
                         )
                     }
                 )

@@ -143,6 +143,7 @@ class Datatype:
                             task_name="n/a",
                             task_id="task-00",
                             base_path=self.root,
+                            virtual_task=True,
                             datatype=self,
                         )
                     }

@@ -371,7 +371,7 @@ class Dataset:
             if len(self._participants) == 0:
                 self._participants.update(
                     {
-                        "sub-00": Participant(
+                        "sub-00": Participant(  # default participant must exist -> virtual entity
                             base_path=self.root, participant_id="sub-00", dataset=self
                         )
                     }
@@ -519,6 +519,7 @@ class Dataset:
         _ = dataset_description.pop("stimuli_path", None)
         _ = dataset_description.pop("phenotype_path", None)
         _ = dataset_description.pop("derivatives_path", None)
+        _ = dataset_description.pop("_participants", None)
         dataset_description = clean_dict(
             dataset_description,
             skip_keys_to_manipulate=ManipulateKeysOption.ALL_KEYS_MANIPULATE,

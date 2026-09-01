@@ -31,6 +31,7 @@ if TYPE_CHECKING:
 class Entity(ABC):
     _entity_id: str
     _entity_name: str
+    _virtual_entity: bool
 
     @abstractmethod
     def write(self, output_path: os.PathLike | str) -> None: ...
@@ -65,6 +66,7 @@ class BaseTask(Entity, ABC):
         self,
         base_path: os.PathLike | str,
         task_name: str,
+        virtual_entity: bool = False,
         **kwargs: Any,
     ) -> None:
         self.task_id: str | None = None
@@ -85,7 +87,9 @@ class BaseTask(Entity, ABC):
         if not self.task_id:
             self.task_id = f"task-{remove_special_characters(self.task_name)}"
 
-        super().__init__(_entity_id=self.task_id, _entity_name="task")
+        super().__init__(
+            _entity_id=self.task_id, _entity_name="task", _virtual_entity=virtual_entity
+        )
 
     def __repr__(self) -> str:
         return f"<Task id={self.task_id}>"
@@ -115,8 +119,17 @@ class BaseTask(Entity, ABC):
 
 class BaseAcquisition(Entity, Generic[R], ABC):
     @abstractmethod
-    def __init__(self, base_path: os.PathLike | str, acquisition_id: str) -> None:
-        super().__init__(_entity_id=acquisition_id, _entity_name="acq")
+    def __init__(
+        self,
+        base_path: os.PathLike | str,
+        acquisition_id: str,
+        virtual_entity: bool = False,
+    ) -> None:
+        super().__init__(
+            _entity_id=acquisition_id,
+            _entity_name="acq",
+            _virtual_entity=virtual_entity,
+        )
         self.acquisition_id: str = self._entity_id  # !: This is required
 
         self.root: pathlib.Path = pathlib.Path(base_path)

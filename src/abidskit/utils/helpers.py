@@ -217,7 +217,8 @@ def write_entities(
     for entity in entities:
         path = (
             append_path(output_path, f"_{entity._entity_id}")
-            if len(entities) > 1 or entity._entity_name in REQUIRED_ENTITIES_FOR_WRITING
+            if not entity._virtual_entity
+            or entity._entity_name in REQUIRED_ENTITIES_FOR_WRITING
             else output_path
         )
         entity.write(path)
@@ -292,9 +293,15 @@ def load_tsv_data(
     data_load_package = get_settings_value("DATA_LOADING_PACKAGE")
     if data_load_package == PackageLoading.PANDAS:
         if path.suffix == ".gz":
-            data = pd.read_csv(path, sep="\t", header=header, compression="gzip")
+            try:
+                data = pd.read_csv(path, sep="\t", header=header, compression="gzip")
+            except pd.errors.EmptyDataError:
+                data = pd.DataFrame()
         else:
-            data = pd.read_csv(path, sep="\t", header=header)
+            try:
+                data = pd.read_csv(path, sep="\t", header=header)
+            except pd.errors.EmptyDataError:
+                data = pd.DataFrame()
     elif data_load_package == PackageLoading.NUMPY:
         data = np.loadtxt(path, delimiter="\t", skiprows=header or 0, encoding="utf-8")
     else:

@@ -185,8 +185,13 @@ class Recording(Entity):
         base_path: os.PathLike | str,
         recording_id: str,
         sampling_frequency: int | float,
+        virtual_entity: bool = False,
     ):
-        super().__init__(_entity_id=recording_id, _entity_name="recording")
+        super().__init__(
+            _entity_id=recording_id,
+            _entity_name="recording",
+            _virtual_entity=virtual_entity,
+        )
         self.recording_id: str = self._entity_id
         self.sampling_frequency: int | float = sampling_frequency
 
@@ -269,11 +274,21 @@ class PhysioRecording(Recording):
 
 
 class Run(Entity, Generic[A]):
-    def __init__(self, base_path: os.PathLike | str, run_id: int, **kwargs: Any):
+    def __init__(
+        self,
+        base_path: os.PathLike | str,
+        run_id: int,
+        virtual_entity: bool = False,
+        **kwargs: Any,
+    ):
         if not isinstance(run_id, int):
             raise TypeError("run_id must be an index of type integer")
         run_id_str = str(run_id)
-        super().__init__(_entity_id=run_id_str, _entity_name="run")
+        super().__init__(
+            _entity_id="run-" + run_id_str,
+            _entity_name="run",
+            _virtual_entity=virtual_entity,
+        )
         self.run_id: str = self._entity_id
 
         self.root: pathlib.Path = pathlib.Path(base_path)
@@ -286,7 +301,7 @@ class Run(Entity, Generic[A]):
         set_attr_from_dict(self, kwargs)
 
     def __repr__(self):
-        return f"Run id=run-{self.run_id}"
+        return f"Run id={self.run_id}"
 
     @property
     def acquisition(self) -> A | None:

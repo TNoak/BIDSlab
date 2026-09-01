@@ -75,9 +75,15 @@ class Scan:
 
 class Session(Entity):
     def __init__(
-        self, base_path: os.PathLike | str, session_id: str, **kwargs: Any
+        self,
+        base_path: os.PathLike | str,
+        session_id: str,
+        virtual_entity: bool = False,
+        **kwargs: Any,
     ) -> None:
-        super().__init__(_entity_id=session_id, _entity_name="ses")
+        super().__init__(
+            _entity_id=session_id, _entity_name="ses", _virtual_entity=virtual_entity
+        )
         self.session_id: str = self._entity_id  # !: This is required
         self.acq_time: str | None = None
         self.pathology: str | int | None = None  # TODO: check if same as in samples
@@ -266,9 +272,14 @@ class Participant(Entity):
         self,
         base_path: os.PathLike | str,
         participant_id: str,
+        virtual_entity: bool = False,
         **kwargs: Any,
     ) -> None:
-        super().__init__(_entity_id=participant_id, _entity_name="sub")
+        super().__init__(
+            _entity_id=participant_id,
+            _entity_name="sub",
+            _virtual_entity=virtual_entity,
+        )
         self.participant_id: str = participant_id  # !: This is required
         self.species: str | int | None = None
         if get_settings_value("SUPPORT_OLD_VERSIONS") and not self.species:
@@ -351,6 +362,7 @@ class Participant(Entity):
                         "ses-00": Session(
                             base_path=self.root,
                             session_id="ses-00",
+                            virtual_entity=True,
                             participant=self,
                         )
                     }

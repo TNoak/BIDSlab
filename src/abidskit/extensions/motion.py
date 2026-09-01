@@ -138,8 +138,16 @@ class MotionChannel:
 
 
 class MotionRun(Run):
-    def __init__(self, base_path: os.PathLike | str, run_id: int, **kwargs):
-        super().__init__(base_path=base_path, run_id=run_id)
+    def __init__(
+        self,
+        base_path: os.PathLike | str,
+        run_id: int,
+        virtual_entity: bool = False,
+        **kwargs,
+    ):
+        super().__init__(
+            base_path=base_path, run_id=run_id, virtual_entity=virtual_entity
+        )
 
         self._channels: MutableSequence[MotionChannel] | None = None
         self._data: Any = None
@@ -287,9 +295,14 @@ class MotionAcquisition(BaseAcquisition):
         base_path: os.PathLike | str,
         acquisition_id: str,
         sampling_frequency: int | float,
+        virtual_entity: bool = False,
         **kwargs: Any,
     ):
-        super().__init__(base_path=base_path, acquisition_id=acquisition_id)
+        super().__init__(
+            base_path=base_path,
+            acquisition_id=acquisition_id,
+            virtual_entity=virtual_entity,
+        )
 
         self.sampling_frequency: int | float = sampling_frequency
         self.accel_channel_count: int | None = None
@@ -376,11 +389,10 @@ class MotionAcquisition(BaseAcquisition):
                 except KeyError:
                     continue
             for run_id in run_ids:
-                run_id_int = int(run_id.split("-")[1])
                 self._runs.update(
                     {
                         run_id: MotionRun(
-                            run_id=run_id_int,
+                            run_id=int(run_id),
                             base_path=self.root,
                             acquisition=self,
                             channels=channels,
@@ -397,6 +409,7 @@ class MotionAcquisition(BaseAcquisition):
                             base_path=self.root,
                             acquisition=self,
                             channels=channels,
+                            virtual_entity=True,
                         )
                     }
                 )
@@ -441,9 +454,14 @@ class TrackSys(Entity):
         base_path: os.PathLike | str,
         tracking_system_id: str,
         motion_description: dict | None = None,
+        virtual_entity: bool = False,
         **kwargs: "dict | Hardware | Institution | MotionTask | MutableSequence",
     ) -> None:
-        super().__init__(_entity_id=tracking_system_id, _entity_name="tracksys")
+        super().__init__(
+            _entity_id=tracking_system_id,
+            _entity_name="tracksys",
+            _virtual_entity=virtual_entity,
+        )
         self._hardware: Hardware | None = None
         self._institution: Institution | None = None
         self._motion_description: dict = (
@@ -569,6 +587,7 @@ class TrackSys(Entity):
                             sampling_frequency=self._motion_description.pop(
                                 "SamplingFrequency"
                             ),  # FIXME: dict entry can be None
+                            virtual_entity=True,
                             **self._motion_description,
                         )
                     }
@@ -714,14 +733,14 @@ class MotionTask(BaseTask):
                 acquisition_dict = acquisition.__dict__.copy()
                 output_path_acquisition = (
                     append_path(output_path_tracksys, f"_{acquisition.acquisition_id}")
-                    if len(tracking_system.acquisitions) > 1
+                    if not acquisition._virtual_entity
                     else output_path_tracksys
                 )
                 for run in acquisition.runs.values():
                     run_dict = run.__dict__.copy()
                     output_path_run = (
                         append_path(output_path_acquisition, f"_{run.run_id}")
-                        if len(acquisition.runs) > 1
+                        if not run._virtual_entity
                         else output_path_acquisition
                     )
 
