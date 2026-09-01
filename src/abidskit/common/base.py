@@ -41,25 +41,6 @@ class Entity(ABC):
     def get_top_level_entities(self) -> list[str | Any]: ...
 
 
-@dataclass
-class Event:
-    @abstractmethod
-    def __init__(
-        self,
-        onset: float,
-        duration: float,
-        **kwargs: Any,
-    ) -> None:
-        self.onset: float = onset
-
-        self.duration: float = duration
-
-        self.columns: dict[str, Any] | None = None
-
-        for key, value in kwargs.items():
-            setattr(self, key, value)
-
-
 class BaseTask(Entity, ABC):
     @abstractmethod
     def __init__(

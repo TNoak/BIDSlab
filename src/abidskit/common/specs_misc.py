@@ -23,7 +23,7 @@ from warnings import warn
 import pandas as pd
 
 from abidskit._typing import A
-from abidskit.common.base import BaseAcquisition, Entity, Event
+from abidskit.common.base import BaseAcquisition, Entity
 from abidskit.settings import get_settings_value
 from abidskit.utils.checks import check_if_valid_uri
 from abidskit.utils.exceptions import (
@@ -179,6 +179,42 @@ class Column:
             raise TypeError("Field `Levels` must be a list of Level objects")
 
 
+@dataclass
+class Stim:
+    def __init__(
+        self,
+        SamplingFrequency: float,
+        StartTime: float,
+        Columns: Sequence[str],
+        Data: Sequence[Any],
+    ) -> None:
+        self.SamplingFrequency: float = SamplingFrequency
+
+        self.StartTime: float = StartTime
+
+        self.Columns: Sequence[str] = Columns
+
+        self.Data: Sequence[Any] = Data
+
+
+@dataclass
+class Event:
+    def __init__(
+        self,
+        onset: float,
+        duration: float,
+        **kwargs: Any,
+    ) -> None:
+        self.onset: float = onset
+
+        self.duration: float = duration
+
+        self.columns: dict[str, Any] | None = None
+
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+
 class Recording(Entity):
     def __init__(
         self,
@@ -297,6 +333,7 @@ class Run(Entity, Generic[A]):
 
         self._physio: Sequence[PhysioRecording] | None = None
         self._events: Sequence[Event] | None = None
+        self._stims: Sequence[Stim] | None = None
 
         set_attr_from_dict(self, kwargs)
 
@@ -360,9 +397,8 @@ class Run(Entity, Generic[A]):
             raise NotImplementedError
 
     @property
-    def events(self):
+    def events(self) -> Sequence[Event] | None:
         # TODO json sidecar may be in higher directory levels
-        # TODO create stimuli folder if respective column exists
         if self._events is None:
             # get list of top level entities
             entities = self.get_top_level_entities()
@@ -411,6 +447,53 @@ class Run(Entity, Generic[A]):
     def events(self, value: Sequence[Event]) -> None:
         self._events = value
 
+    @property
+    def stims(self) -> Sequence[Stim] | None:
+        # TODO json sidecar may be in higher directory levels
+        if self._stims is None:
+            # get list of top level entities
+            entities = self.get_top_level_entities()
+
+            # get all possible files with _events.json
+            files_json = list(self.root.glob("*_events.json"))
+            filenames_json = [f.name for f in files_json]
+            file_entities_json = [f.removesuffix("_stim.json") for f in filenames_json]
+
+            columns = []
+            # check for entity mismatches and use first one working
+            for file in file_entities_json:
+                if check_entity_mismatch(file, entities):
+                    # load .json file and save it
+                    columns = parse_json_sidecar(self.root / (file + "_stim.json"))
+                    break
+
+            # get all possible files with _events.tsv
+            files_tsv = list(self.root.glob("*_stim.tsv.gz"))
+            filenames_tsv = [f.name for f in files_tsv]
+            file_entities_tsv = [f.removesuffix("_stim.tsv.gz") for f in filenames_tsv]
+
+            data = []
+            # check for entity mismatches and use first one working
+            for file in file_entities_tsv:
+                if check_entity_mismatch(file, entities):
+                    # load .tsv file and save it
+                    data = load_tsv_data(path=self.root / (file + "_stim.tsv.gz"))
+                    self._stims = []
+                    for stim in data:
+                        add_object_to_sequence(
+                            entity_list=self._stims,
+                            entity_class=Stim,
+                            **stim,
+                            columns=columns,
+                        )
+                    break
+
+        return self._events
+
+    @stims.setter
+    def stims(self, value: Sequence[Stim]) -> None:
+        self._stims = value
+
     def get_top_level_entities(self) -> list[str | Any]:
         assert self.acquisition is not None
         entities = self.acquisition.get_top_level_entities()
@@ -425,6 +508,11 @@ class Run(Entity, Generic[A]):
             data_json = self.events[0].columns
             data_tsv = pd.DataFrame(event.__dict__ for event in self.events)
             data_tsv = data_tsv.drop(columns=["columns"], errors="ignore")
+            if "stim_file" in data_tsv:
+                # TODO
+                # create directory in root of the dataset
+                # copy file into that directory
+                pass
 
             if isinstance(data_json, dict):
                 write_json(content=data_json, output_path=output_path_json)
