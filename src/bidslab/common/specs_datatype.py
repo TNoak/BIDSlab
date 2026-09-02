@@ -10,23 +10,23 @@ import pathlib
 from typing import TYPE_CHECKING, Any, Iterable, Mapping
 from warnings import warn
 
-from abidskit.common.base import BaseTask
-from abidskit.common.specs_task import Task
-from abidskit.extensions.emg import EMGTask, parse_emg_json_sidecar
-from abidskit.extensions.motion import MotionTask, parse_motion_json_sidecar
-from abidskit.settings import get_settings_value
-from abidskit.utils.dict_manipulation import ManipulateKeysOption, clean_dict
-from abidskit.utils.exceptions import TopLevelEntityNotLinkedWarning
-from abidskit.utils.helpers import (
+from bidslab.common.base import BaseTask
+from bidslab.common.specs_task import Task
+from bidslab.extensions.emg import EMGTask, parse_emg_json_sidecar
+from bidslab.extensions.motion import MotionTask, parse_motion_json_sidecar
+from bidslab.settings import get_settings_value
+from bidslab.utils.dict_manipulation import ManipulateKeysOption, clean_dict
+from bidslab.utils.exceptions import TopLevelEntityNotLinkedWarning
+from bidslab.utils.helpers import (
     get_entity_from_file,
     get_tsv_json_files,
     set_attr_from_dict,
     write_entities,
 )
-from abidskit.utils.string_manipulation import to_snakecase
+from bidslab.utils.string_manipulation import to_snakecase
 
 if TYPE_CHECKING:
-    from abidskit.common.specs_summary import Session
+    from bidslab.common.specs_summary import Session
 
 DATATYPES_WITH_TASKS = {
     # "anat",  # needs special implementation

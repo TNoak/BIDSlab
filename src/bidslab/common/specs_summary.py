@@ -12,14 +12,14 @@ from warnings import warn
 
 import pandas as pd
 
-from abidskit.common.base import Entity
-from abidskit.common.specs_datatype import Datatype
-from abidskit.common.specs_misc import Column
-from abidskit.common.specs_phenotype import MeasurementTool
-from abidskit.settings import get_settings_value
-from abidskit.utils.dict_manipulation import ManipulateKeysOption, clean_dict
-from abidskit.utils.exceptions import FieldMissingError, TopLevelEntityNotLinkedWarning
-from abidskit.utils.helpers import (
+from bidslab.common.base import Entity
+from bidslab.common.specs_datatype import Datatype
+from bidslab.common.specs_misc import Column
+from bidslab.common.specs_phenotype import MeasurementTool
+from bidslab.settings import get_settings_value
+from bidslab.utils.dict_manipulation import ManipulateKeysOption, clean_dict
+from bidslab.utils.exceptions import FieldMissingError, TopLevelEntityNotLinkedWarning
+from bidslab.utils.helpers import (
     add_object_to_sequence,
     append_path,
     get_matching_subpaths,
@@ -30,7 +30,7 @@ from abidskit.utils.helpers import (
 )
 
 if TYPE_CHECKING:
-    from abidskit.common.specs_dataset import Dataset
+    from bidslab.common.specs_dataset import Dataset
 
 ALLOWED_DATATYPES = {
     "func",

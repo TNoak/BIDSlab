@@ -271,8 +271,8 @@ cython_debug/
 releaserc.toml
 TODO
 data
-src/abidskit/config
-src/abidskit/parser
+src/bidslab/config
+src/bidslab/parser
 
 bids-examples-master/
 demo/*

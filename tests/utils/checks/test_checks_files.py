@@ -10,7 +10,7 @@ import itertools
 import pytest
 from mimesis import Development, Fieldset, Numeric, Text
 
-import abidskit as abk
+import bidslab as abk
 from tests.conftest import delete_files, make_files, make_mock_files
 
 EXTENSIONS = ["", ".md", ".txt", ".rst"]

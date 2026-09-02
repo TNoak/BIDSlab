@@ -11,7 +11,7 @@ import random
 import pytest
 from mimesis import Development
 
-import abidskit as abk
+import bidslab as abk
 
 
 class FixtureParameterNotSupportedError(Exception):

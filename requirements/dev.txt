@@ -4,4 +4,4 @@ mypy
 tox
 twine
 pre-commit
-aBIDSkit[tests, lint, docs, cd, build]
+BIDSlab[tests, lint, docs, cd, build]

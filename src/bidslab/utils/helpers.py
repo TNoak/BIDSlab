@@ -26,29 +26,29 @@ import edf_reader
 import numpy as np
 import pandas as pd
 
-from abidskit._typing import EC, EE, MC, E, PEntity
-from abidskit.settings import PackageFetching, PackageLoading, get_settings_value
-from abidskit.utils.checks import (
+from bidslab._typing import EC, EE, MC, E, PEntity
+from bidslab.settings import PackageFetching, PackageLoading, get_settings_value
+from bidslab.utils.checks import (
     check_dataset_description_present,
     check_files,
 )
-from abidskit.utils.dict_manipulation import (
+from bidslab.utils.dict_manipulation import (
     ManipulateKeysOption,
     clean_dict,
 )
-from abidskit.utils.exceptions import (
+from bidslab.utils.exceptions import (
     FieldNotValidError,
     FileTypeUnsupportedWarning,
     MultipleFilesFoundWarning,
     PathsSameWarning,
     TopLevelEntityNotLinkedWarning,
 )
-from abidskit.utils.string_manipulation import to_snakecase
+from bidslab.utils.string_manipulation import to_snakecase
 
 if TYPE_CHECKING:
-    from abidskit.common.base import Event
-    from abidskit.common.specs_dataset import Dataset
-    from abidskit.common.specs_summary import Scan
+    from bidslab.common.specs_dataset import Dataset
+    from bidslab.common.specs_misc import Event, Stim
+    from bidslab.common.specs_summary import Scan
 
 try:
     import datalad.api as dl
@@ -231,7 +231,7 @@ def get_edf_json_files(
 
 def add_object_to_sequence(
     entity_list: MutableSequence,
-    entity_class: "type[E] | type[EC] | type[EE] | type[MC] | type[Scan] | type[Event]",
+    entity_class: "type[E] | type[EC] | type[EE] | type[MC] | type[Scan] | type[Event] | type[Stim]",
     **kwargs: Any,
 ) -> None:
     entity_instance = entity_class(**kwargs)

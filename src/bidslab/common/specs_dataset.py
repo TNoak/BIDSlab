@@ -14,21 +14,21 @@ from typing import Mapping, MutableSequence, Sequence
 
 import pandas as pd
 
-from abidskit.common.specs_misc import Column
-from abidskit.common.specs_phenotype import MeasurementTool, PhenotypeColumn
-from abidskit.common.specs_summary import Participant
-from abidskit.settings import get_settings_value
-from abidskit.utils.checks import check_if_valid_uri, check_version
-from abidskit.utils.dict_manipulation import (
+from bidslab.common.specs_misc import Column
+from bidslab.common.specs_phenotype import MeasurementTool, PhenotypeColumn
+from bidslab.common.specs_summary import Participant
+from bidslab.settings import get_settings_value
+from bidslab.utils.checks import check_if_valid_uri, check_version
+from bidslab.utils.dict_manipulation import (
     ManipulateKeysOption,
     add_levels_to_dict,
     clean_dict,
 )
-from abidskit.utils.exceptions import (
+from bidslab.utils.exceptions import (
     FieldMissingError,
     VersionMismatchError,
 )
-from abidskit.utils.helpers import (
+from bidslab.utils.helpers import (
     add_object_to_sequence,
     copy_file,
     get_root_files,
@@ -38,7 +38,7 @@ from abidskit.utils.helpers import (
     set_attr_from_dict,
     write_json,
 )
-from abidskit.utils.string_manipulation import to_snakecase
+from bidslab.utils.string_manipulation import to_snakecase
 
 COLUMNS_TO_REMOVE_FROM_TSV = {
     "columns",

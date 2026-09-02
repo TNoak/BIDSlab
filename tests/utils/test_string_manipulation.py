@@ -9,7 +9,7 @@ import re
 
 import pytest
 
-from abidskit.utils.string_manipulation import (
+from bidslab.utils.string_manipulation import (
     remove_special_characters,
     to_snakecase,
     to_titlecase,

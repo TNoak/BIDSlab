@@ -10,8 +10,8 @@
 from typing import TYPE_CHECKING, TypeVar
 
 if TYPE_CHECKING:
-    from abidskit.extensions.emg import EMGChannel, EMGElectrode
-    from abidskit.extensions.motion import MotionChannel
+    from bidslab.extensions.emg import EMGChannel, EMGElectrode
+    from bidslab.extensions.motion import MotionChannel
 
 #: Type alias for MotionChannel.
 MC = TypeVar("MC", bound="MotionChannel")

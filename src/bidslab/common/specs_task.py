@@ -8,13 +8,13 @@
 import os
 from typing import TYPE_CHECKING, MutableSequence
 
-from abidskit.common.base import BaseTask
-from abidskit.common.specs_misc import Acquisition
-from abidskit.settings import get_settings_value
-from abidskit.utils.helpers import get_entity_from_file
+from bidslab.common.base import BaseTask
+from bidslab.common.specs_misc import Acquisition
+from bidslab.settings import get_settings_value
+from bidslab.utils.helpers import get_entity_from_file
 
 if TYPE_CHECKING:
-    from abidskit.common.specs_datatype import Datatype
+    from bidslab.common.specs_datatype import Datatype
 
 
 class Task(BaseTask):

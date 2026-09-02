@@ -9,7 +9,7 @@ import json
 
 import pytest
 
-import abidskit as abk
+import bidslab as abk
 
 
 @pytest.fixture(scope="class")

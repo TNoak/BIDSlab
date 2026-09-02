@@ -1,4 +1,4 @@
-"""Subpackage containing utility functions for aBIDSkit."""
+"""Subpackage containing utility functions for BIDSlab."""
 
 #  Copyright (c) 2025 by Lukas Behammer
 #  University of Augsburg

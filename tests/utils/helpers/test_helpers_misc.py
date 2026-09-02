@@ -20,8 +20,8 @@ from mimesis.enums import (
 )
 from mimesis.random import Random
 
-import abidskit as abk
-from abidskit.utils.exceptions import FieldNotValidError, TopLevelEntityNotLinkedWarning
+import bidslab as abk
+from bidslab.utils.exceptions import FieldNotValidError, TopLevelEntityNotLinkedWarning
 from tests.conftest import FixtureParameterNotSupportedError, _permutate_dict
 
 SYSTEMS = ["linux", "darwin", "win64"]

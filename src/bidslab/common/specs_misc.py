@@ -22,15 +22,15 @@ from warnings import warn
 
 import pandas as pd
 
-from abidskit._typing import A
-from abidskit.common.base import BaseAcquisition, Entity
-from abidskit.settings import get_settings_value
-from abidskit.utils.checks import check_if_valid_uri
-from abidskit.utils.exceptions import (
+from bidslab._typing import A
+from bidslab.common.base import BaseAcquisition, Entity
+from bidslab.settings import get_settings_value
+from bidslab.utils.checks import check_if_valid_uri
+from bidslab.utils.exceptions import (
     FieldEntryNotValidError,
     TopLevelEntityNotLinkedWarning,
 )
-from abidskit.utils.helpers import (
+from bidslab.utils.helpers import (
     add_object_to_sequence,
     append_path,
     check_entity_mismatch,
@@ -42,10 +42,10 @@ from abidskit.utils.helpers import (
     set_attr_from_dict,
     write_json,
 )
-from abidskit.utils.string_manipulation import to_snakecase
+from bidslab.utils.string_manipulation import to_snakecase
 
 if TYPE_CHECKING:
-    from abidskit.common.specs_task import Task
+    from bidslab.common.specs_task import Task
 
 FORMAT_ALLOWED_FIELD_ENTRIES = {
     "string",

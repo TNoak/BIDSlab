@@ -10,10 +10,10 @@ from dataclasses import asdict
 from enum import IntEnum
 from typing import TYPE_CHECKING, Callable, MutableMapping, Sequence
 
-from abidskit.utils.string_manipulation import to_titlecase
+from bidslab.utils.string_manipulation import to_titlecase
 
 if TYPE_CHECKING:
-    from abidskit.common.specs_misc import Level
+    from bidslab.common.specs_misc import Level
 
 
 class ManipulateKeysOption(IntEnum):
@@ -90,13 +90,13 @@ def clean_dict(
 
     See Also
     --------
-    abidskit.utils.dict_manipulation.delete_none_from_dict
+    bidslab.utils.dict_manipulation.delete_none_from_dict
         Function to delete None values from a dictionary.
-    abidskit.utils.dict_manipulation.delete_private_fields_from_dict
+    bidslab.utils.dict_manipulation.delete_private_fields_from_dict
         Function to delete private fields from a dictionary.
-    abidskit.utils.dict_manipulation.manipulate_dictkeys
+    bidslab.utils.dict_manipulation.manipulate_dictkeys
         Function to convert dictionary keys using a manipulation function.
-    abidskit.utils.dict_manipulation.dict_paths_to_strings
+    bidslab.utils.dict_manipulation.dict_paths_to_strings
         Function to convert pathlib.Path values to strings in a dictionary.
     """
     dict_output = delete_none_from_dict(dict_input)

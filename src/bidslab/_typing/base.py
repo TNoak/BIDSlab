@@ -11,8 +11,8 @@ import os
 from typing import TYPE_CHECKING, Protocol, TypeVar
 
 if TYPE_CHECKING:
-    from abidskit.common.base import BaseAcquisition, BaseTask, Entity
-    from abidskit.common.specs_misc import Run
+    from bidslab.common.base import BaseAcquisition, BaseTask, Entity
+    from bidslab.common.specs_misc import Run
 
 
 #: Type alias for BaseAcquisition and its subclasses.
@@ -49,8 +49,8 @@ class PEntity(Writable, Protocol):
     --------
     Writable : Protocol
         Protocol for writable objects.
-    :py:class:`abidskit.common.base.Entity`
-        Base class for all entities in aBIDSkit.
+    :py:class:`bidslab.common.base.Entity`
+        Base class for all entities in BIDSlab.
     """
 
     _entity_id: str

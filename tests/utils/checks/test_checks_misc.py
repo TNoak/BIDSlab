@@ -8,10 +8,10 @@
 import pytest
 from mimesis import Development
 
-from abidskit.common.specs_dataset import Dataset
-from abidskit.settings import override_settings_values
-from abidskit.utils.checks import check_if_valid_uri, check_version
-from abidskit.utils.exceptions import (
+from bidslab.common.specs_dataset import Dataset
+from bidslab.settings import override_settings_values
+from bidslab.utils.checks import check_if_valid_uri, check_version
+from bidslab.utils.exceptions import (
     InvalidURIError,
     VersionMismatchError,
     VersionMismatchWarning,

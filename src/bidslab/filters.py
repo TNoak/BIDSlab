@@ -8,7 +8,7 @@
 from copy import deepcopy
 from typing import Sequence
 
-from abidskit.common.specs_dataset import Dataset
+from bidslab.common.specs_dataset import Dataset
 
 
 def filter_participants(dataset: Dataset, participant_ids: Sequence[str]) -> Dataset:

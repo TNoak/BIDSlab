@@ -8,7 +8,7 @@
 import os
 import pathlib
 
-from abidskit.common.specs_dataset import Dataset
+from bidslab.common.specs_dataset import Dataset
 
 
 def load_dataset(path: os.PathLike | str, bids_version: str = "1.10.1") -> Dataset:
@@ -26,10 +26,10 @@ def write_dataset(
 ) -> None:
     """Write the dataset object as a BIDS dataset to the specified path on disk.
 
-    This function writes the provided :py:class:`~abidskit.common.specs_dataset.Dataset`
+    This function writes the provided :py:class:`~bidslab.common.specs_dataset.Dataset`
     object to the specified file system path as a BIDS dataset. This function wraps
-    around the :py:meth:`~abidskit.common.specs_dataset.Dataset.write` method from
-    :py:mod:`~abidskit.common.specs_dataset`.
+    around the :py:meth:`~bidslab.common.specs_dataset.Dataset.write` method from
+    :py:mod:`~bidslab.common.specs_dataset`.
 
     Parameters
     ----------

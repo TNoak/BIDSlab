@@ -8,13 +8,13 @@
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, Sequence
 from warnings import warn
 
-from abidskit.common.specs_misc import Column
-from abidskit.settings import get_settings_value
-from abidskit.utils.checks import check_if_valid_uri
-from abidskit.utils.exceptions import TopLevelEntityNotLinkedWarning
+from bidslab.common.specs_misc import Column
+from bidslab.settings import get_settings_value
+from bidslab.utils.checks import check_if_valid_uri
+from bidslab.utils.exceptions import TopLevelEntityNotLinkedWarning
 
 if TYPE_CHECKING:
-    from abidskit.common.specs_summary import Participant
+    from bidslab.common.specs_summary import Participant
 
 
 class PhenotypeColumn(Column):

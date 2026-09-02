@@ -12,19 +12,19 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Generic, MutableSequence
 from warnings import warn
 
-from abidskit._typing import R
-from abidskit.utils.exceptions import (
+from bidslab._typing import R
+from bidslab.utils.exceptions import (
     FieldMissingError,
     TopLevelEntityNotLinkedWarning,
 )
-from abidskit.utils.helpers import (
+from bidslab.utils.helpers import (
     set_attr_from_dict,
     write_entities,
 )
-from abidskit.utils.string_manipulation import remove_special_characters
+from bidslab.utils.string_manipulation import remove_special_characters
 
 if TYPE_CHECKING:
-    from abidskit.common.specs_datatype import Datatype
+    from bidslab.common.specs_datatype import Datatype
 
 
 @dataclass
@@ -127,7 +127,7 @@ class BaseAcquisition(Entity, Generic[R], ABC):
         Abstract Property to get or set the top-level Run object.
 
         This property must be implemented by all subclasses of BaseAcquisition to
-        manage the top-level :py:class:`~abidskit.specs_misc.Run` or its inherited
+        manage the top-level :py:class:`~bidslab.specs_misc.Run` or its inherited
         objects associated with the Acquisition.
         """
         pass

@@ -10,7 +10,7 @@ import sys
 
 import pytest
 
-import abidskit as abk
+import bidslab as abk
 
 
 @pytest.fixture

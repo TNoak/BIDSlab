@@ -22,8 +22,8 @@ from warnings import warn
 
 import pandas as pd
 
-from abidskit.common.base import BaseAcquisition, BaseTask
-from abidskit.common.specs_misc import (
+from bidslab.common.base import BaseAcquisition, BaseTask
+from bidslab.common.specs_misc import (
     Column,
     Filter,
     Hardware,
@@ -31,15 +31,15 @@ from abidskit.common.specs_misc import (
     Recording,
     Run,
 )
-from abidskit.settings import get_settings_value
-from abidskit.utils.dict_manipulation import ManipulateKeysOption, clean_dict
-from abidskit.utils.exceptions import (
+from bidslab.settings import get_settings_value
+from bidslab.utils.dict_manipulation import ManipulateKeysOption, clean_dict
+from bidslab.utils.exceptions import (
     FieldEntryNotValidError,
     FieldMissingError,
     FileNotFoundWarning,
     TopLevelEntityNotLinkedWarning,
 )
-from abidskit.utils.helpers import (
+from bidslab.utils.helpers import (
     add_object_to_sequence,
     get_edf_json_files,
     get_entity_from_file,
@@ -49,10 +49,10 @@ from abidskit.utils.helpers import (
     parse_json_sidecar,
     set_attr_from_dict,
 )
-from abidskit.utils.string_manipulation import to_snakecase
+from bidslab.utils.string_manipulation import to_snakecase
 
 if TYPE_CHECKING:
-    from abidskit.common import Datatype
+    from bidslab.common import Datatype
 
 EMG_CHANNEL_TYPE_ALLOWED_FIELD_ENTRIES = {
     "ECG",

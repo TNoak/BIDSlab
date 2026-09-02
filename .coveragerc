@@ -1,5 +1,5 @@
 [run]
-source = src/abidskit
+source = src/bidslab
 omit = ".venv/*", "docs/*", "data/*", "requirements/*", "branding/*", "templates/*", "tools/*", "build/*", "dist/*", "tests/*", ".tox/*"
 parallel = true
 branch = true

@@ -9,8 +9,8 @@ import pathlib
 
 import pytest
 
-import abidskit as abk
-from abidskit.utils.exceptions import FileTypeUnsupportedWarning
+import bidslab as abk
+from bidslab.utils.exceptions import FileTypeUnsupportedWarning
 from tests.conftest import delete_files, make_files
 
 PATHS = [

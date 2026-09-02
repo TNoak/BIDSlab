@@ -15,19 +15,19 @@ from warnings import warn
 
 import pandas as pd
 
-from abidskit.common.base import BaseAcquisition, BaseTask, Entity
-from abidskit.common.specs_misc import Column, Hardware, Institution, Run
-from abidskit.settings import get_settings_value
-from abidskit.utils.dict_manipulation import (
+from bidslab.common.base import BaseAcquisition, BaseTask, Entity
+from bidslab.common.specs_misc import Column, Hardware, Institution, Run
+from bidslab.settings import get_settings_value
+from bidslab.utils.dict_manipulation import (
     ManipulateKeysOption,
     clean_dict,
     delete_none_from_dict,
 )
-from abidskit.utils.exceptions import (
+from bidslab.utils.exceptions import (
     FieldEntryNotValidError,
     TopLevelEntityNotLinkedWarning,
 )
-from abidskit.utils.helpers import (
+from bidslab.utils.helpers import (
     add_object_to_sequence,
     append_path,
     check_entity_mismatch,
@@ -40,7 +40,7 @@ from abidskit.utils.helpers import (
     write_entities,
     write_json,
 )
-from abidskit.utils.string_manipulation import to_snakecase
+from bidslab.utils.string_manipulation import to_snakecase
 
 MOTION_CHANNEL_COMPONENT_ALLOWED_FIELD_ENTRIES = {
     "x",

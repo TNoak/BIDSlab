@@ -24,14 +24,14 @@ __all__ = [
     "Task",
 ]
 
-from abidskit.common.specs_dataset import (
+from bidslab.common.specs_dataset import (
     Container,
     Dataset,
     GeneratedBy,
     SourceDataset,
 )
-from abidskit.common.specs_datatype import Datatype
-from abidskit.common.specs_misc import (
+from bidslab.common.specs_datatype import Datatype
+from bidslab.common.specs_misc import (
     Acquisition,
     Column,
     Filter,
@@ -40,5 +40,5 @@ from abidskit.common.specs_misc import (
     Level,
     Run,
 )
-from abidskit.common.specs_summary import Participant, Scan, Session
-from abidskit.common.specs_task import Task
+from bidslab.common.specs_summary import Participant, Scan, Session
+from bidslab.common.specs_task import Task

@@ -5,7 +5,7 @@
 #
 #  SPDX-License-Identifier: BSD-3-Clause
 
-import abidskit as abk
+import bidslab as abk
 
 
 def test_get_version():

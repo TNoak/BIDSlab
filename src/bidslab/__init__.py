@@ -1,5 +1,5 @@
 """
-aBIDSkit is a Python package for working with BIDS datasets.
+BIDSlab is a Python package for working with BIDS datasets.
 
 This tool implements functions for loading and creating BIDS (Brain Imaging Data
 Structure) datasets.
@@ -32,7 +32,7 @@ from .settings import set_settings_values as update_settings
 
 def get_version():
     """
-    Return the version of the aBIDSkit package.
+    Return the version of the BIDSlab package.
 
     Returns
     -------

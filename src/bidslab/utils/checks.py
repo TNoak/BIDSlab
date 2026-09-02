@@ -12,8 +12,8 @@ from warnings import warn
 
 from uritools import isuri
 
-from abidskit.settings import get_settings_value
-from abidskit.utils.exceptions import (
+from bidslab.settings import get_settings_value
+from bidslab.utils.exceptions import (
     FieldMissingWarning,
     FieldPresentError,
     FieldPresentWarning,
@@ -23,10 +23,10 @@ from abidskit.utils.exceptions import (
     VersionMismatchError,
     VersionMismatchWarning,
 )
-from abidskit.utils.string_manipulation import to_titlecase
+from bidslab.utils.string_manipulation import to_titlecase
 
 if TYPE_CHECKING:
-    from abidskit.common.specs_dataset import Dataset
+    from bidslab.common.specs_dataset import Dataset
 
 
 def check_readme(dataset: "Dataset", files: Sequence[pathlib.Path]):

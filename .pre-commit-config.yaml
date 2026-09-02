@@ -106,8 +106,8 @@ repos:
     hooks:
       - id: mypy
         additional_dependencies: [uritools, pandas-stubs]
-        args: ["--config-file=pyproject.toml", "src/abidskit"]
-        files: src/abidskit  # Only run when files in src/abidskit are changed.
+        args: ["--config-file=pyproject.toml", "src/bidslab"]
+        files: src/bidslab  # Only run when files in src/bidslab are changed.
         pass_filenames: false
 
   #  - repo: https://github.com/citation-file-format/cffconvert
