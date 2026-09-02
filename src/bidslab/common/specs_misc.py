@@ -282,6 +282,12 @@ class Recording(Entity):
     def data(self, value: pd.DataFrame) -> None:
         self._data = value
 
+    def get_top_level_entities(self) -> list[str | Any]:
+        assert self.run is not None
+        entities = self.run.get_top_level_entities()
+        entities.append(self.recording_id)
+        return entities
+
     def write(self, output_path: os.PathLike | str) -> None:
         # TODO: implement writing of basic Recording data
         if not get_settings_value("IGNORE_NOT_IMPLEMENTED"):

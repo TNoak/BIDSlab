@@ -9,7 +9,7 @@ import json
 import os
 import pathlib
 import re
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -48,6 +48,9 @@ from bidslab.utils.helpers import (
     parse_descriptive_tsv,
     parse_json_sidecar,
     set_attr_from_dict,
+    write_entities,
+    append_path,
+    write_json,
 )
 from bidslab.utils.string_manipulation import to_snakecase
 
@@ -372,6 +375,21 @@ class EMGRecording(Recording):
         file_name = f"*_{self.recording_id}_"
         _update_description_data(self, file_name)
 
+    def write(self, output_path):
+        # TODO write data files (_emg.bdf/edf/+)
+
+        # TODO write json sidecar (_emg.json)
+
+        # TODO write channels files (_channels.json, _channels.tsv)
+
+        # TODO write electrodes files (_electrodes.tsv, _electrodes.json)
+
+        # TODO write coordinate system files (_coordsystem.json)
+
+        # TODO write photo files if available (_photo.jpg/png/tif)
+
+        pass
+
 
 class EMGRun(Run):
     def __init__(self, base_path: os.PathLike | str, run_id: int, **kwargs: Any):
@@ -384,7 +402,7 @@ class EMGRun(Run):
 
         super().__init__(base_path=base_path, run_id=run_id, **kwargs)
 
-        self._recordings: MutableSequence[EMGRecording] | None = None
+        self._recordings: dict[str, EMGRecording] | None = None
 
         self._update_description()
 
@@ -392,7 +410,7 @@ class EMGRun(Run):
     #     return f"<Run id=run-{self.run_id}>"
 
     @property
-    def recordings(self) -> MutableSequence[EMGRecording] | None:
+    def recordings(self) -> dict[str, EMGRecording] | None:
         if not self._recordings:
             # TODO make this more elegant
             file_name = f"*{self.acquisition.task.task_id}"
@@ -403,7 +421,7 @@ class EMGRun(Run):
             )
             file_name += f"_{self.run_id}" if len(self.acquisition.runs) > 1 else ""
 
-            self._recordings = []
+            self._recordings = {}
             files = self.root.iterdir()
             recording_labels = set()
             for file in files:
@@ -420,42 +438,48 @@ class EMGRun(Run):
             # values in self._description get passed forward as fallback / to follow the
             # inheritance principle of BIDS but will be updated downstream
             for recording_label in recording_labels:
-                self._recordings.append(
-                    EMGRecording(
-                        recording_id="recording-" + recording_label,
-                        base_path=self.root,
-                        run=self,
-                        hardware=self._description.get("hardware", None),
-                        institution=self._description.get("institution", None),
-                        channels=get_emg_channels(
-                            *get_tsv_json_files(
-                                self.root,
-                                file_name + f"_recording-{recording_label}_channels",
-                            )
-                        ),
-                        electrodes=self._description.get("electrodes", None),
-                        **self._description.get("emg", None),
-                    )
+                self._recordings.updtae(
+                    {
+                        "recording-"
+                        + recording_label: EMGRecording(
+                            recording_id="recording-" + recording_label,
+                            base_path=self.root,
+                            run=self,
+                            hardware=self._description.get("hardware", None),
+                            institution=self._description.get("institution", None),
+                            channels=get_emg_channels(
+                                *get_tsv_json_files(
+                                    self.root,
+                                    file_name
+                                    + f"_recording-{recording_label}_channels",
+                                )
+                            ),
+                            electrodes=self._description.get("electrodes", None),
+                            **self._description.get("emg", None),
+                        )
+                    }
                 )
 
             # If no recordings are found, add a default one
             if not self._recordings:
-                self._recordings.append(
-                    EMGRecording(
-                        recording_id="recording-00",
-                        base_path=self.root,
-                        run=self,
-                        hardware=self._description.get("hardware", None),
-                        institution=self._description.get("institution", None),
-                        channels=get_emg_channels(
-                            *get_tsv_json_files(
-                                self.root,
-                                file_name + "_channels",
-                            )
-                        ),
-                        electrodes=self._description.get("electrodes", None),
-                        **self._description.get("emg", None),
-                    )
+                self._recordings.update(
+                    {
+                        "recording-00": EMGRecording(
+                            recording_id="recording-00",
+                            base_path=self.root,
+                            run=self,
+                            hardware=self._description.get("hardware", None),
+                            institution=self._description.get("institution", None),
+                            channels=get_emg_channels(
+                                *get_tsv_json_files(
+                                    self.root,
+                                    file_name + "_channels",
+                                )
+                            ),
+                            electrodes=self._description.get("electrodes", None),
+                            **self._description.get("emg", None),
+                        )
+                    }
                 )
 
         return self._recordings
@@ -464,18 +488,21 @@ class EMGRun(Run):
     def recordings(self, value: MutableSequence[MutableMapping | EMGRecording]) -> None:
         if isinstance(value, MutableSequence):
             if all(isinstance(entry, MutableMapping) for entry in value):
-                self._recordings = []
+                self._recordings = {}
                 for entry in value:
                     assert isinstance(entry, MutableMapping)  # for mypy
-                    self._recordings.append(
-                        EMGRecording(
-                            base_path=self.root,
-                            run=self,
-                            **entry,
-                        )
+                    self._recordings.update(
+                        {
+                            entry.recording_id: EMGRecording(
+                                base_path=self.root,
+                                run=self,
+                                **entry,
+                            )
+                        }
                     )
             elif all(isinstance(entry, EMGRecording) for entry in value):
-                self._recordings = value  # type: ignore[assignment]  # mypy cannot type narrow on all()
+                for entry in value:
+                    self.recordings.update({entry.recording_id: entry})
         else:
             raise TypeError(
                 "Field `Recordings` must be a list of EMGRecordings objects"
@@ -484,6 +511,10 @@ class EMGRun(Run):
     def _update_description(self) -> None:
         file_name = f"*_run-{self.run_id}_*_"
         _update_description_data(self, file_name)
+
+    def write(self, output_path: os.PathLike | str) -> None:
+        write_entities(output_path, self.recordings.values())
+        # TODO what needs to be done with self.description?
 
 
 class EMGAcquisition(BaseAcquisition):
@@ -509,9 +540,9 @@ class EMGAcquisition(BaseAcquisition):
         set_attr_from_dict(self, kwargs)
 
     @property
-    def runs(self) -> MutableSequence[EMGRun]:
+    def runs(self) -> dict[str, EMGRun]:
         if not self._runs:
-            self._runs = []
+            self._runs = {}
             files = self.root.iterdir()
             run_ids = set()
             for file in files:
@@ -525,25 +556,28 @@ class EMGAcquisition(BaseAcquisition):
                 except KeyError:
                     continue
             for run_id in run_ids:
-                run_id_int = int(run_id.split("-")[1])
-                self._runs.append(
-                    EMGRun(
-                        run_id=run_id_int,
-                        base_path=self.root,
-                        acquisition=self,
-                        _description=self._description,
-                    )
+                self._runs.update(
+                    {
+                        run_id: EMGRun(
+                            run_id=int(run_id),
+                            base_path=self.root,
+                            acquisition=self,
+                            _description=self._description,
+                        )
+                    }
                 )
 
             # If no runs are found, add a default one
             if not self._runs:
-                self._runs.append(
-                    EMGRun(
-                        run_id=0,
-                        base_path=self.root,
-                        acquisition=self,
-                        _description=self._description,
-                    )
+                self._runs.update(
+                    {
+                        "run-0": EMGRun(
+                            run_id=0,
+                            base_path=self.root,
+                            acquisition=self,
+                            _description=self._description,
+                        )
+                    }
                 )
 
         return self._runs
@@ -552,19 +586,22 @@ class EMGAcquisition(BaseAcquisition):
     def runs(self, value: MutableSequence[int | EMGRun]) -> None:
         if isinstance(value, MutableSequence):
             if all(isinstance(entry, int) for entry in value):
-                self._runs = []
+                self._runs = {}
                 for entry in value:
                     assert isinstance(entry, int)  # for mypy
-                    self._runs.append(
-                        EMGRun(
-                            run_id=entry,
-                            base_path=self.root,
-                            acquisition=self,
-                            _description=self._description,
-                        )
+                    self._runs.update(
+                        {
+                            entry: EMGRun(
+                                run_id=entry,
+                                base_path=self.root,
+                                acquisition=self,
+                                _description=self._description,
+                            )
+                        }
                     )
             elif all(isinstance(v, EMGRun) for v in value):
-                self._runs = value  # type: ignore[assignment]  # mypy cannot type narrow on all()
+                for v in value:
+                    self._runs.update({v.run_id: v})
         else:
             raise TypeError("Field `Runs` must be a list of EMGRun objects")
 
@@ -587,6 +624,12 @@ class EMGAcquisition(BaseAcquisition):
         file_name = f"*_{self.acquisition_id}_*_"
         _update_description_data(self, file_name)
 
+    def get_top_level_entities(self) -> list[str | Any]:
+        assert self.task is not None
+        entities = self.task.get_top_level_entities()
+        entities.append(self.acquisition_id)
+        return entities
+
 
 class EMGTask(BaseTask):
     def __init__(
@@ -604,12 +647,12 @@ class EMGTask(BaseTask):
 
         super().__init__(base_path=base_path, task_name=task_name, **kwargs)
 
-        self._acquisitions: MutableSequence[EMGAcquisition] | None = None
+        self._acquisitions: dict[str, EMGAcquisition] | None = None
 
     @property
-    def acquisitions(self) -> MutableSequence[EMGAcquisition]:
+    def acquisitions(self) -> dict[str, EMGAcquisition]:
         if not self._acquisitions:
-            self._acquisitions = []
+            self._acquisitions = {}
             files = self.root.iterdir()
             acquisition_labels = set()
             for file in files:
@@ -623,24 +666,29 @@ class EMGTask(BaseTask):
                 except KeyError:
                     continue
             for acquisition_label in acquisition_labels:
-                self._acquisitions.append(
-                    EMGAcquisition(
-                        acquisition_id="acq-" + acquisition_label,
-                        base_path=self.root,
-                        task=self,
-                        _description=self._description,
-                    )
+                self._acquisitions.update(
+                    {
+                        "acq-"
+                        + acquisition_label: EMGAcquisition(
+                            acquisition_id="acq-" + acquisition_label,
+                            base_path=self.root,
+                            task=self,
+                            _description=self._description,
+                        )
+                    }
                 )
 
             # If no acquisitions are found, add a default one
             if not self._acquisitions:
-                self._acquisitions.append(
-                    EMGAcquisition(
-                        acquisition_id="acq-00",
-                        base_path=self.root,
-                        task=self,
-                        _description=self._description,
-                    )
+                self._acquisitions.update(
+                    {
+                        "acq-00": EMGAcquisition(
+                            acquisition_id="acq-00",
+                            base_path=self.root,
+                            task=self,
+                            _description=self._description,
+                        )
+                    }
                 )
 
         return self._acquisitions
@@ -651,27 +699,32 @@ class EMGTask(BaseTask):
     ) -> None:
         if isinstance(value, MutableSequence):
             if all(isinstance(entry, str) for entry in value):
-                self._acquisitions = []
+                self._acquisitions = {}
                 for entry in value:
                     assert isinstance(entry, str)  # for mypy
-                    self._acquisitions.append(
-                        EMGAcquisition(
-                            acquisition_id=entry,
-                            base_path=self.root,
-                            _description=self._description,
-                        )
+                    self._acquisitions.update(
+                        {
+                            entry: EMGAcquisition(
+                                acquisition_id=entry,
+                                base_path=self.root,
+                                _description=self._description,
+                            )
+                        }
                     )
             elif all(isinstance(entry, EMGAcquisition) for entry in value):
-                self._acquisitions = value  # type: ignore[assignment]  # mypy cannot type narrow on all()
+                for entry in value:
+                    self._acquisitions.update({entry.acquisition_id: entry})
         else:
             raise TypeError(
                 "Field `Acquisitions` must be a list of EMGAcquisition objects"
             )
 
-    def write(self, output_path: os.PathLike | str) -> None:  # noqa: ARG002 TODO: Remove
-        # TODO: implement writing of basic Task data
-        if not get_settings_value("IGNORE_NOT_IMPLEMENTED"):
-            raise NotImplementedError
+    def write(
+        self, output_path: os.PathLike | str
+    ) -> None:  # noqa: ARG002 TODO: Remove
+        write_entities(output_path, self.acquisitions.values())
+        # TODO check if right
+        # where is json sidecar "*_emg.json" written? (recording)
 
 
 def parse_emg_json_sidecar(sidecar_path: pathlib.Path) -> dict:
