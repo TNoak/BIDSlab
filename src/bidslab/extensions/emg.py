@@ -9,7 +9,7 @@ import json
 import os
 import pathlib
 import re
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -31,7 +31,6 @@ from bidslab.common.specs_misc import (
     Recording,
     Run,
 )
-from bidslab.settings import get_settings_value
 from bidslab.utils.dict_manipulation import ManipulateKeysOption, clean_dict
 from bidslab.utils.exceptions import (
     FieldEntryNotValidError,
@@ -49,8 +48,6 @@ from bidslab.utils.helpers import (
     parse_json_sidecar,
     set_attr_from_dict,
     write_entities,
-    append_path,
-    write_json,
 )
 from bidslab.utils.string_manipulation import to_snakecase
 
@@ -440,8 +437,7 @@ class EMGRun(Run):
             for recording_label in recording_labels:
                 self._recordings.updtae(
                     {
-                        "recording-"
-                        + recording_label: EMGRecording(
+                        "recording-" + recording_label: EMGRecording(
                             recording_id="recording-" + recording_label,
                             base_path=self.root,
                             run=self,
@@ -513,6 +509,7 @@ class EMGRun(Run):
         _update_description_data(self, file_name)
 
     def write(self, output_path: os.PathLike | str) -> None:
+        super().write(output_path)
         write_entities(output_path, self.recordings.values())
         # TODO what needs to be done with self.description?
 
@@ -668,8 +665,7 @@ class EMGTask(BaseTask):
             for acquisition_label in acquisition_labels:
                 self._acquisitions.update(
                     {
-                        "acq-"
-                        + acquisition_label: EMGAcquisition(
+                        "acq-" + acquisition_label: EMGAcquisition(
                             acquisition_id="acq-" + acquisition_label,
                             base_path=self.root,
                             task=self,
@@ -719,9 +715,7 @@ class EMGTask(BaseTask):
                 "Field `Acquisitions` must be a list of EMGAcquisition objects"
             )
 
-    def write(
-        self, output_path: os.PathLike | str
-    ) -> None:  # noqa: ARG002 TODO: Remove
+    def write(self, output_path: os.PathLike | str) -> None:  # noqa: ARG002 TODO: Remove
         write_entities(output_path, self.acquisitions.values())
         # TODO check if right
         # where is json sidecar "*_emg.json" written? (recording)

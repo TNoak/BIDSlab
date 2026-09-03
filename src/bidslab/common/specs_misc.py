@@ -26,6 +26,7 @@ from bidslab._typing import A
 from bidslab.common.base import BaseAcquisition, Entity
 from bidslab.settings import get_settings_value
 from bidslab.utils.checks import check_if_valid_uri
+from bidslab.utils.dict_manipulation import clean_dict
 from bidslab.utils.exceptions import (
     FieldEntryNotValidError,
     TopLevelEntityNotLinkedWarning,
@@ -34,6 +35,7 @@ from bidslab.utils.helpers import (
     add_object_to_sequence,
     append_path,
     check_entity_mismatch,
+    copy_file,
     get_entity_from_file,
     get_tsv_json_files,
     load_tsv_data,
@@ -183,18 +185,18 @@ class Column:
 class Stim:
     def __init__(
         self,
-        SamplingFrequency: float,
-        StartTime: float,
-        Columns: Sequence[str],
-        Data: Sequence[Any],
+        sampling_frequency: float,
+        start_time: float,
+        columns: Sequence[str],
+        data: Sequence[Any],
     ) -> None:
-        self.SamplingFrequency: float = SamplingFrequency
+        self.sampling_frequency: float = sampling_frequency
 
-        self.StartTime: float = StartTime
+        self.start_time: float = start_time
 
-        self.Columns: Sequence[str] = Columns
+        self.columns: Sequence[str] = columns
 
-        self.Data: Sequence[Any] = Data
+        self.data: Sequence[Any] = data
 
 
 @dataclass
@@ -404,7 +406,8 @@ class Run(Entity, Generic[A]):
 
     @property
     def events(self) -> Sequence[Event] | None:
-        # TODO json sidecar may be in higher directory levels
+        # TODO json sidecar may be in (up to the dataset_root) higher directory levels
+        # TODO tsv may be in (one) higher directory
         if self._events is None:
             # get list of top level entities
             entities = self.get_top_level_entities()
@@ -460,8 +463,8 @@ class Run(Entity, Generic[A]):
             # get list of top level entities
             entities = self.get_top_level_entities()
 
-            # get all possible files with _events.json
-            files_json = list(self.root.glob("*_events.json"))
+            # get all possible files with _stim.json
+            files_json = list(self.root.glob("*_stim.json"))
             filenames_json = [f.name for f in files_json]
             file_entities_json = [f.removesuffix("_stim.json") for f in filenames_json]
 
@@ -473,7 +476,7 @@ class Run(Entity, Generic[A]):
                     columns = parse_json_sidecar(self.root / (file + "_stim.json"))
                     break
 
-            # get all possible files with _events.tsv
+            # get all possible files with _stim.tsv
             files_tsv = list(self.root.glob("*_stim.tsv.gz"))
             filenames_tsv = [f.name for f in files_tsv]
             file_entities_tsv = [f.removesuffix("_stim.tsv.gz") for f in filenames_tsv]
@@ -494,7 +497,7 @@ class Run(Entity, Generic[A]):
                         )
                     break
 
-        return self._events
+        return self._stims
 
     @stims.setter
     def stims(self, value: Sequence[Stim]) -> None:
@@ -507,22 +510,61 @@ class Run(Entity, Generic[A]):
         return entities
 
     def write(self, output_path: os.PathLike | str) -> None:
-        output_path_json = append_path(output_path, "_events.json")
-        output_path_tsv = append_path(output_path, "_events.tsv")
-
+        # write events files
         if self.events:
+            output_path_json = append_path(output_path, "_events.json")
+            output_path_tsv = append_path(output_path, "_events.tsv")
+
             data_json = self.events[0].columns
+            data_json = clean_dict(data_json)
             data_tsv = pd.DataFrame(event.__dict__ for event in self.events)
             data_tsv = data_tsv.drop(columns=["columns"], errors="ignore")
-            if "stim_file" in data_tsv:
-                # TODO
-                # create directory in root of the dataset
-                # copy file into that directory
-                pass
+
+            if "stim_file" in data_tsv.columns:  # TODO
+                # find root of the dataset
+                entities = self.get_top_level_entities()
+                output_dataset_root = pathlib.Path(output_path)
+                target = entities[0]
+                while output_dataset_root.name != target:
+                    output_dataset_root = output_dataset_root.parent
+                output_dataset_root = output_dataset_root.parent
+
+                dataset_root = self.root
+                while dataset_root.name != target:
+                    dataset_root = dataset_root.parent
+                dataset_root = dataset_root.parent
+                # create stimuli directory
+                stimuli_path = pathlib.Path(output_dataset_root + "/stimuli")
+                if not stimuli_path.exists():
+                    stimuli_path.mkdir(parents=True, exist_ok=True)
+
+                # copy files into the stimuli directory
+                unique_files = set(data_tsv["stim_file"])
+                for file in unique_files:
+                    copy_file(
+                        source_path=dataset_root + "/stimuli/" + file,
+                        destination_path=stimuli_path,
+                    )
 
             if isinstance(data_json, dict):
                 write_json(content=data_json, output_path=output_path_json)
             data_tsv.to_csv(output_path_tsv, sep="\t", index=False, header=True)
+
+        # write stim files
+        if self.stims:
+            output_path_json = append_path(output_path, "_stims.json")
+            output_path_tsv = append_path(output_path, "_stims.tsv.gz")
+
+            data_json = self.stims[0].columns
+            data_json = clean_dict(data_json)
+            data_tsv = pd.DataFrame(stim.__dict__ for stim in self.stims)
+            data_tsv = data_tsv.drop(columns=["columns"], errors="ignore")
+
+            if isinstance(data_json, dict):
+                write_json(content=data_json, output_path=output_path_json)
+            data_tsv.to_csv(
+                output_path_tsv, sep="\t", index=False, header=False, compression="gzip"
+            )
 
 
 class Acquisition(BaseAcquisition):
