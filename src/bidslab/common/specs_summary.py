@@ -146,37 +146,11 @@ class Session(Entity):
                 )
 
             self._scans = get_scans_from_files(self, dataset_root=dataset_root)
+            if self._scans == []:
+                self._scans = None
             if self._scans:
                 return self._scans
 
-            # TODO: implement automatic scan detection
-            self._scans = []
-            assert self.datatypes is not None
-            for key in self.datatypes:
-                match key:
-                    case "motion":
-                        # get the motion.tsv filepath
-                        # idk where to get acq_time from
-                        files = list(self.datatypes[key].root.glob("*_motion.tsv"))
-                        for file in files:
-                            add_object_to_sequence(
-                                entity_list=self._scans,
-                                entity_class=Scan,
-                                base_path=self.root,
-                                filename="motion/" + file.name,
-                            )
-                    case "eeg":
-                        files = list(self.datatypes[key].root.glob("*.vhdr"))
-                        files.extend(list(self.datatypes[key].root.glob("*.set")))
-                        for file in files:
-                            add_object_to_sequence(
-                                entity_list=self._scans,
-                                entity_class=Scan,
-                                base_path=self.root,
-                                filename="eeg/" + file.name,
-                            )
-                    case _:
-                        raise NotImplementedError
         return self._scans
 
     @scans.setter
@@ -269,7 +243,9 @@ class Session(Entity):
                         # get the motion.tsv filepath
                         # idk where to get acq_time from
                         files = list(
-                            pathlib.Path(output_path / "motion").glob("*_motion.tsv")
+                            pathlib.Path(output_path.parent / "motion").glob(
+                                "*_motion.tsv"
+                            )
                         )
                         for file in files:
                             add_object_to_sequence(
@@ -279,9 +255,11 @@ class Session(Entity):
                                 filename="motion/" + file.name,
                             )
                     case "eeg":
-                        files = list(pathlib.Path(output_path / "eeg").glob("*.vhdr"))
+                        files = list(
+                            pathlib.Path(output_path.parent / "eeg").glob("*.vhdr")
+                        )
                         files.extend(
-                            list(pathlib.Path(output_path / "eeg").glob("*.set"))
+                            list(pathlib.Path(output_path.parent / "eeg").glob("*.set"))
                         )
                         for file in files:
                             add_object_to_sequence(
