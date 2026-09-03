@@ -155,6 +155,7 @@ class Session(Entity):
             for key in self.datatypes:
                 match key:
                     case "motion":
+                        # get the motion.tsv filepath
                         # idk where to get acq_time from
                         files = list(self.datatypes[key].root.glob("*_motion.tsv"))
                         for file in files:
@@ -246,8 +247,52 @@ class Session(Entity):
     def write(self, output_path: os.PathLike | str) -> None:
         output_path = pathlib.Path(output_path)
 
+        for datatype in self.datatypes.values():
+            # Insert datatype level folder
+            path = pathlib.Path(output_path.parent) / datatype.datatype_name
+            if not path.exists():
+                path.mkdir(parents=True, exist_ok=True)
+            path /= output_path.name
+            datatype.write(path)
+
         output_path_json = append_path(output_path, "_scans.json")
         output_path_tsv = append_path(output_path, "_scans.tsv")
+
+        # if no scans exist
+        # get scans from exported files
+        if not self.scans:
+            self._scans = []
+            assert self.datatypes is not None
+            for key in self.datatypes:
+                match key:
+                    case "motion":
+                        # get the motion.tsv filepath
+                        # idk where to get acq_time from
+                        files = list(
+                            pathlib.Path(output_path / "motion").glob("*_motion.tsv")
+                        )
+                        for file in files:
+                            add_object_to_sequence(
+                                entity_list=self._scans,
+                                entity_class=Scan,
+                                base_path=self.root,
+                                filename="motion/" + file.name,
+                            )
+                    case "eeg":
+                        files = list(pathlib.Path(output_path / "eeg").glob("*.vhdr"))
+                        files.extend(
+                            list(pathlib.Path(output_path / "eeg").glob("*.set"))
+                        )
+                        for file in files:
+                            add_object_to_sequence(
+                                entity_list=self._scans,
+                                entity_class=Scan,
+                                base_path=self.root,
+                                filename="eeg/" + file.name,
+                            )
+                    case _:
+                        if not get_settings_value("IGNORE_NOT_IMPLEMENTED"):
+                            raise NotImplementedError
 
         # write scans.tsv / scans.json file
         if self.scans:
@@ -258,14 +303,6 @@ class Session(Entity):
             if isinstance(data_json, dict):
                 write_json(content=data_json, output_path=output_path_json)
             data_tsv.to_csv(output_path_tsv, sep="\t", index=False, header=True)
-
-        for datatype in self.datatypes.values():
-            # Insert datatype level folder
-            path = pathlib.Path(output_path.parent) / datatype.datatype_name
-            if not path.exists():
-                path.mkdir(parents=True, exist_ok=True)
-            path /= output_path.name
-            datatype.write(path)
 
 
 class Participant(Entity):

@@ -420,7 +420,7 @@ class MotionAcquisition(BaseAcquisition):
     def runs(self, value: MutableSequence[int | MotionRun] | dict[str, Run]) -> None:
         if isinstance(value, MutableSequence):
             if all(isinstance(entry, int) for entry in value):
-                self._runs = []
+                self._runs = {}
                 for entry in value:
                     assert isinstance(entry, int)  # for mypy
                     self._runs.update(

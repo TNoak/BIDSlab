@@ -26,7 +26,6 @@ from bidslab._typing import A
 from bidslab.common.base import BaseAcquisition, Entity
 from bidslab.settings import get_settings_value
 from bidslab.utils.checks import check_if_valid_uri
-from bidslab.utils.dict_manipulation import clean_dict
 from bidslab.utils.exceptions import (
     FieldEntryNotValidError,
     TopLevelEntityNotLinkedWarning,
@@ -516,7 +515,6 @@ class Run(Entity, Generic[A]):
             output_path_tsv = append_path(output_path, "_events.tsv")
 
             data_json = self.events[0].columns
-            data_json = clean_dict(data_json)
             data_tsv = pd.DataFrame(event.__dict__ for event in self.events)
             data_tsv = data_tsv.drop(columns=["columns"], errors="ignore")
 
@@ -534,7 +532,7 @@ class Run(Entity, Generic[A]):
                     dataset_root = dataset_root.parent
                 dataset_root = dataset_root.parent
                 # create stimuli directory
-                stimuli_path = pathlib.Path(output_dataset_root + "/stimuli")
+                stimuli_path = pathlib.Path(output_dataset_root / "stimuli")
                 if not stimuli_path.exists():
                     stimuli_path.mkdir(parents=True, exist_ok=True)
 
@@ -542,7 +540,7 @@ class Run(Entity, Generic[A]):
                 unique_files = set(data_tsv["stim_file"])
                 for file in unique_files:
                     copy_file(
-                        source_path=dataset_root + "/stimuli/" + file,
+                        source_path=dataset_root / "stimuli" / str(file),
                         destination_path=stimuli_path,
                     )
 
@@ -556,7 +554,6 @@ class Run(Entity, Generic[A]):
             output_path_tsv = append_path(output_path, "_stims.tsv.gz")
 
             data_json = self.stims[0].columns
-            data_json = clean_dict(data_json)
             data_tsv = pd.DataFrame(stim.__dict__ for stim in self.stims)
             data_tsv = data_tsv.drop(columns=["columns"], errors="ignore")
 
