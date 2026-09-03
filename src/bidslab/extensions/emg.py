@@ -193,6 +193,7 @@ class EMGRecording(Recording):
         power_line_frequency: int | float | str,
         recording_type: str,
         software_filters: MutableMapping[str, Filter] | str,
+        virtual_entity: bool = False,
         **kwargs: Any,
     ):
         # TODO: filters should be filter objects
@@ -207,6 +208,7 @@ class EMGRecording(Recording):
             base_path=base_path,
             recording_id=recording_id,
             sampling_frequency=sampling_frequency,
+            virtual_entity=virtual_entity,
         )
 
         self.emg_placement_scheme: str = emg_placement_scheme
@@ -389,7 +391,13 @@ class EMGRecording(Recording):
 
 
 class EMGRun(Run):
-    def __init__(self, base_path: os.PathLike | str, run_id: int, **kwargs: Any):
+    def __init__(
+        self,
+        base_path: os.PathLike | str,
+        run_id: int,
+        virtual_entity: bool = False,
+        **kwargs: Any,
+    ):
         description = kwargs.pop("_description", {})
         if not isinstance(description, MutableMapping):
             raise TypeError(
@@ -397,7 +405,9 @@ class EMGRun(Run):
             )
         self._description: MutableMapping = description
 
-        super().__init__(base_path=base_path, run_id=run_id, **kwargs)
+        super().__init__(
+            base_path=base_path, run_id=run_id, virtual_entity=virtual_entity, **kwargs
+        )
 
         self._recordings: dict[str, EMGRecording] | None = None
 
@@ -473,6 +483,7 @@ class EMGRun(Run):
                                 )
                             ),
                             electrodes=self._description.get("electrodes", None),
+                            virtual_entity=True,
                             **self._description.get("emg", None),
                         )
                     }
@@ -519,6 +530,7 @@ class EMGAcquisition(BaseAcquisition):
         self,
         base_path: os.PathLike | str,
         acquisition_id: str,
+        virtual_entity: bool = False,
         **kwargs: Any,
     ):
         description = kwargs.pop("_description", {})
@@ -528,7 +540,11 @@ class EMGAcquisition(BaseAcquisition):
             )
         self._description: MutableMapping = description
 
-        super().__init__(base_path=base_path, acquisition_id=acquisition_id)
+        super().__init__(
+            base_path=base_path,
+            acquisition_id=acquisition_id,
+            virtual_entity=virtual_entity,
+        )
 
         self._task: "EMGTask | None" = None
 
@@ -573,6 +589,7 @@ class EMGAcquisition(BaseAcquisition):
                             base_path=self.root,
                             acquisition=self,
                             _description=self._description,
+                            virtual_entity=True,
                         )
                     }
                 )
@@ -683,6 +700,7 @@ class EMGTask(BaseTask):
                             base_path=self.root,
                             task=self,
                             _description=self._description,
+                            virtual_entity=True,
                         )
                     }
                 )
