@@ -9,7 +9,7 @@ import json
 import os
 import pathlib
 import re
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -40,6 +40,8 @@ from bidslab.utils.exceptions import (
 )
 from bidslab.utils.helpers import (
     add_object_to_sequence,
+    append_path,
+    check_entity_mismatch,
     get_edf_json_files,
     get_entity_from_file,
     get_tsv_json_files,
@@ -48,6 +50,7 @@ from bidslab.utils.helpers import (
     parse_json_sidecar,
     set_attr_from_dict,
     write_entities,
+    write_json,
 )
 from bidslab.utils.string_manipulation import to_snakecase
 
@@ -80,7 +83,7 @@ class EMGCoordinateSystem:
     emg_coordinate_system: str
     emg_coordinate_units: str
     emg_coordinate_system_description: str | None = None
-    parent_coordinate_system: "EMGCoordinateSystem | None" = None
+    parent_coordinate_system: str | None = None
     anchor_coordinates: Sequence[int | float] | None = None
     anchor_electrode: str | None = None
 
@@ -247,7 +250,7 @@ class EMGRecording(Recording):
 
         self._electrodes: MutableSequence[EMGElectrode] | None = None
         self._channels: MutableSequence[EMGChannel] | None = None
-        self._coordinate_system: EMGCoordinateSystem | None = None
+        self._coordinate_systems: MutableSequence[EMGCoordinateSystem] | None = None
 
         self._run: "EMGRun | None" = None
 
@@ -331,13 +334,47 @@ class EMGRecording(Recording):
         else:
             raise TypeError("Field `Electrodes` must be a list of EMGElectrodes object")
 
-    # @property
-    # def coordinate_system(self) -> EMGCoordinateSystem | None:
-    #     return self._coordinate_system
-    #
-    # @coordinate_system.setter
-    # def coordinate_system(self, value: EMGCoordinateSystem) -> None:
-    #     self._coordinate_system = value
+    @property
+    def coordinate_systems(self) -> MutableSequence[EMGCoordinateSystem] | None:
+        if self._coordinate_systems is None:
+            self._coordinate_systems = []
+            # TODO load corrdsystems from files
+            entities = self.get_top_level_entities()
+
+            # get all possible files with _coordsystem.json
+            files_json = list(self.root.glob("*_coordsystem.json"))
+            filenames_json = [f.name for f in files_json]
+            file_entities_json = [
+                f.removesuffix("_coordsystem.json") for f in filenames_json
+            ]
+
+            # check for entity mismatches and use first one working
+            for file in file_entities_json:
+                if check_entity_mismatch(file, entities):
+                    # load .json file and save it
+                    data = parse_json_sidecar(self.root / (file + "_coordsystem.json"))
+                    data = clean_dict(data, string_manipulation=to_snakecase)
+                    # get the name (space-<name>) from the filename
+                    nameparts = file.split("_")
+                    name_dict = {
+                        namepart.split("-")[0]: namepart.split("-")[1]
+                        for namepart in nameparts
+                    }
+                    name = name_dict.pop("space", "")
+                    self._coordinate_systems.append(
+                        EMGCoordinateSystem(
+                            name=name,
+                            emg_coordinate_system=data.pop("emg_coordinate_system"),
+                            emg_coordinate_units=data.pop("emg_coordinate_units"),
+                            **data,
+                        )
+                    )
+
+        return self._coordinate_systems
+
+    @coordinate_systems.setter
+    def coordinate_systems(self, value: MutableSequence[EMGCoordinateSystem]) -> None:
+        self._coordinate_systems = value
 
     @property
     def data(self):
@@ -345,13 +382,11 @@ class EMGRecording(Recording):
             file_name = f"*{self.run.acquisition.task.task_id}*"
             file_name += (
                 f"_{self.run.acquisition.acquisition_id}"
-                if len(self.run.acquisition.task.acquisitions) > 1
+                if not self.run.acquisition._virtual_entity
                 else ""
             )
-            file_name += (
-                f"_{self.run.run_id}" if len(self.run.acquisition.runs) > 1 else ""
-            )
-            file_name += f"_{self.recording_id}" if len(self.run.recordings) > 1 else ""
+            file_name += f"_{self.run.run_id}" if not self.run._virtual_entity else ""
+            file_name += f"_{self.recording_id}" if not self._virtual_entity else ""
             edf_path, _ = get_edf_json_files(
                 self.root,
                 file_name + "_emg",
@@ -376,18 +411,108 @@ class EMGRecording(Recording):
 
     def write(self, output_path):
         # TODO write data files (_emg.bdf/edf/+)
+        # usual path
 
         # TODO write json sidecar (_emg.json)
+        # usual path
 
         # TODO write channels files (_channels.json, _channels.tsv)
+        # usual path
+        if self.channels:
+            output_path_channels_json = append_path(output_path, "_channels.json")
+            output_path_channels_tsv = append_path(output_path, "_channels.tsv")
+
+            channels_dataframe = self.list_channels()
+            channels_dataframe.to_csv(output_path_channels_tsv, sep="\t", index=False)
+
+            # TODO write channels description (.json)
 
         # TODO write electrodes files (_electrodes.tsv, _electrodes.json)
+        # usual path
+        if self.electrodes:
+            output_path_electrodes_json = append_path(output_path, "_electrodes.json")
+            output_path_electrodes_tsv = append_path(output_path, "_electrodes.tsv")
 
-        # TODO write coordinate system files (_coordsystem.json)
+            electrodes_dataframe = self.list_electrodes()
+            electrodes_dataframe.to_csv(
+                output_path_electrodes_tsv, sep="\t", index=False
+            )
+
+            # TODO write electrodes description (.json)
+
+        # write coordinate system files (_coordsystem.json)
+        # path may contain space entity before recoring
+        if self.coordinate_systems:
+            for coordsystem in self.coordinate_systems:
+                # build correct output path (order of entities)
+                if coordsystem.name != "":
+                    if self.virtual_entity:
+                        output_path_coordsystem = append_path(
+                            output_path, f"_space-{coordsystem.name}_coordsystem.json"
+                        )
+                    else:
+                        filename = output_path.name
+                        filename.split("_")
+                        filename.append(filename[-1])
+                        filename[-1] = f"space-{coordsystem.name}"
+                        name = ""
+                        name = (name + "_" + part for part in filename)
+                        name = name + "_coordsystem.json"
+                        output_path_coordsystem = append_path(output_path.parent, name)
+                else:
+                    output_path_coordsystem = append_path(
+                        output_path, "_coordsystem.json"
+                    )
+
+                coord_dict = asdict(coordsystem)
+                _ = coord_dict.pop("name", None)
+                coord_dict = clean_dict(coord_dict)
+                write_json(coord_dict, output_path=output_path_coordsystem)
 
         # TODO write photo files if available (_photo.jpg/png/tif)
+        # path can only contain sub, ses, acq, recording
 
-        pass
+    def list_channels(self) -> pd.DataFrame:
+        channels_dataframe = pd.DataFrame()
+        for emg_channel in self.channels if self.channels else []:
+            channel_dict = emg_channel.__dict__.copy()
+            channel_dict["component"] = channel_dict.pop("_component", None)
+            channel_dict["type"] = channel_dict.pop("_type", None)
+
+            coordinate_system = channel_dict.pop("coordinate_system", None)
+            if isinstance(coordinate_system, EMGCoordinateSystem):
+                channel_dict["coordinate_system"] = coordinate_system.name
+            elif coordinate_system:
+                channel_dict["coordinate_system"] = coordinate_system
+
+            channel_dict.pop("columns")
+
+            channel_dict = clean_dict(channel_dict)
+            channels_dataframe = pd.concat(
+                [channels_dataframe, pd.DataFrame([channel_dict])],
+                ignore_index=True,
+            )
+        channels_dataframe.dropna(axis=1, how="all", inplace=True)
+        return channels_dataframe
+
+    def list_electrodes(self) -> pd.DataFrame:
+        electrodes_dataframe = pd.DataFrame()
+        for emg_electrode in self.electrodes if self.electrodes else []:
+            electrode_dict = emg_electrode.__dict__.copy()
+
+            coordinate_system = electrode_dict.pop("coordinate_system", None)
+            if isinstance(coordinate_system, EMGCoordinateSystem):
+                electrode_dict["coordinate_system"] = coordinate_system.name
+
+            electrode_dict.pop("columns")
+
+            electrode_dict = clean_dict(electrode_dict)
+            electrodes_dataframe = pd.concat(
+                [electrodes_dataframe, pd.DataFrame([electrode_dict])],
+                ignore_index=True,
+            )
+        electrodes_dataframe.dropna(axis=1, how="all", inplace=True)
+        return electrodes_dataframe
 
 
 class EMGRun(Run):
@@ -423,10 +548,10 @@ class EMGRun(Run):
             file_name = f"*{self.acquisition.task.task_id}"
             file_name += (
                 f"_{self.acquisition.acquisition_id}"
-                if len(self.acquisition.task.acquisitions) > 1
+                if not self.acquisition._virtual_entity
                 else ""
             )
-            file_name += f"_{self.run_id}" if len(self.acquisition.runs) > 1 else ""
+            file_name += f"_{self.run_id}" if not self._virtual_entity else ""
 
             self._recordings = {}
             files = self.root.iterdir()
@@ -516,7 +641,7 @@ class EMGRun(Run):
             )
 
     def _update_description(self) -> None:
-        file_name = f"*_run-{self.run_id}_*_"
+        file_name = f"*_{self.run_id}_*"
         _update_description_data(self, file_name)
 
     def write(self, output_path: os.PathLike | str) -> None:
@@ -530,6 +655,7 @@ class EMGAcquisition(BaseAcquisition):
         self,
         base_path: os.PathLike | str,
         acquisition_id: str,
+        task: "EMGTask",
         virtual_entity: bool = False,
         **kwargs: Any,
     ):
@@ -546,7 +672,7 @@ class EMGAcquisition(BaseAcquisition):
             virtual_entity=virtual_entity,
         )
 
-        self._task: "EMGTask | None" = None
+        self._task: "EMGTask | None" = task
 
         self._update_description()
 
@@ -635,7 +761,10 @@ class EMGAcquisition(BaseAcquisition):
         self._task = value
 
     def _update_description(self) -> None:
-        file_name = f"*_{self.acquisition_id}_*_"
+        if self._virtual_entity:
+            file_name = f"*_{self.task.task_id}_*"
+        else:
+            file_name = f"*_{self.acquisition_id}_*"
         _update_description_data(self, file_name)
 
     def get_top_level_entities(self) -> list[str | Any]:
