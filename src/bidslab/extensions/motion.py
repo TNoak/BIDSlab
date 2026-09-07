@@ -417,7 +417,9 @@ class MotionAcquisition(BaseAcquisition):
         return self._runs
 
     @runs.setter
-    def runs(self, value: MutableSequence[int | MotionRun] | dict[str, Run]) -> None:
+    def runs(
+        self, value: MutableSequence[int | MotionRun] | dict[str, MotionRun]
+    ) -> None:
         if isinstance(value, MutableSequence):
             if all(isinstance(entry, int) for entry in value):
                 self._runs = {}
@@ -425,7 +427,7 @@ class MotionAcquisition(BaseAcquisition):
                     assert isinstance(entry, int)  # for mypy
                     self._runs.update(
                         {
-                            entry: MotionRun(
+                            f"run-{entry}": MotionRun(
                                 run_id=entry, base_path=self.root, acquisition=self
                             )
                         }
@@ -613,7 +615,7 @@ class TrackSys(Entity):
                         }
                     )
             elif all(isinstance(entry, MotionAcquisition) for entry in value):
-                self.acquisitions = {}
+                self._acquisitions = {}
                 for entry in value:
                     assert isinstance(entry, MotionAcquisition)  # for mypy
                     assert entry.acquisition_id is not None
@@ -639,7 +641,9 @@ class MotionTask(BaseTask):
     ) -> None:
         self._tracking_systems: dict[str, TrackSys] | None = None
 
-        super().__init__(base_path=base_path, task_name=task_name, **kwargs)
+        super().__init__(
+            base_path=base_path, task_name=task_name, virtual_entity=False, **kwargs
+        )
 
     @property
     def tracking_systems(self) -> dict[str, TrackSys]:
@@ -684,7 +688,7 @@ class MotionTask(BaseTask):
 
             if not self._tracking_systems:
                 pass
-                # raise ...
+                # raise ..
                 # TODO: If no tracking systems are found raise Error
 
         return self._tracking_systems

@@ -55,3 +55,4 @@ class PEntity(Writable, Protocol):
 
     _entity_id: str
     _entity_name: str
+    _virtual_entity: bool

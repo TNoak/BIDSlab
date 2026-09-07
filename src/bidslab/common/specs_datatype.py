@@ -105,8 +105,7 @@ class Datatype:
                             task_name = data["task"].pop("TaskName")
                             self._tasks.update(
                                 {
-                                    "task-"
-                                    + task_id: MotionTask(
+                                    "task-" + task_id: MotionTask(
                                         task_id="task-" + task_id,
                                         task_name=task_name,
                                         base_path=self.root,
@@ -131,8 +130,7 @@ class Datatype:
                             }
                             self._tasks.update(
                                 {
-                                    "task-"
-                                    + task_id: EMGTask(
+                                    "task-" + task_id: EMGTask(
                                         task_id="task-" + task_id,
                                         task_name=task_name,
                                         base_path=self.root,
@@ -158,7 +156,7 @@ class Datatype:
                             task_name="n/a",
                             task_id="task-00",
                             base_path=self.root,
-                            virtual_task=True,
+                            virtual_entity=True,
                             datatype=self,
                         )
                     }

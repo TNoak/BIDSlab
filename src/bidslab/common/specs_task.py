@@ -22,6 +22,7 @@ class Task(BaseTask):
         self,
         base_path: os.PathLike | str,
         task_name: str,
+        virtual_entity: bool = False,
         **kwargs: "str | Datatype | MutableSequence",
     ) -> None:
         self.cog_atlas_id = None  # !: Only for special datatypes
@@ -29,7 +30,12 @@ class Task(BaseTask):
 
         self._acquisitions: dict[str, Acquisition] | None = None
 
-        super().__init__(base_path=base_path, task_name=task_name, **kwargs)
+        super().__init__(
+            base_path=base_path,
+            task_name=task_name,
+            virtual_entity=virtual_entity,
+            **kwargs,
+        )
 
     @property
     def acquisitions(self) -> dict[str, Acquisition]:

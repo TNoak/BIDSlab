@@ -545,6 +545,7 @@ class EMGRun(Run):
     def recordings(self) -> dict[str, EMGRecording] | None:
         if not self._recordings:
             # TODO make this more elegant
+            assert self.acquisition is not None
             file_name = f"*{self.acquisition.task.task_id}"
             file_name += (
                 f"_{self.acquisition.acquisition_id}"
@@ -570,7 +571,7 @@ class EMGRun(Run):
             # values in self._description get passed forward as fallback / to follow the
             # inheritance principle of BIDS but will be updated downstream
             for recording_label in recording_labels:
-                self._recordings.updtae(
+                self._recordings.update(
                     {
                         "recording-" + recording_label: EMGRecording(
                             recording_id="recording-" + recording_label,
@@ -623,9 +624,10 @@ class EMGRun(Run):
                 self._recordings = {}
                 for entry in value:
                     assert isinstance(entry, MutableMapping)  # for mypy
+                    assert isinstance(entry["recording_id"], str)
                     self._recordings.update(
                         {
-                            entry.recording_id: EMGRecording(
+                            entry["recording_id"]: EMGRecording(
                                 base_path=self.root,
                                 run=self,
                                 **entry,
@@ -633,8 +635,11 @@ class EMGRun(Run):
                         }
                     )
             elif all(isinstance(entry, EMGRecording) for entry in value):
+                self._recordings = {}
                 for entry in value:
-                    self.recordings.update({entry.recording_id: entry})
+                    assert isinstance(entry, EMGRecording)
+                    assert isinstance(entry.recording_id, str)
+                    self._recordings.update({entry.recording_id: entry})
         else:
             raise TypeError(
                 "Field `Recordings` must be a list of EMGRecordings objects"
@@ -646,6 +651,7 @@ class EMGRun(Run):
 
     def write(self, output_path: os.PathLike | str) -> None:
         super().write(output_path)
+        assert self.recordings is not None
         write_entities(output_path, self.recordings.values())
         # TODO what needs to be done with self.description?
 
@@ -697,7 +703,7 @@ class EMGAcquisition(BaseAcquisition):
             for run_id in run_ids:
                 self._runs.update(
                     {
-                        run_id: EMGRun(
+                        "run-" + run_id: EMGRun(
                             run_id=int(run_id),
                             base_path=self.root,
                             acquisition=self,
@@ -723,7 +729,7 @@ class EMGAcquisition(BaseAcquisition):
         return self._runs
 
     @runs.setter
-    def runs(self, value: MutableSequence[int | EMGRun]) -> None:
+    def runs(self, value: MutableSequence[int | EMGRun] | dict[str, EMGRun]) -> None:
         if isinstance(value, MutableSequence):
             if all(isinstance(entry, int) for entry in value):
                 self._runs = {}
@@ -731,7 +737,7 @@ class EMGAcquisition(BaseAcquisition):
                     assert isinstance(entry, int)  # for mypy
                     self._runs.update(
                         {
-                            entry: EMGRun(
+                            f"run-{entry}": EMGRun(
                                 run_id=entry,
                                 base_path=self.root,
                                 acquisition=self,
@@ -740,8 +746,13 @@ class EMGAcquisition(BaseAcquisition):
                         }
                     )
             elif all(isinstance(v, EMGRun) for v in value):
+                self._runs = {}
                 for v in value:
+                    assert isinstance(v, EMGRun)
+                    assert isinstance(v.run_id, str)
                     self._runs.update({v.run_id: v})
+        elif isinstance(value, dict):
+            self._runs = value
         else:
             raise TypeError("Field `Runs` must be a list of EMGRun objects")
 
@@ -762,6 +773,7 @@ class EMGAcquisition(BaseAcquisition):
 
     def _update_description(self) -> None:
         if self._virtual_entity:
+            assert self.task is not None
             file_name = f"*_{self.task.task_id}_*"
         else:
             file_name = f"*_{self.acquisition_id}_*"
@@ -788,7 +800,9 @@ class EMGTask(BaseTask):
             )
         self._description: MutableMapping = description
 
-        super().__init__(base_path=base_path, task_name=task_name, **kwargs)
+        super().__init__(
+            base_path=base_path, task_name=task_name, virtual_entity=False, **kwargs
+        )
 
         self._acquisitions: dict[str, EMGAcquisition] | None = None
 
@@ -850,12 +864,16 @@ class EMGTask(BaseTask):
                             entry: EMGAcquisition(
                                 acquisition_id=entry,
                                 base_path=self.root,
+                                task=self,
                                 _description=self._description,
                             )
                         }
                     )
             elif all(isinstance(entry, EMGAcquisition) for entry in value):
+                self._acquisitions = {}
                 for entry in value:
+                    assert isinstance(entry, EMGAcquisition)
+                    assert isinstance(entry.acquisition_id, str)
                     self._acquisitions.update({entry.acquisition_id: entry})
         else:
             raise TypeError(

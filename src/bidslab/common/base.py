@@ -122,7 +122,7 @@ class BaseAcquisition(Entity, Generic[R], ABC):
 
     @property
     @abstractmethod
-    def runs(self) -> dict[int, R]:
+    def runs(self) -> dict[str, R]:
         """
         Abstract Property to get or set the top-level Run object.
 
@@ -134,7 +134,7 @@ class BaseAcquisition(Entity, Generic[R], ABC):
 
     @runs.setter
     @abstractmethod
-    def runs(self, value: MutableSequence[int | R] | dict[int, R]) -> None:
+    def runs(self, value: MutableSequence[int | R] | dict[str, R]) -> None:
         pass
 
     def write(self, output_path: os.PathLike | str) -> None:

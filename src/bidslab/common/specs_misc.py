@@ -443,13 +443,22 @@ class Run(Entity, Generic[A]):
 
 
 class Acquisition(BaseAcquisition):
-    def __init__(self, base_path: os.PathLike | str, acquisition_id: str):
-        super().__init__(base_path=base_path, acquisition_id=acquisition_id)
+    def __init__(
+        self,
+        base_path: os.PathLike | str,
+        acquisition_id: str,
+        virtual_entity: bool = False,
+    ):
+        super().__init__(
+            base_path=base_path,
+            acquisition_id=acquisition_id,
+            virtual_entity=virtual_entity,
+        )
 
         self._task: Task | None = None
 
     @property
-    def runs(self) -> dict[int, Run]:
+    def runs(self) -> dict[str, Run]:
         if not self._runs:
             self._runs = {}
             files = self.root.iterdir()
@@ -468,7 +477,7 @@ class Acquisition(BaseAcquisition):
                 run_id_int = int(run_id.split("-")[1])
                 self._runs.update(
                     {
-                        run_id: Run(
+                        f"run-{run_id_int}": Run(
                             run_id=run_id_int,
                             base_path=self.root,
                             acquisition=self,
@@ -479,7 +488,7 @@ class Acquisition(BaseAcquisition):
             if not self._runs:
                 self._runs.update(
                     {
-                        0: Run(
+                        "run-0": Run(
                             run_id=0,
                             base_path=self.root,
                             acquisition=self,
@@ -490,7 +499,7 @@ class Acquisition(BaseAcquisition):
         return self._runs
 
     @runs.setter
-    def runs(self, value: Sequence[int | Run] | dict[int, Run]) -> None:
+    def runs(self, value: Sequence[int | Run] | dict[str, Run]) -> None:
         if isinstance(value, Sequence):
             if all(isinstance(entry, int) for entry in value):
                 self._runs = {}
@@ -498,7 +507,7 @@ class Acquisition(BaseAcquisition):
                     assert isinstance(entry, int)  # for mypy
                     self._runs.update(
                         {
-                            entry: Run(
+                            f"run-{entry}": Run(
                                 run_id=entry, base_path=self.root, acquisition=self
                             )
                         }
@@ -537,8 +546,10 @@ class Acquisition(BaseAcquisition):
 def get_events_from_files(
     cli: Recording | Run, base_path: os.PathLike | str
 ) -> MutableSequence[Event] | None:
-    events = None
-    columns = None
+    base_path = pathlib.Path(base_path)
+
+    events: MutableSequence[Event] = []
+    columns: MutableMapping[Any, Any] = {}
 
     # get list of top level entities
     entities = cli.get_top_level_entities()
@@ -557,7 +568,7 @@ def get_events_from_files(
     folders_tsv = [base_path, base_path.parent]
 
     for folder in folders_json:
-        if columns is None:
+        if columns == {}:
             # get all possible files with _events.json
             files_json = list(folder.glob("*_events.json"))
             filenames_json = [f.name for f in files_json]
@@ -575,13 +586,12 @@ def get_events_from_files(
             break
 
     for folder in folders_tsv:
-        if events is None:
+        if events == []:
             # get all possible files with _events.tsv
             files_tsv = list(folder.glob("*_events.tsv"))
             filenames_tsv = [f.name for f in files_tsv]
             file_entities_tsv = [f.removesuffix("_events.tsv") for f in filenames_tsv]
 
-            data = []
             # check for entity mismatches and use first one working
             for file in file_entities_tsv:
                 if check_entity_mismatch(file, entities):
@@ -589,7 +599,6 @@ def get_events_from_files(
                     data = parse_descriptive_tsv(
                         tsv_path=folder / (file + "_events.tsv")
                     )
-                    events = []
                     for event in data:
                         add_object_to_sequence(
                             entity_list=events,
@@ -607,8 +616,10 @@ def get_events_from_files(
 def get_stims_from_files(
     cli: Recording, base_path: os.PathLike | str
 ) -> MutableSequence[Stim] | None:
-    stims = None
-    columns = None
+    base_path = pathlib.Path(base_path)
+
+    stims: MutableSequence[Stim] = []
+    columns: MutableMapping[Any, Any] = {}
     # get list of top level entities
     entities = cli.get_top_level_entities()
 
@@ -624,7 +635,7 @@ def get_stims_from_files(
     folders.append(path)
 
     for folder in folders:
-        if columns is None:
+        if columns == {}:
             # get all possible files with _stim.json
             files_json = list(folder.glob("*_stim.json"))
             filenames_json = [f.name for f in files_json]
@@ -637,7 +648,7 @@ def get_stims_from_files(
                     columns = parse_json_sidecar(folder / (file + "_stim.json"))
                     break
 
-        if stims is None:
+        if stims == []:
             # get all possible files with _stim.tsv
             files_tsv = list(folder.glob("*_stim.tsv.gz"))
             filenames_tsv = [f.name for f in files_tsv]
@@ -663,7 +674,7 @@ def get_stims_from_files(
 
 
 def write_events_to_files(
-    cli: Recording | Run, events: MutableSequence[Event], output_path: os.PathLike | str
+    cli: Recording | Run, events: Sequence[Event], output_path: os.PathLike | str
 ) -> None:
     output_path_json = append_path(output_path, "_events.json")
     output_path_tsv = append_path(output_path, "_events.tsv")
@@ -703,9 +714,7 @@ def write_events_to_files(
     data_tsv.to_csv(output_path_tsv, sep="\t", index=False, header=True)
 
 
-def write_stims_to_files(
-    stims: MutableSequence[Stim], output_path: os.PathLike | str
-) -> None:
+def write_stims_to_files(stims: Sequence[Stim], output_path: os.PathLike | str) -> None:
     output_path_json = append_path(output_path, "_stims.json")
     output_path_tsv = append_path(output_path, "_stims.tsv.gz")
 
