@@ -405,49 +405,8 @@ class Run(Entity, Generic[A]):
 
     @property
     def events(self) -> Sequence[Event] | None:
-        # TODO json sidecar may be in (up to the dataset_root) higher directory levels
-        # TODO tsv may be in (one) higher directory
         if self._events is None:
-            # get list of top level entities
-            entities = self.get_top_level_entities()
-
-            # get all possible files with _events.json
-            files_json = list(self.root.glob("*_events.json"))
-            filenames_json = [f.name for f in files_json]
-            file_entities_json = [
-                f.removesuffix("_events.json") for f in filenames_json
-            ]
-
-            columns = []
-            # check for entity mismatches and use first one working
-            for file in file_entities_json:
-                if check_entity_mismatch(file, entities):
-                    # load .json file and save it
-                    columns = parse_json_sidecar(self.root / (file + "_events.json"))
-                    break
-
-            # get all possible files with _events.tsv
-            files_tsv = list(self.root.glob("*_events.tsv"))
-            filenames_tsv = [f.name for f in files_tsv]
-            file_entities_tsv = [f.removesuffix("_events.tsv") for f in filenames_tsv]
-
-            data = []
-            # check for entity mismatches and use first one working
-            for file in file_entities_tsv:
-                if check_entity_mismatch(file, entities):
-                    # load .tsv file and save it
-                    data = parse_descriptive_tsv(
-                        tsv_path=self.root / (file + "_events.tsv")
-                    )
-                    self._events = []
-                    for event in data:
-                        add_object_to_sequence(
-                            entity_list=self._events,
-                            entity_class=Event,
-                            **event,
-                            columns=columns,
-                        )
-                    break
+            self._events = get_events_from_files(self, self.root)
 
         return self._events
 
@@ -459,42 +418,7 @@ class Run(Entity, Generic[A]):
     def stims(self) -> Sequence[Stim] | None:
         # TODO json sidecar may be in higher directory levels
         if self._stims is None:
-            # get list of top level entities
-            entities = self.get_top_level_entities()
-
-            # get all possible files with _stim.json
-            files_json = list(self.root.glob("*_stim.json"))
-            filenames_json = [f.name for f in files_json]
-            file_entities_json = [f.removesuffix("_stim.json") for f in filenames_json]
-
-            columns = []
-            # check for entity mismatches and use first one working
-            for file in file_entities_json:
-                if check_entity_mismatch(file, entities):
-                    # load .json file and save it
-                    columns = parse_json_sidecar(self.root / (file + "_stim.json"))
-                    break
-
-            # get all possible files with _stim.tsv
-            files_tsv = list(self.root.glob("*_stim.tsv.gz"))
-            filenames_tsv = [f.name for f in files_tsv]
-            file_entities_tsv = [f.removesuffix("_stim.tsv.gz") for f in filenames_tsv]
-
-            data = []
-            # check for entity mismatches and use first one working
-            for file in file_entities_tsv:
-                if check_entity_mismatch(file, entities):
-                    # load .tsv file and save it
-                    data = load_tsv_data(path=self.root / (file + "_stim.tsv.gz"))
-                    self._stims = []
-                    for stim in data:
-                        add_object_to_sequence(
-                            entity_list=self._stims,
-                            entity_class=Stim,
-                            **stim,
-                            columns=columns,
-                        )
-                    break
+            self._stims = get_stims_from_files(self, self.root)
 
         return self._stims
 
@@ -511,57 +435,11 @@ class Run(Entity, Generic[A]):
     def write(self, output_path: os.PathLike | str) -> None:
         # write events files
         if self.events:
-            output_path_json = append_path(output_path, "_events.json")
-            output_path_tsv = append_path(output_path, "_events.tsv")
-
-            data_json = self.events[0].columns
-            data_tsv = pd.DataFrame(event.__dict__ for event in self.events)
-            data_tsv = data_tsv.drop(columns=["columns"], errors="ignore")
-
-            if "stim_file" in data_tsv.columns:  # TODO
-                # find root of the dataset
-                entities = self.get_top_level_entities()
-                output_dataset_root = pathlib.Path(output_path)
-                target = entities[0]
-                while output_dataset_root.name != target:
-                    output_dataset_root = output_dataset_root.parent
-                output_dataset_root = output_dataset_root.parent
-
-                dataset_root = self.root
-                while dataset_root.name != target:
-                    dataset_root = dataset_root.parent
-                dataset_root = dataset_root.parent
-                # create stimuli directory
-                stimuli_path = pathlib.Path(output_dataset_root / "stimuli")
-                if not stimuli_path.exists():
-                    stimuli_path.mkdir(parents=True, exist_ok=True)
-
-                # copy files into the stimuli directory
-                unique_files = set(data_tsv["stim_file"])
-                for file in unique_files:
-                    copy_file(
-                        source_path=dataset_root / "stimuli" / str(file),
-                        destination_path=stimuli_path,
-                    )
-
-            if isinstance(data_json, dict):
-                write_json(content=data_json, output_path=output_path_json)
-            data_tsv.to_csv(output_path_tsv, sep="\t", index=False, header=True)
+            write_events_to_files(self, self.events, output_path)
 
         # write stim files
         if self.stims:
-            output_path_json = append_path(output_path, "_stims.json")
-            output_path_tsv = append_path(output_path, "_stims.tsv.gz")
-
-            data_json = self.stims[0].columns
-            data_tsv = pd.DataFrame(stim.__dict__ for stim in self.stims)
-            data_tsv = data_tsv.drop(columns=["columns"], errors="ignore")
-
-            if isinstance(data_json, dict):
-                write_json(content=data_json, output_path=output_path_json)
-            data_tsv.to_csv(
-                output_path_tsv, sep="\t", index=False, header=False, compression="gzip"
-            )
+            write_stims_to_files(self.stims, output_path)
 
 
 class Acquisition(BaseAcquisition):
@@ -654,3 +532,189 @@ class Acquisition(BaseAcquisition):
         entities = self.task.get_top_level_entities()
         entities.append(self.acquisition_id)
         return entities
+
+
+def get_events_from_files(
+    cli: Recording | Run, base_path: os.PathLike | str
+) -> MutableSequence[Event] | None:
+    events = None
+    columns = None
+
+    # get list of top level entities
+    entities = cli.get_top_level_entities()
+
+    # sequence of all possible folders
+    # in the correct input order (deepest to dataset_root)
+    folders_json = [base_path]
+    path = base_path
+    target = entities[0]
+    while path.name != target:
+        path = path.parent
+        folders_json.append(path)
+    path = path.parent
+    folders_json.append(path)
+
+    folders_tsv = [base_path, base_path.parent]
+
+    for folder in folders_json:
+        if columns is None:
+            # get all possible files with _events.json
+            files_json = list(folder.glob("*_events.json"))
+            filenames_json = [f.name for f in files_json]
+            file_entities_json = [
+                f.removesuffix("_events.json") for f in filenames_json
+            ]
+
+            # check for entity mismatches and use first one working
+            for file in file_entities_json:
+                if check_entity_mismatch(file, entities):
+                    # load .json file and save it
+                    columns = parse_json_sidecar(folder / (file + "_events.json"))
+                    break
+        else:
+            break
+
+    for folder in folders_tsv:
+        if events is None:
+            # get all possible files with _events.tsv
+            files_tsv = list(folder.glob("*_events.tsv"))
+            filenames_tsv = [f.name for f in files_tsv]
+            file_entities_tsv = [f.removesuffix("_events.tsv") for f in filenames_tsv]
+
+            data = []
+            # check for entity mismatches and use first one working
+            for file in file_entities_tsv:
+                if check_entity_mismatch(file, entities):
+                    # load .tsv file and save it
+                    data = parse_descriptive_tsv(
+                        tsv_path=folder / (file + "_events.tsv")
+                    )
+                    events = []
+                    for event in data:
+                        add_object_to_sequence(
+                            entity_list=events,
+                            entity_class=Event,
+                            **event,
+                            columns=columns,
+                        )
+                    break
+        else:
+            break
+
+    return events
+
+
+def get_stims_from_files(
+    cli: Recording, base_path: os.PathLike | str
+) -> MutableSequence[Stim] | None:
+    stims = None
+    columns = None
+    # get list of top level entities
+    entities = cli.get_top_level_entities()
+
+    # sequence of all possible folders
+    # in the correct input order (deepest to dataset_root)
+    folders = [base_path]
+    path = base_path
+    target = entities[0]
+    while path.name != target:
+        path = path.parent
+        folders.append(path)
+    path = path.parent
+    folders.append(path)
+
+    for folder in folders:
+        if columns is None:
+            # get all possible files with _stim.json
+            files_json = list(folder.glob("*_stim.json"))
+            filenames_json = [f.name for f in files_json]
+            file_entities_json = [f.removesuffix("_stim.json") for f in filenames_json]
+
+            # check for entity mismatches and use first one working
+            for file in file_entities_json:
+                if check_entity_mismatch(file, entities):
+                    # load .json file and save it
+                    columns = parse_json_sidecar(folder / (file + "_stim.json"))
+                    break
+
+        if stims is None:
+            # get all possible files with _stim.tsv
+            files_tsv = list(folder.glob("*_stim.tsv.gz"))
+            filenames_tsv = [f.name for f in files_tsv]
+            file_entities_tsv = [f.removesuffix("_stim.tsv.gz") for f in filenames_tsv]
+
+            data = []
+            # check for entity mismatches and use first one working
+            for file in file_entities_tsv:
+                if check_entity_mismatch(file, entities):
+                    # load .tsv file and save it
+                    data = load_tsv_data(path=folder / (file + "_stim.tsv.gz"))
+
+                    for stim in data:
+                        add_object_to_sequence(
+                            entity_list=stims,
+                            entity_class=Stim,
+                            **stim,
+                            columns=columns,
+                        )
+                    break
+
+    return stims
+
+
+def write_events_to_files(
+    cli: Recording | Run, events: MutableSequence[Event], output_path: os.PathLike | str
+) -> None:
+    output_path_json = append_path(output_path, "_events.json")
+    output_path_tsv = append_path(output_path, "_events.tsv")
+
+    data_json = events[0].columns
+    data_tsv = pd.DataFrame(event.__dict__ for event in events)
+    data_tsv = data_tsv.drop(columns=["columns"], errors="ignore")
+
+    if "stim_file" in data_tsv.columns:  # TODO
+        # find root of the dataset
+        entities = cli.get_top_level_entities()
+        output_dataset_root = pathlib.Path(output_path)
+        target = entities[0]
+        while output_dataset_root.name != target:
+            output_dataset_root = output_dataset_root.parent
+        output_dataset_root = output_dataset_root.parent
+
+        dataset_root = cli.root
+        while dataset_root.name != target:
+            dataset_root = dataset_root.parent
+        dataset_root = dataset_root.parent
+        # create stimuli directory
+        stimuli_path = pathlib.Path(output_dataset_root / "stimuli")
+        if not stimuli_path.exists():
+            stimuli_path.mkdir(parents=True, exist_ok=True)
+
+        # copy files into the stimuli directory
+        unique_files = set(data_tsv["stim_file"])
+        for file in unique_files:
+            copy_file(
+                source_path=dataset_root / "stimuli" / str(file),
+                destination_path=stimuli_path,
+            )
+
+    if isinstance(data_json, dict):
+        write_json(content=data_json, output_path=output_path_json)
+    data_tsv.to_csv(output_path_tsv, sep="\t", index=False, header=True)
+
+
+def write_stims_to_files(
+    stims: MutableSequence[Stim], output_path: os.PathLike | str
+) -> None:
+    output_path_json = append_path(output_path, "_stims.json")
+    output_path_tsv = append_path(output_path, "_stims.tsv.gz")
+
+    data_json = stims[0].columns
+    data_tsv = pd.DataFrame(stim.__dict__ for stim in stims)
+    data_tsv = data_tsv.drop(columns=["columns"], errors="ignore")
+
+    if isinstance(data_json, dict):
+        write_json(content=data_json, output_path=output_path_json)
+    data_tsv.to_csv(
+        output_path_tsv, sep="\t", index=False, header=False, compression="gzip"
+    )
