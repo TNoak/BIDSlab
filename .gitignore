@@ -269,7 +269,6 @@ cython_debug/
 
 ### Custom additions
 releaserc.toml
-TODO
-data
+data/
 src/abidskit/config
 src/abidskit/parser
