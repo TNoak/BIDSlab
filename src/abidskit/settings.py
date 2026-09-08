@@ -1,3 +1,12 @@
+"""
+Settings management for aBIDSkit.
+
+This module provides functionality to manage and manipulate settings for the aBIDSkit
+library. It includes a dataclass to hold the settings, context managers to temporarily
+override settings, and functions to set, get, and save settings.
+Settings can either be provided as a dictionary in code or loaded from a JSON file.
+"""
+
 #  Copyright (c) 2025 by Lukas Behammer
 #  University of Augsburg
 #  Department of Computer Science
@@ -46,6 +55,27 @@ PACKAGE_OPTIONS = ["DATASET_FETCHING_PACKAGE", "DATA_LOADING_PACKAGE"]
 
 @dataclass(frozen=True)
 class Settings:
+    """
+    Settings for aBIDSkit.
+
+    A dataclass that holds the settings for aBIDSkit.
+
+    Attributes
+    ----------
+    OVERRIDE_VALIDATION : bool
+        If True, override validation errors and warnings.
+    SUPPORT_OLD_VERSIONS : bool
+        If True, support features from old BIDS versions.
+    IGNORE_VERSION : bool
+        If True, ignore BIDS version mismatches.
+    IGNORE_NOT_IMPLEMENTED : bool
+        If True, ignore Errors in not implemented features.
+    DATASET_FETCHING_PACKAGE : PackageFetching | None
+        The package to use for dataset fetching.
+    DATA_LOADING_PACKAGE : PackageLoading
+        The package to use for data loading.
+    """
+
     OVERRIDE_VALIDATION: bool = False
     SUPPORT_OLD_VERSIONS: bool = False
     IGNORE_VERSION: bool = False
@@ -55,13 +85,28 @@ class Settings:
 
 
 SETTINGS: Settings = Settings()
+"""
+Global settings instance for aBIDSkit.
+
+See Also
+--------
+Settings : The settings dataclass.
+"""
 
 
 @contextmanager
 def override_settings_values(
     settings: dict[str, bool | str] | os.PathLike,
 ) -> Generator[None, None, None]:
-    """Temporarily set the value of a setting within a context."""
+    """
+    Temporarily set the value of a setting within a context.
+
+    Parameters
+    ----------
+    settings : dict[str, bool | str] | os.PathLike
+        A dictionary of settings and its values or a path to a JSON file containing the
+        settings to override.
+    """
     global SETTINGS
     original_settings = SETTINGS.__dict__.copy()
     if isinstance(settings, os.PathLike):
@@ -77,6 +122,15 @@ def override_settings_values(
 
 
 def set_settings_values(settings: dict[str, bool | str] | os.PathLike) -> None:
+    """
+    Set the value of a setting.
+
+    Parameters
+    ----------
+    settings : dict[str, bool | str] | os.PathLike
+        A dictionary of settings and its values or a path to a JSON file containing the
+        settings to set.
+    """
     global SETTINGS
     if isinstance(settings, os.PathLike):
         with pathlib.Path(settings).open("r", encoding="utf-8") as f:
@@ -109,13 +163,30 @@ def set_settings_values(settings: dict[str, bool | str] | os.PathLike) -> None:
 def get_settings_value(name: str) -> str | bool | None:
     """
     Get the current value of a setting.
+
+    Parameters
+    ----------
+    name : str
+        The name of the setting to get the value of.
+
+    Returns
+    -------
+    str | bool | None
+        The current value of the setting.
     """
     global SETTINGS
     return SETTINGS.__dict__[name]
 
 
 def save_settings_values(path: os.PathLike) -> None:
-    """Save the current settings to a JSON file."""
+    """
+    Save the current settings to a JSON file.
+
+    Parameters
+    ----------
+    path : os.PathLike
+        The path to the JSON file to save the settings to.
+    """
     global SETTINGS
     with pathlib.Path(path).open("w", encoding="utf-8") as f:
         json.dump(SETTINGS.__dict__, f, indent=4)
