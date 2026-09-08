@@ -1,3 +1,5 @@
+"""Various checks for BIDS datasets."""
+
 #  Copyright (c) 2025 by Lukas Behammer
 #  University of Augsburg
 #  Department of Computer Science
@@ -30,6 +32,23 @@ if TYPE_CHECKING:
 
 
 def check_readme(dataset: "Dataset", files: Sequence[pathlib.Path]):
+    """
+    Check for README file presence and uniqueness.
+
+    Parameters
+    ----------
+    dataset : Dataset
+        The BIDS dataset object.
+    files : Sequence[pathlib.Path]
+        List of files in the dataset root.
+
+    Notes
+    -----
+    This function changes the state of the `dataset` object by setting the
+    :py:attr:`~abidskit.common.specs_dataset.Dataset.readme_path` attribute if a README
+    file is found.
+    Exception raising can be overridden by the global ``OVERRIDE_VALIDATION`` setting.
+    """
     readme_found = False
 
     for file in files:
@@ -54,6 +73,23 @@ def check_readme(dataset: "Dataset", files: Sequence[pathlib.Path]):
 
 
 def check_citation(dataset: "Dataset", files: Sequence[pathlib.Path]):
+    """
+    Check for CITATION.cff file presence and validate related fields.
+
+    Parameters
+    ----------
+    dataset : Dataset
+        The BIDS dataset object.
+    files : Sequence[pathlib.Path]
+        List of files in the dataset root.
+
+    Notes
+    -----
+    This function changes the state of the `dataset` object by setting the
+    :py:attr:`~abidskit.common.specs_dataset.Dataset.citation_path` attribute if a
+    CITATION.cff file is found.
+    Exception raising can be overridden by the global ``OVERRIDE_VALIDATION`` setting.
+    """
     for file in files:
         if re.match(r"^CITATION\.cff$", file.name):
             if dataset.authors is not None and not get_settings_value(
@@ -78,6 +114,22 @@ def check_citation(dataset: "Dataset", files: Sequence[pathlib.Path]):
 
 
 def check_license(dataset: "Dataset", files: Sequence[pathlib.Path]):
+    """
+    Check for LICENSE file presence and validate related fields.
+
+    Parameters
+    ----------
+    dataset : Dataset
+        The BIDS dataset object.
+    files : Sequence[pathlib.Path]
+        List of files in the dataset root.
+
+    Notes
+    -----
+    This function changes the state of the `dataset` object by setting the
+    :py:attr:`~abidskit.common.specs_dataset.Dataset.license_path` attribute if a
+    LICENSE file is found.
+    """
     for file in files:
         if re.match(r"^LICENSE(\.md|\.txt|\.rst)?$", file.name):
             dataset.license_path = dataset.root / file
@@ -93,6 +145,20 @@ def check_license(dataset: "Dataset", files: Sequence[pathlib.Path]):
 
 
 def check_version(dataset: "Dataset", version: Any):
+    """
+    Check if the BIDS version matches the expected version.
+
+    Parameters
+    ----------
+    dataset : Dataset
+        The BIDS dataset object.
+    version : Any
+        The BIDS version to check.
+
+    Notes
+    -----
+    Exception raising can be overridden by the global ``OVERRIDE_VALIDATION`` setting.
+    """
     if not isinstance(version, str):
         raise TypeError(
             "BIDS version must be a string."
@@ -112,6 +178,18 @@ def check_version(dataset: "Dataset", version: Any):
 
 
 def check_dataset_description_present(dataset: "Dataset"):
+    """
+    Check if dataset_description.json file is present.
+
+    Parameters
+    ----------
+    dataset : Dataset
+        The BIDS dataset object.
+
+    Notes
+    -----
+    Exception raising can be overridden by the global ``OVERRIDE_VALIDATION`` setting.
+    """
     if not (
         dataset.root / "dataset_description.json"
     ).exists() and not get_settings_value("OVERRIDE_VALIDATION"):
@@ -119,11 +197,43 @@ def check_dataset_description_present(dataset: "Dataset"):
 
 
 def check_if_valid_uri(uri: str):
+    """
+    Check if the provided string is a valid URI.
+
+    Parameters
+    ----------
+    uri : str
+        The URI string to validate.
+
+    Notes
+    -----
+    Exception raising can be overridden by the global ``OVERRIDE_VALIDATION`` setting.
+    """
     if not isuri(uri) and not get_settings_value("OVERRIDE_VALIDATION"):
         raise InvalidURIError(f"Value '{uri}' is not a valid URI.")
 
 
 def check_files(dataset: "Dataset", files: Sequence[pathlib.Path]):
+    """
+    Check for special files and set dataset attributes accordingly.
+
+    Parameters
+    ----------
+    dataset : Dataset
+        The BIDS dataset object.
+    files : Sequence[pathlib.Path]
+        List of files in the dataset root.
+
+    Notes
+    -----
+    This function changes the state of the `dataset` object by setting various
+    attributes if corresponding files or directories are found.
+    Exception raising can be overridden by the global ``OVERRIDE_VALIDATION`` setting.
+
+    See Also
+    --------
+    check_readme : Check for README file presence
+    """
     check_readme(dataset, files)
     # TODO: Enable these checks later --> rewriting of tests required due to
     #  side effects
