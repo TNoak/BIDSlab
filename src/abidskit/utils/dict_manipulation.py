@@ -32,7 +32,15 @@ def manipulate_dictkeys(
     Convert all keys in the dictionary with the manipulation function recursively.
 
 
-def dict_keys_to_titlecase(dict_input: dict) -> dict:
+    Returns
+    -------
+    dict
+        The dictionary with all keys converted with the manipulation function.
+
+    Notes
+    -----
+    If input is not of type dict, it will be returned without modification.
+    """
     dict_output = {}
     for key, value in list(dict_input.items()):
         if key == "Levels":
