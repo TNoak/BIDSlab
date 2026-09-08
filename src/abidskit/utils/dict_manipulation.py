@@ -1,3 +1,5 @@
+"""Utility functions for manipulating dictionaries."""
+
 #  Copyright (c) 2025 by Lukas Behammer
 #  University of Augsburg
 #  Department of Computer Science
@@ -31,6 +33,12 @@ def manipulate_dictkeys(
     """
     Convert all keys in the dictionary with the manipulation function recursively.
 
+    Parameters
+    ----------
+    dict_input : dict
+        The input dictionary.
+    string_manipulation : Callable[[str], str], optional
+        A function to manipulate the keys of the dictionary. Default is `to_titlecase`.
 
     Returns
     -------
@@ -146,6 +154,19 @@ def clean_dict(
 
 
 def dict_paths_to_strings(dict_input: dict) -> dict:
+    """
+    Convert all ``pathlib.Path`` values in the dictionary to strings recursively.
+
+    Parameters
+    ----------
+    dict_input : dict
+        The input dictionary.
+
+    Returns
+    -------
+    dict
+        The dictionary with all ``pathlib.Path`` values converted to strings.
+    """
     dict_output: dict[str, dict | str] = {}
     for key, value in list(dict_input.items()):
         if isinstance(value, dict):
@@ -160,6 +181,19 @@ def dict_paths_to_strings(dict_input: dict) -> dict:
 
 
 def delete_private_fields_from_dict(dict_input: MutableMapping) -> dict:
+    """
+    Delete all private fields (keys starting with '_') recursively from the dictionary.
+
+    Parameters
+    ----------
+    dict_input : MutableMapping
+        The input dictionary.
+
+    Returns
+    -------
+    dict
+        The cleaned dictionary without private fields.
+    """
     dict_output = {}
     for key, value in list(dict_input.items()):
         if isinstance(value, dict):
@@ -172,9 +206,18 @@ def delete_private_fields_from_dict(dict_input: MutableMapping) -> dict:
 
 
 def delete_none_from_dict(dict_input: dict) -> dict:
-    """Delete None values recursively from all of the dictionaries.
+    """
+    Delete None values recursively from all of the dictionaries.
 
-    From: https://stackoverflow.com/questions/33797126/proper-way-to-remove-keys-in-dictionary-with-none-values-in-python
+    Parameters
+    ----------
+    dict_input : dict
+        The input dictionary.
+
+    Returns
+    -------
+    dict
+        The cleaned dictionary without None values.
     """
     # Source - https://stackoverflow.com/a/66127889
     # Posted by Vova, modified by community. See post 'Timeline' for change history
@@ -196,6 +239,23 @@ def delete_none_from_dict(dict_input: dict) -> dict:
 def add_levels_to_dict(
     levels: "Sequence[Level]", column_name: str, output_dict: dict
 ) -> dict:
+    """
+    Convert Level objects to dictionary and add them under "Levels" key.
+
+    Parameters
+    ----------
+    levels : Sequence[Level]
+        A sequence of Level objects to be converted and added.
+    column_name : str
+        The column name under which the levels will be added.
+    output_dict : dict
+        The dictionary to which the levels will be added.
+
+    Returns
+    -------
+    dict
+        The updated dictionary with levels added under the specified column name.
+    """
     levels_dict = {}
     for level in levels:
         level_value = asdict(level)
