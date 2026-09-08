@@ -168,6 +168,10 @@ def delete_none_from_dict(dict_input: dict) -> dict:
 
     From: https://stackoverflow.com/questions/33797126/proper-way-to-remove-keys-in-dictionary-with-none-values-in-python
     """
+    # Source - https://stackoverflow.com/a/66127889
+    # Posted by Vova, modified by community. See post 'Timeline' for change history
+    # Retrieved 2025-11-25, License - CC BY-SA 4.0
+
     for key, value in list(dict_input.items()):
         if isinstance(value, dict):
             delete_none_from_dict(value)

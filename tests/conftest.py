@@ -19,7 +19,10 @@ class FixtureParameterNotSupportedError(Exception):
 
 
 def _permutate_dict(data):
-    # From https://stackoverflow.com/a/61557885
+    # Source - https://stackoverflow.com/a/61557885
+    # Posted by Thierry Lathuille
+    # Retrieved 2025-11-25, License - CC BY-SA 4.0
+
     product_values = itertools.product(*data.values())
     return [dict(zip(data.keys(), values, strict=False)) for values in product_values]
 
