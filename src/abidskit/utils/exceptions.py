@@ -1,3 +1,5 @@
+"""Custom exceptions and warnings for aBIDSkit."""
+
 #  Copyright (c) 2025 by Lukas Behammer
 #  University of Augsburg
 #  Department of Computer Science
