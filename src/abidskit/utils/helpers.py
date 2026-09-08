@@ -1,3 +1,5 @@
+"""Helper functions for various tasks in the aBIDSkit package."""
+
 #  Copyright (c) 2025 by Lukas Behammer
 #  University of Augsburg
 #  Department of Computer Science
@@ -65,6 +67,22 @@ REQUIRED_ENTITIES_FOR_WRITING = {
 
 
 def set_attr_from_dict(obj: T, data: dict) -> None:
+    """
+    Set attributes of an object from a dictionary.
+
+    Parameters
+    ----------
+    obj : T
+        The object whose attributes are to be set.
+    data : dict
+        A dictionary containing the attributes and their values to set.
+
+    Raises
+    ------
+    FieldNotValidError
+        If a key in the dictionary does not correspond to a valid attribute of the
+        object.
+    """
     data = clean_dict(
         data,
         skip_keys_to_manipulate=ManipulateKeysOption.ALL_KEYS_MANIPULATE,
@@ -83,11 +101,43 @@ def set_attr_from_dict(obj: T, data: dict) -> None:
 
 
 def parse_json_sidecar(sidecar_path: pathlib.Path) -> dict:
+    """
+    Parse a JSON sidecar file and return its contents as a dictionary.
+
+    Parameters
+    ----------
+    sidecar_path : pathlib.Path
+        The path to the JSON sidecar file.
+
+    Returns
+    -------
+    dict
+        The contents of the JSON sidecar file as a dictionary.
+
+    Notes
+    -----
+    This function assumes that the JSON file is encoded in UTF-8 and wraps the
+    ``json.load`` function for convenience.
+    """
     with sidecar_path.open("r", encoding="utf-8") as f:
         return json.load(f)
 
 
 def parse_descriptive_tsv(tsv_path: pathlib.Path) -> Iterator[dict]:
+    """
+    Parse a descriptive TSV file and yield each entry as a dictionary.
+
+    Parameters
+    ----------
+    tsv_path : pathlib.Path
+        The path to the TSV file.
+
+    Yields
+    ------
+    dict
+        Each entry in the TSV file as a dictionary, with keys corresponding to the
+        column headers.
+    """
     with tsv_path.open("r", encoding="utf-8") as f:
         lines = f.readlines()
         headers = lines[0].strip().split("\t")
@@ -98,6 +148,24 @@ def parse_descriptive_tsv(tsv_path: pathlib.Path) -> Iterator[dict]:
 
 
 def get_root_files(dataset: "Dataset") -> None:
+    """
+    Get all files in the root directory of the dataset and apply basic checks.
+
+    Parameters
+    ----------
+    dataset : Dataset
+        The dataset object.
+
+    Warnings
+    --------
+    This function changes the state of the dataset object.
+
+    See Also
+    --------
+    check_dataset_description_present : Check for the presence of the dataset
+        description file.
+    check_files : Apply basic checks to the files in the root directory.
+    """
     files = list(dataset.root.iterdir())
     check_dataset_description_present(dataset)
 
@@ -107,6 +175,29 @@ def get_root_files(dataset: "Dataset") -> None:
 def get_matching_subpaths(
     path: pathlib.Path, matches: Sequence[str], root: pathlib.Path
 ) -> list[pathlib.Path]:
+    """
+    Get all subpaths of a given path that match specified patterns.
+
+    Parameters
+    ----------
+    path : pathlib.Path
+        The path to analyze.
+    matches : Sequence[str]
+        A sequence of glob patterns to match against the subpaths.
+    root : pathlib.Path
+        The root directory to which the subpaths are relative.
+
+    Returns
+    -------
+    list[pathlib.Path]
+        A list of subpaths that match the specified patterns.
+
+    Notes
+    -----
+    The function generates all parent directories of the given path relative to
+    the root directory including `path` itself and checks each against the provided
+    glob-style patterns.
+    """
     # Get matching subpaths in the root directory
     paths = list(path.relative_to(root).parents) + [path]
     return [
@@ -118,6 +209,21 @@ def get_matching_subpaths(
 
 
 def get_entity_from_file(path: pathlib.Path, entity_name: str) -> dict[str, str]:
+    """
+    Extract entity values from a file name based on the specified entity name.
+
+    Parameters
+    ----------
+    path : pathlib.Path
+        The path of the file from which to extract the entity.
+    entity_name : str
+        The name of the entity to extract.
+
+    Returns
+    -------
+    dict[str, str]
+        A dictionary containing the extracted entity and its value.
+    """
     entities = {}
     entity_name = entity_name.replace(" ", "")
     pattern = re.compile(rf"(?P<entity>({entity_name}))-(?P<value>[a-zA-Z0-9]+)")
@@ -131,6 +237,23 @@ def get_entity_from_file(path: pathlib.Path, entity_name: str) -> dict[str, str]
 def get_tsv_json_files(
     path: pathlib.Path, file_name: str
 ) -> tuple[pathlib.Path | None, pathlib.Path | None]:
+    """
+    Get TSV and JSON files matching the specified file name in the given path.
+
+    Parameters
+    ----------
+    path : pathlib.Path
+        The directory path to search for files.
+    file_name : str
+        The base name of the files to search for (without extension).
+
+    Returns
+    -------
+    tuple[pathlib.Path | None, pathlib.Path | None]
+        A tuple containing the paths to the found TSV and JSON files. If a file
+        type is not found, its corresponding value in the tuple will be None. The first
+        element is the TSV file path, the second element is the JSON file path.
+    """
     files = path.glob(f"{file_name}.*")
     tsv_path = None
     json_path = None
@@ -231,6 +354,18 @@ def add_object_to_sequence(
     entity_class: "type[E] | type[EC] | type[EE] | type[MC] | type[Scan]",
     **kwargs: Any,
 ) -> None:
+    """
+    Create an instance of an entity and add it to a sequence.
+
+    Parameters
+    ----------
+    entity_list : MutableSequence
+        The sequence to which the instance will be added.
+    entity_class : type[E] | type[EC] | type[EE] | type[MC] | type[Scan]
+        The class of the instance to be created and added to the list.
+    **kwargs : Any
+        The keyword arguments to be passed to the constructor of the class.
+    """
     entity_instance = entity_class(**kwargs)
     entity_list.append(entity_instance)
 
@@ -239,6 +374,21 @@ def append_path(
     input_path: os.PathLike | str,
     appendix: str,
 ) -> pathlib.Path:
+    """
+    Append a string to the stem (without file extension) of a given file path.
+
+    Parameters
+    ----------
+    input_path : os.PathLike | str
+        The original file path.
+    appendix : str
+        The string to append to the stem of the file path.
+
+    Returns
+    -------
+    pathlib.Path
+        The modified file path with the appended string in the stem.
+    """
     path = pathlib.Path(input_path)
     return path.with_stem(path.stem + appendix)
 
@@ -247,8 +397,19 @@ def copy_file(
     source_path: os.PathLike | str,
     destination_path: os.PathLike | str,
 ) -> None:
+    """
+    Copy a file from source to destination.
+
+    Parameters
+    ----------
+    source_path : os.PathLike | str
+        The path to the source file.
+    destination_path : os.PathLike | str
+        The path to the destination file.
+    """
     source_path = pathlib.Path(source_path)
     destination_path = pathlib.Path(destination_path)
+    # TODO: add overwrite functionality / checks
     if source_path == destination_path:
         warn(
             "Source and destination paths are the same. Skipping copy.",
@@ -263,6 +424,21 @@ def copy_file(
 def write_entities(
     output_path: os.PathLike | str, entities: "Sequence[PEntity]"
 ) -> None:
+    """
+    Write multiple entities to disk.
+
+    Parameters
+    ----------
+    output_path : os.PathLike | str
+        The base output path where entities should be written.
+    entities : Sequence[PEntity]
+        A sequence of entities to write.
+
+    Notes
+    -----
+    A new subdirectory is created for each entity if there are multiple entities
+    or if the entity is mandatory for writing.
+    """
     output_path = pathlib.Path(output_path)
     for entity in entities:
         path = (
@@ -274,6 +450,16 @@ def write_entities(
 
 
 def write_json(content: dict[str, Any], output_path: os.PathLike | str) -> None:
+    """
+    Write a dictionary as a JSON file to the specified output path.
+
+    Parameters
+    ----------
+    content : dict[str, Any]
+        The dictionary content to write to the JSON file.
+    output_path : os.PathLike | str
+        The path where the JSON file should be written.
+    """
     output_path = pathlib.Path(output_path)
     if content:
         json.dump(
@@ -285,6 +471,15 @@ def write_json(content: dict[str, Any], output_path: os.PathLike | str) -> None:
 
 
 def get_data() -> Any:
+    """
+    Decorator to fetch data using the configured data fetching package.
+
+    Returns
+    -------
+    Any
+        The decorated function with data fetching capability.
+    """
+
     def decorator(f):  # numpydoc ignore=GL08
         @wraps(f)
         def wrapper(*args, **kwargs):  # numpydoc ignore=GL08
