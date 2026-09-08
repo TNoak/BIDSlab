@@ -25,11 +25,14 @@ import pandas as pd
 from bidslab.common.base import BaseAcquisition, BaseTask
 from bidslab.common.specs_misc import (
     Column,
+    Event,
     Filter,
     Hardware,
     Institution,
     Recording,
     Run,
+    get_events_from_files,
+    write_events_to_files,
 )
 from bidslab.utils.dict_manipulation import ManipulateKeysOption, clean_dict
 from bidslab.utils.exceptions import (
@@ -252,6 +255,8 @@ class EMGRecording(Recording):
         self._channels: MutableSequence[EMGChannel] | None = None
         self._coordinate_systems: MutableSequence[EMGCoordinateSystem] | None = None
 
+        self._events: Sequence[Event] | None = None
+
         self._run: "EMGRun | None" = None
 
         # Try to set attributes from arguments
@@ -405,11 +410,26 @@ class EMGRecording(Recording):
     def data(self, value: pd.DataFrame) -> None:
         self._data = value
 
+    @property
+    def events(self) -> Sequence[Event] | None:
+        if self._events is None:
+            self._events = get_events_from_files(self, self.root)
+
+        return self._events
+
+    @events.setter
+    def events(self, value: Sequence[Event]) -> None:
+        self._events = value
+
     def _update_description(self) -> None:
         file_name = f"*_{self.recording_id}_"
         _update_description_data(self, file_name)
 
     def write(self, output_path):
+        # write events files
+        if self.events:
+            write_events_to_files(self, self.events, output_path)
+
         # TODO write data files (_emg.bdf/edf/+)
         # usual path
 

@@ -339,7 +339,6 @@ class Run(Entity, Generic[A]):
         self._acquisition: A | None = None
 
         self._physio: Sequence[PhysioRecording] | None = None
-        self._events: Sequence[Event] | None = None
         self._stims: Sequence[Stim] | None = None
 
         set_attr_from_dict(self, kwargs)
@@ -404,17 +403,6 @@ class Run(Entity, Generic[A]):
             raise NotImplementedError
 
     @property
-    def events(self) -> Sequence[Event] | None:
-        if self._events is None:
-            self._events = get_events_from_files(self, self.root)
-
-        return self._events
-
-    @events.setter
-    def events(self, value: Sequence[Event]) -> None:
-        self._events = value
-
-    @property
     def stims(self) -> Sequence[Stim] | None:
         # TODO json sidecar may be in higher directory levels
         if self._stims is None:
@@ -433,10 +421,6 @@ class Run(Entity, Generic[A]):
         return entities
 
     def write(self, output_path: os.PathLike | str) -> None:
-        # write events files
-        if self.events:
-            write_events_to_files(self, self.events, output_path)
-
         # write stim files
         if self.stims:
             write_stims_to_files(self.stims, output_path)

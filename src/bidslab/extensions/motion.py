@@ -10,13 +10,21 @@ import os
 import pathlib
 import re
 from dataclasses import asdict, dataclass
-from typing import Any, Mapping, MutableSequence
+from typing import Any, Mapping, MutableSequence, Sequence
 from warnings import warn
 
 import pandas as pd
 
 from bidslab.common.base import BaseAcquisition, BaseTask, Entity
-from bidslab.common.specs_misc import Column, Hardware, Institution, Run
+from bidslab.common.specs_misc import (
+    Column,
+    Event,
+    Hardware,
+    Institution,
+    Run,
+    get_events_from_files,
+    write_events_to_files,
+)
 from bidslab.settings import get_settings_value
 from bidslab.utils.dict_manipulation import (
     ManipulateKeysOption,
@@ -152,6 +160,8 @@ class MotionRun(Run):
         self._channels: MutableSequence[MotionChannel] | None = None
         self._data: Any = None
 
+        self._events: Sequence[Event] | None = None
+
         set_attr_from_dict(self, kwargs)
 
     @property
@@ -213,6 +223,17 @@ class MotionRun(Run):
     def data(self, value: pd.DataFrame) -> None:
         self._data = value
 
+    @property
+    def events(self) -> Sequence[Event] | None:
+        if self._events is None:
+            self._events = get_events_from_files(self, self.root)
+
+        return self._events
+
+    @events.setter
+    def events(self, value: Sequence[Event]) -> None:
+        self._events = value
+
     def list_channels(self) -> pd.DataFrame:
         channels_dataframe = pd.DataFrame()
         for motion_channel in self.channels if self.channels else []:
@@ -254,6 +275,11 @@ class MotionRun(Run):
 
     def write(self, output_path: os.PathLike | str) -> None:
         super().write(output_path)
+
+        # write events files
+        if self.events:
+            write_events_to_files(self, self.events, output_path)
+
         output_path = pathlib.Path(output_path)
         # write motion data to "*_motion.tsv"
         output_path_data = append_path(output_path, "_motion.tsv")
