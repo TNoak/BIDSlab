@@ -1,3 +1,10 @@
+"""Motion extension models for BIDS motion-tracking datasets.
+
+This module implements motion-specific task, tracking system, acquisition, run,
+and channel classes together with helpers for reading and writing BIDS motion
+sidecars and data tables.
+"""
+
 #  Copyright (c) 2025 by Lukas Behammer
 #  University of Augsburg
 #  Department of Computer Science
@@ -68,6 +75,27 @@ MOTION_CHANNEL_TYPE_ALLOWED_FIELD_ENTRIES = {
 
 @dataclass(slots=True)
 class ReferenceFrame:
+    """
+    Describe a named motion reference frame.
+
+    Parameters
+    ----------
+    name : str
+        Reference-frame label used in channel metadata.
+
+    Attributes
+    ----------
+    name : str
+        Reference-frame label.
+    rotation_order, rotation_rule, spatial_axes, description : str | None
+        Optional metadata describing orientation semantics.
+
+    Notes
+    -----
+    Reference frame definitions are serialized under ``reference_frame`` levels
+    in motion channel JSON sidecars.
+    """
+
     name: str
     rotation_order: str | None = None
     rotation_rule: str | None = None
@@ -75,13 +103,32 @@ class ReferenceFrame:
     description: str | None = None
 
     def __repr__(self) -> str:
+        """Return a string representation of the reference frame."""
         return f"<ReferenceFrame name={self.name}>"
 
     def __hash__(self) -> int:
+        """Return a hash of the reference frame."""
         return id(self)
 
 
 class MotionChannel:
+    """
+    Represent one channel in a BIDS motion recording.
+
+    Parameters
+    ----------
+    name, component, type, tracked_point, units
+        Core BIDS ``*_channels.tsv`` fields describing the motion signal.
+    **kwargs
+        Optional channel metadata such as placement, status, and reference frame.
+
+    Raises
+    ------
+    FieldEntryNotValidError
+        If ``component`` or ``type`` is assigned a value outside the allowed BIDS
+        vocabulary.
+    """
+
     def __init__(
         self,
         name: str,
@@ -107,14 +154,36 @@ class MotionChannel:
         set_attr_from_dict(self, kwargs)
 
     def __repr__(self) -> str:
+        """Return a string representation of the motion channel."""
         return f"<MotionChannel name={self.name}>"
 
     @property
     def type(self) -> str | None:
+        """
+        Get the BIDS channel type.
+
+        Returns
+        -------
+        str | None
+            Motion channel type such as ``POS`` or ``ACCEL``.
+        """
         return self._type
 
     @type.setter  # noqa: A003
     def type(self, value: str) -> None:
+        """
+        Set the BIDS channel type.
+
+        Parameters
+        ----------
+        value : str
+            Allowed motion channel type.
+
+        Raises
+        ------
+        FieldEntryNotValidError
+            If ``value`` is not part of the allowed BIDS vocabulary.
+        """
         if value not in MOTION_CHANNEL_TYPE_ALLOWED_FIELD_ENTRIES:
             raise FieldEntryNotValidError(
                 f"Field `Type` must be one "
@@ -124,10 +193,31 @@ class MotionChannel:
 
     @property
     def component(self) -> str | None:
+        """
+        Get the channel component label.
+
+        Returns
+        -------
+        str | None
+            Component axis or quaternion element.
+        """
         return self._component
 
     @component.setter
     def component(self, value: str) -> None:
+        """
+        Set the channel component label.
+
+        Parameters
+        ----------
+        value : str
+            Allowed component label.
+
+        Raises
+        ------
+        FieldEntryNotValidError
+            If ``value`` is not allowed by the motion extension.
+        """
         if value not in MOTION_CHANNEL_COMPONENT_ALLOWED_FIELD_ENTRIES:
             raise FieldEntryNotValidError(
                 f"Field `Component` must be one "
@@ -137,6 +227,8 @@ class MotionChannel:
 
 
 class MotionRun(Run):
+    """Represent a motion run containing channels and tracked data."""
+
     def __init__(self, base_path: os.PathLike | str, run_id: int, **kwargs):
         super().__init__(base_path=base_path, run_id=run_id)
 
@@ -147,6 +239,19 @@ class MotionRun(Run):
 
     @property
     def acquisition(self) -> "MotionAcquisition | None":
+        """
+        Get the parent MotionAcquisition for this run.
+
+        Returns
+        -------
+        MotionAcquisition | None
+            The parent acquisition object, or None if not linked.
+
+        Warns
+        -----
+        TopLevelEntityNotLinkedWarning
+            If not linked to a MotionAcquisition object.
+        """
         if self._acquisition:
             return self._acquisition
 
@@ -161,6 +266,14 @@ class MotionRun(Run):
 
     @property
     def channels(self) -> MutableSequence[MotionChannel] | None:
+        """
+        Get the motion channels for this run.
+
+        Returns
+        -------
+        MutableSequence[MotionChannel] | None
+            Sequence of MotionChannel objects or None.
+        """
         return self._channels
 
     @channels.setter
@@ -169,6 +282,18 @@ class MotionRun(Run):
 
     @property
     def data(self):
+        """
+        Load or return cached motion samples.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Motion data with channel names applied as column labels.
+
+        Notes
+        -----
+        Data is loaded lazily from the matching ``*_motion.tsv`` file.
+        """
         if self._data is None:
             file_name = f"*{self.acquisition.tracking_system.tracking_system_id}*"
             file_name += (
@@ -196,6 +321,7 @@ class MotionRun(Run):
         self._data = value
 
     def list_channels(self) -> pd.DataFrame:
+        """Return a channel table suitable for ``*_channels.tsv`` output."""
         channels_dataframe = pd.DataFrame()
         for motion_channel in self.channels if self.channels else []:
             channel_dict = motion_channel.__dict__.copy()
@@ -220,6 +346,7 @@ class MotionRun(Run):
         return channels_dataframe
 
     def _reference_frames(self) -> set[ReferenceFrame]:
+        """Collect unique :py:class:`ReferenceFrame` objects from channels."""
         reference_frames_set = set()
         for motion_channel in self.channels if self.channels else []:
             reference_frame = motion_channel.reference_frame
@@ -228,6 +355,7 @@ class MotionRun(Run):
         return reference_frames_set
 
     def _columns(self) -> set[Column]:
+        """Collect unique auxiliary channel columns for sidecar output."""
         columns_set = set()
         for motion_channel in self.channels if self.channels else []:
             for column in motion_channel.columns if motion_channel.columns else []:
@@ -235,6 +363,14 @@ class MotionRun(Run):
         return columns_set
 
     def write(self, output_path: os.PathLike | str) -> None:
+        """
+        Write motion data, channel tables, and channel sidecars.
+
+        Parameters
+        ----------
+        output_path : os.PathLike or str
+            Output file stem used to derive ``_motion`` and ``_channels`` files.
+        """
         output_path = pathlib.Path(output_path)
         # write motion data to "*_motion.tsv"
         output_path_data = append_path(output_path, "_motion.tsv")
@@ -271,6 +407,8 @@ class MotionRun(Run):
 
 
 class MotionAcquisition(BaseAcquisition):
+    """Represent a motion acquisition beneath a tracking system."""
+
     def __init__(
         self,
         base_path: os.PathLike | str,
@@ -313,6 +451,7 @@ class MotionAcquisition(BaseAcquisition):
 
     @property
     def tracking_system(self) -> "TrackSys | None":
+        """Get the parent tracking system linked to the acquisition."""
         if self._tracking_system:
             return self._tracking_system
 
@@ -328,6 +467,14 @@ class MotionAcquisition(BaseAcquisition):
 
     @property
     def runs(self) -> MutableSequence[MotionRun]:
+        """
+        Get runs contained in the acquisition.
+
+        Returns
+        -------
+        MutableSequence[MotionRun]
+            Discovered runs, defaulting to ``run-0`` when none are present.
+        """
         if not self._runs:
             if self.tracking_system:
                 file_name = f"*{self.tracking_system.tracking_system_id}*"
@@ -393,6 +540,8 @@ class MotionAcquisition(BaseAcquisition):
 
 
 class TrackSys(Entity):
+    """Represent a motion tracking system within a task."""
+
     def __init__(
         self,
         base_path: os.PathLike | str,
@@ -421,12 +570,14 @@ class TrackSys(Entity):
         set_attr_from_dict(self, kwargs)
 
     def __repr__(self) -> str:
+        """Return a string representation of the tracking system."""
         return (
             f"<TrackSys id={self.tracking_system_id}, name={self.tracking_system_name}>"
         )
 
     @property
     def hardware(self) -> Hardware | None:
+        """Return hardware metadata linked to the tracking system."""
         return self._hardware
 
     @hardware.setter
@@ -443,6 +594,7 @@ class TrackSys(Entity):
 
     @property
     def institution(self) -> Institution | None:
+        """Return institution metadata linked to the tracking system."""
         return self._institution
 
     @institution.setter
@@ -459,6 +611,7 @@ class TrackSys(Entity):
 
     @property
     def task(self) -> "MotionTask | None":
+        """Get the task linked to the tracking system."""
         if self._task:
             return self._task
 
@@ -474,6 +627,15 @@ class TrackSys(Entity):
 
     @property
     def acquisitions(self) -> MutableSequence[MotionAcquisition]:
+        """
+        Get acquisitions associated with the tracking system.
+
+        Returns
+        -------
+        MutableSequence[MotionAcquisition]
+            Acquisitions discovered from motion sidecars or synthesized from the
+            top-level motion description.
+        """
         if not self._acquisitions:
             self._acquisitions = []
             files = self.root.iterdir()
@@ -549,10 +711,20 @@ class TrackSys(Entity):
             )
 
     def write(self, output_path: os.PathLike | str) -> None:
+        """
+        Write all acquisitions belonging to the tracking system.
+
+        Parameters
+        ----------
+        output_path : os.PathLike or str
+            Output path stem passed to nested acquisition writers.
+        """
         write_entities(output_path, self.acquisitions)
 
 
 class MotionTask(BaseTask):
+    """Represent a BIDS motion task composed of tracking systems."""
+
     def __init__(
         self, base_path: os.PathLike | str, task_name: str, **kwargs: Any
     ) -> None:
@@ -562,6 +734,14 @@ class MotionTask(BaseTask):
 
     @property
     def tracking_systems(self) -> MutableSequence[TrackSys]:
+        """
+        Get tracking systems associated with the motion task.
+
+        Returns
+        -------
+        MutableSequence[TrackSys]
+            Tracking systems discovered from motion JSON sidecars.
+        """
         if not self._tracking_systems:
             self._tracking_systems = []
             files = self.root.iterdir()
@@ -624,6 +804,14 @@ class MotionTask(BaseTask):
             )
 
     def write(self, output_path: os.PathLike | str) -> None:
+        """
+        Write motion data, channel tables, and channel sidecars.
+
+        Parameters
+        ----------
+        output_path : os.PathLike or str
+            Output file stem used to derive ``_motion`` and ``_channels`` files.
+        """
         # write json sidecar to "*_motion.json"
         task_dict = self.__dict__.copy()
         for tracking_system in self.tracking_systems:
@@ -675,6 +863,20 @@ class MotionTask(BaseTask):
 
 
 def parse_motion_json_sidecar(sidecar_path: pathlib.Path) -> dict:
+    """
+    Split a motion JSON sidecar into task, hardware, institution, and motion blocks.
+
+    Parameters
+    ----------
+    sidecar_path : pathlib.Path
+        Path to the motion JSON sidecar.
+
+    Returns
+    -------
+    dict
+        Dictionary containing ``task``, ``hardware``, ``institution``, and
+        ``motion`` sub-dictionaries.
+    """
     with sidecar_path.open("r", encoding="utf-8") as f:
         data = json.load(f)
         task_description = {}
@@ -700,6 +902,7 @@ def parse_motion_json_sidecar(sidecar_path: pathlib.Path) -> dict:
 
 
 def get_reference_frames(reference_frames_levels: dict) -> dict[str, ReferenceFrame]:
+    """Create :py:class:`ReferenceFrame` objects from sidecar ``Levels`` data."""
     reference_frames_dict = {}
     for ref_frame_name, ref_frame_values in reference_frames_levels.items():
         ref_frame_values_snakecase = {}
@@ -716,6 +919,19 @@ def get_motion_channels(
     tsv_path: pathlib.Path | None,
     json_path: pathlib.Path | None,
 ) -> MutableSequence[MotionChannel]:
+    """
+    Build motion channel objects from BIDS ``*_channels`` files.
+
+    Parameters
+    ----------
+    tsv_path, json_path : pathlib.Path | None
+        Optional channel table and sidecar paths.
+
+    Returns
+    -------
+    MutableSequence[MotionChannel]
+        Constructed motion channels with resolved reference-frame metadata.
+    """
     motion_channels: list[MotionChannel] = []
     columns = []
     reference_frames_dict = None

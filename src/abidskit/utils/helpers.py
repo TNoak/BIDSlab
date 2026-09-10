@@ -472,12 +472,17 @@ def write_json(content: dict[str, Any], output_path: os.PathLike | str) -> None:
 
 def get_data() -> Any:
     """
-    Decorator to fetch data using the configured data fetching package.
+    Fetch data using the configured data fetching package.
 
     Returns
     -------
     Any
         The decorated function with data fetching capability.
+
+    Notes
+    -----
+    This is a decorator function that wraps other functions to provide
+    automatic data fetching when required paths do not exist.
     """
 
     def decorator(f):  # numpydoc ignore=GL08
@@ -552,6 +557,24 @@ def load_tsv_data(
 # TODO: write tests, especially with multi-channel data
 @get_data()
 def load_edf_data(*, path: pathlib.Path) -> pd.DataFrame | np.ndarray:
+    """
+    Load EDF (European Data Format) file data.
+
+    Parameters
+    ----------
+    path : pathlib.Path
+        Path to the EDF file to load.
+
+    Returns
+    -------
+    pd.DataFrame | np.ndarray
+        The loaded data as a DataFrame (if using Pandas) or ndarray (if using NumPy).
+
+    Notes
+    -----
+    The output format is controlled by the DATA_LOADING_PACKAGE setting.
+    If set to PANDAS, returns a DataFrame; if set to NUMPY, returns an ndarray.
+    """
     data: pd.DataFrame | np.ndarray
 
     reader = edf_reader.EdfWrapper(str(path))
