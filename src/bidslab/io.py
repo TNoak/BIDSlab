@@ -14,7 +14,7 @@ from bidslab.common.specs_dataset import Dataset
 def load_dataset(path: os.PathLike | str, bids_version: str = "1.10.1") -> Dataset:
     if not isinstance(path, pathlib.Path):
         path = pathlib.Path(path)
-
+    path = path.resolve()
     bids_dataset = Dataset(root=path, bids_version=bids_version)
     bids_dataset.load()
 
