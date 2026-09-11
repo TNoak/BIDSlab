@@ -1,4 +1,5 @@
-"""Task-level BIDS specification classes.
+"""
+Task-level BIDS specification classes.
 
 This module provides the generic :py:class:`Task` implementation used to model
 BIDS task entities and discover acquisition sub-entities from an existing
@@ -46,17 +47,17 @@ class Task(BaseTask):
     acquisitions : MutableSequence[Acquisition]
         Acquisition objects associated with this task.
 
-    Notes
-    -----
-    The base implementation discovers acquisitions from filenames containing the
-    ``acq-`` entity.
-
     See Also
     --------
     :py:class:`abidskit.common.base.BaseTask`
         Abstract base class providing common task behavior.
     :py:class:`abidskit.common.specs_misc.Acquisition`
         Acquisition entity loaded beneath a task.
+
+    Notes
+    -----
+    The base implementation discovers acquisitions from filenames containing the
+    ``acq-`` entity.
     """
 
     def __init__(
@@ -65,18 +66,6 @@ class Task(BaseTask):
         task_name: str,
         **kwargs: "str | Datatype | MutableSequence",
     ) -> None:
-        """
-        Initialize a task entity.
-
-        Parameters
-        ----------
-        base_path : os.PathLike or str
-            Directory containing task-related files.
-        task_name : str
-            Name of the task used to derive ``task_id`` when omitted.
-        **kwargs
-            Additional task metadata applied to the instance.
-        """
         self.cog_atlas_id = None  # !: Only for special datatypes
         self.cog_poid = None  # !: Only for special datatypes
 
@@ -86,24 +75,8 @@ class Task(BaseTask):
 
     @property
     def acquisitions(self) -> MutableSequence[Acquisition]:
-        """
-        Get acquisitions associated with the task.
-
-        Returns
-        -------
-        MutableSequence[Acquisition]
-            Acquisition objects discovered from task filenames.
-
-        Notes
-        -----
-        The list is loaded lazily from the task directory. A default ``acq-00``
-        acquisition is created when no explicit acquisition entity is found.
-
-        See Also
-        --------
-        :py:class:`abidskit.common.specs_misc.Acquisition`
-            Acquisition entity used by the generic task model.
-        """
+        # numpydoc ignore=RT01
+        """Get acquisitions associated with the task."""
         if not self._acquisitions:
             self._acquisitions = []
             files = self.root.iterdir()
@@ -139,20 +112,7 @@ class Task(BaseTask):
 
     @acquisitions.setter
     def acquisitions(self, value: MutableSequence[str | Acquisition]) -> None:
-        """
-        Set the acquisitions linked to this task.
-
-        Parameters
-        ----------
-        value : MutableSequence[str | Acquisition]
-            Acquisition identifiers or fully initialized
-            :py:class:`abidskit.common.specs_misc.Acquisition` objects.
-
-        Raises
-        ------
-        TypeError
-            If ``value`` is not a mutable sequence of supported entries.
-        """
+        # numpydoc ignore=GL08
         if isinstance(value, MutableSequence):
             if all(isinstance(entry, str) for entry in value):
                 self._acquisitions = []
@@ -185,6 +145,12 @@ class Task(BaseTask):
         None
             This method is currently a placeholder.
 
+        Raises
+        ------
+        NotImplementedError
+            If generic task serialization is requested while
+            ``IGNORE_NOT_IMPLEMENTED`` is disabled.
+
         Warnings
         --------
         This method is not yet implemented and will raise a NotImplementedError
@@ -193,6 +159,7 @@ class Task(BaseTask):
         Notes
         -----
         Generic task serialization has not yet been implemented in aBIDSkit.
+        Specialized task subclasses are expected to provide concrete writers.
         """
         # TODO: implement writing of basic Task data
         if not get_settings_value("IGNORE_NOT_IMPLEMENTED"):

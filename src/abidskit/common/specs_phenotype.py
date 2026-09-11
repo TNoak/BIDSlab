@@ -1,4 +1,5 @@
-"""Phenotype and participant-measurement specification classes.
+"""
+Phenotype and participant-measurement specification classes.
 
 This module models phenotype columns and participant-linked measurement tools
 used for BIDS ``phenotype/`` tables.
@@ -47,30 +48,20 @@ class PhenotypeColumn(Column):
         If ``derivative`` is neither boolean, ``None``, nor the strings
         ``"true"``/``"false"``.
 
-    Notes
-    -----
-    BIDS phenotype JSON sidecars may extend regular column metadata with
-    phenotype-specific annotations such as derivative status.
-
     See Also
     --------
     :py:class:`MeasurementTool`
         Container for phenotype rows that may reference these columns.
+
+    Notes
+    -----
+    BIDS phenotype JSON sidecars may extend regular column metadata with
+    phenotype-specific annotations such as derivative status.
     """
 
     def __init__(
         self, name: str, **kwargs: bool | str | int | float | Mapping | Iterable
     ) -> None:
-        """
-        Initialize a phenotype column description.
-
-        Parameters
-        ----------
-        name : str
-            Phenotype column name.
-        **kwargs
-            Column metadata and optional ``derivative`` flag.
-        """
         derivative = kwargs.pop("derivative", None)
         match derivative:
             case bool() | None:
@@ -118,28 +109,18 @@ class MeasurementTool:
     ValueError
         If ``term_url`` is invalid and validation overrides are disabled.
 
-    Notes
-    -----
-    Instances are often created from rows in ``phenotype/<tool>.tsv`` and then
-    attached to :py:class:`~abidskit.common.specs_summary.Participant` objects.
-
     See Also
     --------
     :py:class:`PhenotypeColumn`
         Column metadata used by phenotype measurement tables.
+
+    Notes
+    -----
+    Instances are often created from rows in ``phenotype/<tool>.tsv`` and then
+    attached to :py:class:`~abidskit.common.specs_summary.Participant` objects.
     """
 
     def __init__(self, name: str, **kwargs: Any) -> None:
-        """
-        Initialize a participant phenotype measurement.
-
-        Parameters
-        ----------
-        name : str
-            Measurement tool name.
-        **kwargs
-            Arbitrary metadata and row values for the tool.
-        """
         self.name: str = name
         self.description: str | None = None
         self.term_url: str | None = None
@@ -155,25 +136,13 @@ class MeasurementTool:
             check_if_valid_uri(self.term_url)
 
     def __repr__(self) -> str:
-        """Return a string representation of the measurement tool."""
+        """Return a string representation of the MeasurementTool object."""
         return f"<MeasurementTool name={self.name}>"
 
     @property
     def participant(self) -> "Participant | None":
-        """
-        Get the participant linked to this measurement.
-
-        Returns
-        -------
-        Participant | None
-            Linked participant, or ``None`` if the measurement has not been
-            attached.
-
-        Notes
-        -----
-        Access may emit a warning when the measurement is not linked to a
-        participant object.
-        """
+        # numpydoc ignore=RT01
+        """Get the participant linked to this measurement."""
         if self._participant:
             return self._participant
 
@@ -182,12 +151,5 @@ class MeasurementTool:
 
     @participant.setter
     def participant(self, value: "Participant") -> None:
-        """
-        Link this measurement to a participant.
-
-        Parameters
-        ----------
-        value : Participant
-            Participant object that owns the measurement.
-        """
+        # numpydoc ignore=GL08
         self._participant = value

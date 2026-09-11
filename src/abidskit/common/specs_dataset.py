@@ -1,4 +1,5 @@
-"""BIDS dataset specification models and serialization helpers.
+"""
+BIDS dataset specification models and serialization helpers.
 
 This module defines the top-level :py:class:`Dataset` container together with
 provenance metadata classes and helper functions for loading and writing
@@ -60,15 +61,6 @@ class SourceDataset:
     """
     Describe a source dataset referenced from a BIDS dataset description.
 
-    Parameters
-    ----------
-    url : str | None, optional
-        URI pointing to the source dataset location.
-    doi : str | None, optional
-        Persistent identifier for the source dataset.
-    version : str | None, optional
-        Version string for the referenced dataset.
-
     Attributes
     ----------
     url : str | None
@@ -84,17 +76,17 @@ class SourceDataset:
         Raised by :py:func:`abidskit.utils.checks.check_if_valid_uri` if ``url``
         or ``doi`` is not a valid URI.
 
-    Notes
-    -----
-    BIDS derivatives may list upstream datasets in the
-    ``SourceDatasets`` field of ``dataset_description.json``.
-
     See Also
     --------
     :py:class:`GeneratedBy`
         Provenance entries describing software used to create the dataset.
     :py:class:`Dataset`
         Top-level dataset container that owns source dataset metadata.
+
+    Notes
+    -----
+    BIDS derivatives may list upstream datasets in the
+    ``SourceDatasets`` field of ``dataset_description.json``.
     """
 
     url: str | None = None
@@ -104,6 +96,11 @@ class SourceDataset:
     def __post_init__(self) -> None:
         """
         Validate URI-like fields after initialization.
+
+        Returns
+        -------
+        None
+            URI fields are validated in place.
 
         Raises
         ------
@@ -121,7 +118,7 @@ class SourceDataset:
             check_if_valid_uri(self.doi)
 
     def __repr__(self) -> str:
-        """Return a short representation of the object."""
+        """Return a string representation of the SourceDataset object."""
         return f"<SourceDataset url={self.url} doi={self.doi} version={self.version}>"
 
 
@@ -129,15 +126,6 @@ class SourceDataset:
 class Container:
     """
     Represent container metadata for a provenance entry.
-
-    Parameters
-    ----------
-    type : str | None, optional
-        Container runtime type such as ``"docker"`` or ``"singularity"``.
-    tag : str | None, optional
-        Version tag or image identifier.
-    uri : str | None, optional
-        URI pointing to the container image or registry entry.
 
     Attributes
     ----------
@@ -154,15 +142,15 @@ class Container:
         Raised by :py:func:`abidskit.utils.checks.check_if_valid_uri` when
         ``uri`` is malformed.
 
-    Notes
-    -----
-    Container metadata is commonly nested under ``GeneratedBy`` entries in BIDS
-    derivative datasets.
-
     See Also
     --------
     :py:class:`GeneratedBy`
         Provenance metadata that can embed container information.
+
+    Notes
+    -----
+    Container metadata is commonly nested under ``GeneratedBy`` entries in BIDS
+    derivative datasets.
     """
 
     type: str | None = None
@@ -173,6 +161,11 @@ class Container:
         """
         Validate the container URI after initialization.
 
+        Returns
+        -------
+        None
+            Container metadata is validated in place.
+
         Raises
         ------
         ValueError
@@ -182,7 +175,7 @@ class Container:
             check_if_valid_uri(self.uri)
 
     def __repr__(self) -> str:
-        """Return a short representation of the container."""
+        """Return a string representation of the Container object."""
         return f"<Container type={self.type} tag={self.tag} uri={self.uri}>"
 
 
@@ -222,33 +215,19 @@ class GeneratedBy:
         If :attr:`container` is assigned a value that is neither a mapping nor a
         :py:class:`Container` instance.
 
-    Notes
-    -----
-    ``GeneratedBy`` entries are part of the BIDS derivatives provenance model.
-
     See Also
     --------
     :py:class:`Container`
         Container metadata nested under provenance entries.
     :py:class:`Dataset`
         Top-level object exposing the :py:attr:`Dataset.generated_by` property.
+
+    Notes
+    -----
+    ``GeneratedBy`` entries are part of the BIDS derivatives provenance model.
     """
 
     def __init__(self, **kwargs: str | Mapping | Container) -> None:
-        """
-        Initialize provenance metadata.
-
-        Parameters
-        ----------
-        **kwargs
-            Keyword arguments mapped to provenance attributes. Nested
-            ``container`` mappings are converted through the property setter.
-
-        Raises
-        ------
-        FieldMissingError
-            If ``name`` is not provided.
-        """
         self.name: str | None = None  # !: This is required
         self.version: str | None = None
         self.description: str | None = None
@@ -265,6 +244,11 @@ class GeneratedBy:
         """
         Validate the code URL after initialization.
 
+        Returns
+        -------
+        None
+            Provenance metadata is validated in place.
+
         Raises
         ------
         ValueError
@@ -279,47 +263,13 @@ class GeneratedBy:
 
     @property
     def container(self) -> Container | None:
-        """
-        Get the container metadata attached to this provenance entry.
-
-        Returns
-        -------
-        Container | None
-            Container metadata associated with the generating software, or
-            ``None`` when no container information was supplied.
-
-        Notes
-        -----
-        This property is a thin wrapper around the private ``_container`` cache
-        and has no side effects when read.
-
-        See Also
-        --------
-        :py:class:`Container`
-            Data structure used for container metadata.
-        """
+        # numpydoc ignore=RT01
+        """Get the container metadata attached to this provenance entry."""
         return self._container
 
     @container.setter
     def container(self, value: Mapping | Container) -> None:
-        """
-        Set the container metadata for this provenance entry.
-
-        Parameters
-        ----------
-        value : Mapping or Container
-            Container metadata as an existing :py:class:`Container` instance or
-            a mapping that can be expanded into one.
-
-        Raises
-        ------
-        TypeError
-            If ``value`` is neither a mapping nor a :py:class:`Container`.
-
-        Notes
-        -----
-        Mapping inputs are normalized into :py:class:`Container` instances.
-        """
+        # numpydoc ignore=GL08
         if isinstance(value, Mapping):
             self._container = Container(**value)
         elif isinstance(value, Container):
@@ -388,12 +338,6 @@ class Dataset:
         Raised by :py:func:`abidskit.utils.checks.check_if_valid_uri` when
         ``dataset_doi`` is provided but invalid.
 
-    Notes
-    -----
-    Raw and derivative datasets in BIDS must provide a
-    ``dataset_description.json`` sidecar. Participant and phenotype metadata are
-    loaded lazily from the dataset tree when accessed.
-
     Warnings
     --------
     The instance stores several convenience path attributes such as
@@ -406,28 +350,24 @@ class Dataset:
         Loader used by :py:attr:`participants`.
     :py:func:`get_phenotypes_from_files`
         Loader for phenotype measurement tables.
+
+    Notes
+    -----
+    Raw and derivative datasets in BIDS must provide a
+    ``dataset_description.json`` sidecar. Participant and phenotype metadata are
+    loaded lazily from the dataset tree when accessed.
+
+    Examples
+    --------
+    >>> dataset = Dataset(root="dataset", bids_version="1.10.0")
+    >>> dataset.load()  # doctest: +SKIP
+    >>> dataset.participants  # doctest: +SKIP
+    [<Participant ...>]
     """
 
     def __init__(
         self, root: os.PathLike, bids_version: str, **kwargs: str | Mapping | Sequence
     ) -> None:
-        """
-        Initialize a dataset model.
-
-        Parameters
-        ----------
-        root : os.PathLike
-            Filesystem path to the dataset root directory.
-        bids_version : str
-            Expected BIDS version for validation and serialization.
-        **kwargs
-            Optional dataset description fields and related metadata.
-
-        Raises
-        ------
-        ValueError
-            Raised if ``dataset_doi`` is provided and is not a valid URI.
-        """
         self.name: str | None = None  # !: This is required
         self.bids_version: str = bids_version  # !: This is required
         self.hed_version: str | Sequence[str] | None = None
@@ -467,7 +407,7 @@ class Dataset:
             check_if_valid_uri(self.dataset_doi)
 
     def __repr__(self) -> str:
-        """Return a string representation of the dataset object."""
+        """Return a string representation of the Dataset object."""
         return (
             f"<BIDSDataset name={self.name} path={self.root} "
             f"bids_version={self.bids_version}>"
@@ -475,46 +415,13 @@ class Dataset:
 
     @property
     def generated_by(self) -> Sequence[GeneratedBy] | None:
-        """
-        Get provenance entries describing software that generated the dataset.
-
-        Returns
-        -------
-        Sequence[GeneratedBy] | None
-            Sequence of :py:class:`GeneratedBy` objects, or ``None`` when no
-            provenance metadata is available.
-
-        Notes
-        -----
-        Accessing this property does not trigger filesystem I/O.
-
-        See Also
-        --------
-        :py:class:`GeneratedBy`
-            Provenance model used for each entry.
-        """
+        # numpydoc ignore=RT01
+        """Get provenance entries describing software that generated the dataset."""
         return self._generated_by
 
     @generated_by.setter
     def generated_by(self, value: Sequence[Mapping] | Sequence[GeneratedBy]) -> None:
-        """
-        Set provenance entries describing software used for dataset generation.
-
-        Parameters
-        ----------
-        value : Sequence[Mapping] or Sequence[GeneratedBy]
-            Provenance entries as mappings or fully constructed
-            :py:class:`GeneratedBy` objects.
-
-        Raises
-        ------
-        TypeError
-            If ``value`` is not a sequence of compatible entries.
-
-        Notes
-        -----
-        Mapping entries are converted to :py:class:`GeneratedBy` instances.
-        """
+        # numpydoc ignore=GL08
         if isinstance(value, Sequence):
             if all(isinstance(entry, Mapping) for entry in value):
                 self._generated_by = []
@@ -530,40 +437,15 @@ class Dataset:
 
     @property
     def source_datasets(self) -> Sequence[SourceDataset] | None:
-        """
-        Get source dataset references for this dataset.
-
-        Returns
-        -------
-        Sequence[SourceDataset] | None
-            Sequence of :py:class:`SourceDataset` objects, or ``None`` if the
-            dataset does not declare any sources.
-
-        See Also
-        --------
-        :py:class:`SourceDataset`
-            Data model for individual source dataset entries.
-        """
+        # numpydoc ignore=RT01
+        """Get source dataset references for this dataset."""
         return self._source_datasets
 
     @source_datasets.setter
     def source_datasets(
         self, value: Sequence[Mapping] | Sequence[SourceDataset]
     ) -> None:
-        """
-        Set the source dataset references for this dataset.
-
-        Parameters
-        ----------
-        value : Sequence[Mapping] or Sequence[SourceDataset]
-            Source dataset definitions as mappings or
-            :py:class:`SourceDataset` instances.
-
-        Raises
-        ------
-        TypeError
-            If ``value`` is not a sequence of valid source dataset entries.
-        """
+        # numpydoc ignore=GL08
         if isinstance(value, Sequence):
             if all(isinstance(entry, Mapping) for entry in value):
                 self._source_datasets = []
@@ -579,30 +461,8 @@ class Dataset:
 
     @property
     def participants(self) -> Sequence[Participant]:
-        """
-        Get participants declared in the dataset.
-
-        Returns
-        -------
-        Sequence[Participant]
-            Participant objects loaded from ``participants.tsv`` or discovered by
-            scanning subject directories.
-
-        Notes
-        -----
-        The participant list is loaded lazily on first access. If no subjects are
-        found, a default ``sub-00`` placeholder participant is created.
-
-        Warnings
-        --------
-        Placeholder participant generation is a convenience fallback and may not
-        represent a valid published BIDS dataset.
-
-        See Also
-        --------
-        :py:func:`get_participants_from_files`
-            Helper used to construct participant objects from BIDS files.
-        """
+        # numpydoc ignore=RT01
+        """Get participants declared in the dataset."""
         if not self._participants:
             tsv_path, json_path = get_tsv_json_files(self.root, "participants")
             self._participants = get_participants_from_files(
@@ -621,25 +481,7 @@ class Dataset:
 
     @participants.setter
     def participants(self, value: Sequence[Mapping] | Sequence[Participant]) -> None:
-        """
-        Set the participants associated with the dataset.
-
-        Parameters
-        ----------
-        value : Sequence[Mapping] or Sequence[Participant]
-            Participant definitions as mappings or existing
-            :py:class:`~abidskit.common.specs_summary.Participant` objects.
-
-        Raises
-        ------
-        TypeError
-            If ``value`` is not a sequence of participant definitions.
-
-        Notes
-        -----
-        Mapping entries are converted into participant objects rooted below the
-        dataset path.
-        """
+        # numpydoc ignore=GL08
         if isinstance(value, Sequence):
             if all(isinstance(entry, Mapping) for entry in value):
                 self._participants = []
@@ -677,11 +519,6 @@ class Dataset:
             If required BIDS fields or files are missing and validation override
             is disabled.
 
-        Notes
-        -----
-        The method also populates convenience path attributes via
-        :py:func:`abidskit.utils.helpers.get_root_files`.
-
         Warnings
         --------
         Validation behavior depends on the ``OVERRIDE_VALIDATION`` setting and
@@ -691,6 +528,11 @@ class Dataset:
         --------
         :py:meth:`write`
             Persist dataset metadata back to disk.
+
+        Notes
+        -----
+        The method also populates convenience path attributes via
+        :py:func:`abidskit.utils.helpers.get_root_files`.
         """
         get_root_files(self)
 
@@ -726,15 +568,22 @@ class Dataset:
         pd.DataFrame
             DataFrame suitable for writing to ``participants.tsv``.
 
-        Notes
-        -----
-        Internal linkage fields and empty columns are removed before returning
-        the table.
-
         See Also
         --------
         :py:meth:`write`
             Uses this method when serializing ``participants.tsv``.
+
+        Notes
+        -----
+        Internal linkage fields and empty columns are removed before returning
+        the table so the result conforms to BIDS ``participants.tsv`` column
+        expectations.
+
+        Examples
+        --------
+        >>> df = dataset.list_participants()  # doctest: +SKIP
+        >>> list(df.columns)  # doctest: +SKIP
+        ['participant_id', 'age', 'sex']
         """
         participants_dataframe = pd.DataFrame()
         for participant in self.participants:
@@ -764,7 +613,8 @@ class Dataset:
 
         Notes
         -----
-        The returned set is used to build the ``participants.json`` sidecar.
+        The returned set is used to build the ``participants.json`` sidecar that
+        documents participant-level TSV columns under the BIDS inheritance model.
         """
         columns_set = set()
         for participant in self.participants:
@@ -794,15 +644,20 @@ class Dataset:
         FileExistsError
             If ``output_path`` already exists and ``overwrite`` is ``False``.
 
-        Notes
-        -----
-        This method writes ``dataset_description.json``, participant metadata,
-        phenotype files, and participant/session content recursively.
-
         See Also
         --------
         :py:meth:`write_phenotype`
             Serialize phenotype measurement files.
+
+        Notes
+        -----
+        This method writes ``dataset_description.json``, participant metadata,
+        phenotype files, and participant/session content recursively while
+        preserving the BIDS directory hierarchy rooted at ``output_path``.
+
+        Examples
+        --------
+        >>> dataset.write("out-dataset", overwrite=True)  # doctest: +SKIP
         """
         output_path = self.root if not output_path else output_path
         output_path = pathlib.Path(output_path)
@@ -895,15 +750,20 @@ class Dataset:
         None
             Files are written as side effects.
 
-        Notes
-        -----
-        Phenotype rows are grouped by measurement tool name and serialized to
-        ``phenotype/<tool>.tsv`` with optional ``.json`` sidecars.
-
         See Also
         --------
         :py:func:`get_phenotypes_from_files`
             Inverse loader for phenotype measurement files.
+
+        Notes
+        -----
+        Phenotype rows are grouped by measurement tool name and serialized to
+        ``phenotype/<tool>.tsv`` with optional ``.json`` sidecars, matching the
+        BIDS convention for participant-associated phenotype instruments.
+
+        Examples
+        --------
+        >>> dataset.write_phenotype("out-dataset")  # doctest: +SKIP
         """
         output_path = pathlib.Path(output_path)
 
@@ -993,15 +853,23 @@ def get_participants_from_files(
     FieldMissingError
         If a participants TSV row omits the required ``participant_id`` column.
 
-    Notes
-    -----
-    If no participants TSV file is present, participant directories matching
-    ``sub-*`` are used as a fallback discovery mechanism.
-
     See Also
     --------
     :py:meth:`Dataset.participants`
         Lazy participant accessor that uses this helper.
+
+    Notes
+    -----
+    If no participants TSV file is present, participant directories matching
+    ``sub-*`` are used as a fallback discovery mechanism. Phenotype rows are
+    attached by participant identifier after being loaded from
+    :py:func:`get_phenotypes_from_files`.
+
+    Examples
+    --------
+    >>> participants = get_participants_from_files(dataset, tsv_path, json_path)  # doctest: +SKIP
+    >>> participants[0].participant_id  # doctest: +SKIP
+    'sub-01'
     """
     participants: MutableSequence[Participant] = []
     columns = []
@@ -1074,15 +942,23 @@ def get_phenotypes_from_files(
     FieldMissingError
         If a phenotype TSV row omits the required ``participant_id`` column.
 
-    Notes
-    -----
-    Each phenotype TSV/JSON pair is interpreted as one measurement tool type as
-    defined by the BIDS ``phenotype/`` convention.
-
     See Also
     --------
     :py:meth:`Dataset.write_phenotype`
         Serialize phenotype information back to disk.
+
+    Notes
+    -----
+    Each phenotype TSV/JSON pair is interpreted as one measurement tool type as
+    defined by the BIDS ``phenotype/`` convention. JSON sidecars are converted
+    into :py:class:`PhenotypeColumn` metadata shared across all rows of the same
+    tool.
+
+    Examples
+    --------
+    >>> phenotypes = get_phenotypes_from_files(dataset)  # doctest: +SKIP
+    >>> phenotypes.get('sub-01', [])  # doctest: +SKIP
+    [<MeasurementTool ...>]
     """
     measurement_tools: dict[str, MutableSequence] = {}
 

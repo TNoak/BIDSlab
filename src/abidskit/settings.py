@@ -35,14 +35,14 @@ class PackageFetching(StrEnum):
     DATALAD : str
         Use DataLad for dataset fetching. Value is "dl".
 
+    See Also
+    --------
+    PackageLoading : Enumeration for data loading packages.
+
     Notes
     -----
     DataLad is a tool for managing data with Git and git-annex, providing
     efficient handling of large datasets.
-
-    See Also
-    --------
-    PackageLoading : Enumeration for data loading packages.
     """
 
     DATALAD = ("dl",)
@@ -62,14 +62,14 @@ class PackageLoading(StrEnum):
     NUMPY : str
         Use NumPy for data loading. Value is "np".
 
+    See Also
+    --------
+    PackageFetching : Enumeration for dataset fetching packages.
+
     Notes
     -----
     Pandas is suitable for tabular data (TSV files), while NumPy can be
     used for array-like data. Pandas is the default choice.
-
-    See Also
-    --------
-    PackageFetching : Enumeration for dataset fetching packages.
     """
 
     PANDAS = ("pd",)
@@ -109,17 +109,17 @@ class Settings:
         The package to use for loading and reading data files.
         Default is :py:attr:`PackageLoading.PANDAS`.
 
-    Notes
-    -----
-    This class is immutable (frozen=True) for thread safety. To change
-    settings, use :py:func:`set_settings_values` or the
-    :py:func:`override_settings_values` context manager.
-
     See Also
     --------
     SETTINGS : The global instance of this class.
     set_settings_values : Function to permanently change settings.
     override_settings_values : Context manager for temporary setting overrides.
+
+    Notes
+    -----
+    This class is immutable (frozen=True) for thread safety. To change
+    settings, use :py:func:`set_settings_values` or the
+    :py:func:`override_settings_values` context manager.
     """
 
     OVERRIDE_VALIDATION: bool = False
@@ -163,6 +163,11 @@ def override_settings_values(
     None
         This is a context manager that yields control.
 
+    See Also
+    --------
+    set_settings_values : Permanently change settings.
+    get_settings_value : Get a single setting value.
+
     Examples
     --------
     Temporarily override settings using a dictionary:
@@ -177,11 +182,6 @@ def override_settings_values(
     >>> with override_settings_values("settings.json"):
     ...     # Code here runs with settings from the file
     ...     pass
-
-    See Also
-    --------
-    set_settings_values : Permanently change settings.
-    get_settings_value : Get a single setting value.
     """
     global SETTINGS
     original_settings = SETTINGS.__dict__.copy()
@@ -217,6 +217,12 @@ def set_settings_values(settings: dict[str, bool | str] | os.PathLike) -> None:
         If an invalid value is provided for a package-related setting
         (DATASET_FETCHING_PACKAGE or DATA_LOADING_PACKAGE).
 
+    See Also
+    --------
+    override_settings_values : Context manager for temporary overrides.
+    get_settings_value : Get a single setting value.
+    save_settings_values : Save current settings to a file.
+
     Notes
     -----
     String values for package settings are automatically converted to the
@@ -233,12 +239,6 @@ def set_settings_values(settings: dict[str, bool | str] | os.PathLike) -> None:
     Load settings from a JSON file:
 
     >>> set_settings_values("settings.json")
-
-    See Also
-    --------
-    override_settings_values : Context manager for temporary overrides.
-    get_settings_value : Get a single setting value.
-    save_settings_values : Save current settings to a file.
     """
     global SETTINGS
     if isinstance(settings, os.PathLike):
@@ -289,16 +289,16 @@ def get_settings_value(name: str) -> str | bool | None:
     KeyError
         If the setting name does not exist in the Settings class.
 
+    See Also
+    --------
+    set_settings_values : Change a setting value.
+    override_settings_values : Temporarily override a setting.
+
     Examples
     --------
     >>> value = get_settings_value("OVERRIDE_VALIDATION")
     >>> print(value)
     False
-
-    See Also
-    --------
-    set_settings_values : Change a setting value.
-    override_settings_values : Temporarily override a setting.
     """
     global SETTINGS
     return SETTINGS.__dict__[name]
@@ -317,6 +317,11 @@ def save_settings_values(path: os.PathLike) -> None:
     path : os.PathLike
         The file system path where the settings JSON file should be saved.
 
+    See Also
+    --------
+    set_settings_values : Load settings from a file.
+    override_settings_values : Load settings temporarily from a file.
+
     Notes
     -----
     The saved JSON file will contain all settings as they are currently
@@ -328,11 +333,6 @@ def save_settings_values(path: os.PathLike) -> None:
     >>> save_settings_values("my_settings.json")
     >>> # Later, load these settings:
     >>> set_settings_values("my_settings.json")
-
-    See Also
-    --------
-    set_settings_values : Load settings from a file.
-    override_settings_values : Load settings temporarily from a file.
     """
     global SETTINGS
     with pathlib.Path(path).open("w", encoding="utf-8") as f:

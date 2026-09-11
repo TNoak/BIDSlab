@@ -76,16 +76,16 @@ class Datatype:
     root : pathlib.Path
         The file system path to the datatype directory.
 
+    See Also
+    --------
+    Session : The parent session entity that contains datatypes.
+    Task : Individual task entities within a datatype.
+
     Notes
     -----
     This class automatically discovers and loads tasks from the datatype
     directory based on the datatype name. Tasks are lazily loaded when accessed
     through the :py:attr:`tasks` property.
-
-    See Also
-    --------
-    Session : The parent session entity that contains datatypes.
-    Task : Individual task entities within a datatype.
     """
 
     def __init__(
@@ -106,25 +106,13 @@ class Datatype:
             set_attr_from_dict(self, kwargs)
 
     def __repr__(self) -> str:
-        """Return a string representation of the Datatype entity."""
+        """Return a string representation of the Datatype object."""
         return f"<Datatype datatype_name={self.datatype_name}>"
 
     @property
     def session(self) -> "Session | None":
-        """
-        Get the parent Session object for this Datatype.
-
-        Returns
-        -------
-        Session | None
-            The parent :py:class:`~abidskit.common.specs_summary.Session` object,
-            or None if not linked.
-
-        Warns
-        -----
-        TopLevelEntityNotLinkedWarning
-            If the Datatype is not linked to a Session object when accessed.
-        """
+        # numpydoc ignore=RT01
+        """Get the parent Session object for this Datatype."""
         if self._session:
             return self._session
 
@@ -136,36 +124,13 @@ class Datatype:
 
     @session.setter
     def session(self, value: "Session") -> None:
-        """Set the parent Session object for this Datatype."""
+        # numpydoc ignore=GL08
         self._session = value
 
     @property
     def tasks(self) -> Sequence[BaseTask | Task | MotionTask]:
-        """
-        Get the tasks associated with this Datatype.
-
-        Lazily loads and caches tasks from the datatype directory on first access.
-        For datatypes with task support, parses task information from JSON sidecars.
-        If no tasks are found, creates a default task.
-
-        Returns
-        -------
-        Sequence[BaseTask | Task | MotionTask]
-            A sequence of task objects associated with this datatype.
-
-        Notes
-        -----
-        Tasks are lazily loaded on first access and cached. Supported datatypes for
-        task loading are defined in :py:const:`DATATYPES_WITH_TASKS`. For datatypes
-        with task support, the method automatically detects the task type (standard,
-        motion, or EMG) and creates the appropriate task object.
-
-        See Also
-        --------
-        Task : Standard task implementation.
-        MotionTask : Motion capture task implementation.
-        EMGTask : Electromyography task implementation.
-        """
+        # numpydoc ignore=RT01
+        """Get the tasks associated with this Datatype."""
         if not self._tasks:
             self._tasks = []
             if self.datatype_name in DATATYPES_WITH_TASKS:
@@ -246,25 +211,7 @@ class Datatype:
 
     @tasks.setter
     def tasks(self, value: Iterable[Mapping] | Iterable[BaseTask]) -> None:
-        """
-        Set the tasks associated with this Datatype.
-
-        Parameters
-        ----------
-        value : Iterable[Mapping] | Iterable[BaseTask]
-            Either a sequence of mappings (dictionaries) that will be converted to
-            Task objects, or a sequence of BaseTask objects.
-
-        Raises
-        ------
-        TypeError
-            If the value is not an iterable of Mapping or BaseTask objects.
-
-        Notes
-        -----
-        If mappings are provided, they will be converted to Task objects using the
-        current :py:attr:`root` directory as the base path.
-        """
+        # numpydoc ignore=GL08
         if isinstance(value, Iterable):
             if all(isinstance(entry, Mapping) for entry in value):
                 self._tasks = []
@@ -285,13 +232,22 @@ class Datatype:
         output_path : os.PathLike | str
             The file system path where the datatype directory should be written.
 
+        Returns
+        -------
+        None
+            Task-level files are written as side effects.
+
         See Also
         --------
         abidskit.utils.helpers.write_entities : Function for writing entities to disk.
 
         Notes
         -----
-        This method writes all tasks associated with the datatype to the specified
-        output path, creating the necessary directory structure.
+        The method delegates serialization to :py:func:`abidskit.utils.helpers.write_entities`
+        so each task can emit modality-specific BIDS files beneath ``output_path``.
+
+        Examples
+        --------
+        >>> datatype.write("out/sub-01_ses-01")  # doctest: +SKIP
         """
         write_entities(output_path, self.tasks)
