@@ -75,19 +75,30 @@ FORMAT_ALLOWED_FIELD_ENTRIES = {
 @dataclass(slots=True)
 class Filter:
     """
-    Represents a processing filter specification.
+    Represent a signal-processing filter specification.
 
-    Parameters
+    Attributes
     ----------
     name : str
-        The name of the filter.
+        Human-readable filter name such as ``"bandpass"`` or ``"notch"``.
     parameters : MutableMapping[str, str]
-        A mapping of filter parameter names to values.
+        Mapping of parameter names to serialized values as they would appear in a
+        BIDS JSON sidecar.
+
+    See Also
+    --------
+    :py:class:`Hardware`
+        Hardware metadata often documented alongside filter settings.
 
     Notes
     -----
-    Filters are typically used to describe signal processing operations
-    applied to data files.
+    Filters are typically used to describe preprocessing or acquisition-chain
+    operations applied to signal files in BIDS metadata.
+
+    Examples
+    --------
+    >>> Filter(name="bandpass", parameters={"high_cutoff": "40", "low_cutoff": "1"})
+    Filter(name='bandpass', parameters={'high_cutoff': '40', 'low_cutoff': '1'})
     """
 
     name: str
@@ -97,9 +108,9 @@ class Filter:
 @dataclass(slots=True)
 class Level:
     """
-    Represents a discrete level or category in a data column.
+    Represent a discrete categorical level for a BIDS TSV column.
 
-    Parameters
+    Attributes
     ----------
     level_name : str
         The name or value of the level.
@@ -113,11 +124,21 @@ class Level:
     ValueError
         If term_url is provided but is not a valid URI.
 
+    See Also
+    --------
+    :py:class:`Column`
+        Column metadata object that may aggregate multiple levels.
+
     Notes
     -----
     Levels are used in categorical columns to define the meaning of each
-    distinct value. When term_url is provided, it is validated to ensure
-    it conforms to URI standards.
+    distinct value. When ``term_url`` is provided, it is validated to ensure it
+    conforms to URI standards expected by BIDS JSON sidecars.
+
+    Examples
+    --------
+    >>> Level(level_name="left", description="Left-hand response")
+    <Level name=left>
     """
 
     level_name: str
@@ -125,21 +146,38 @@ class Level:
     term_url: str | None = None
 
     def __post_init__(self) -> None:
-        """Validate term_url if provided."""
+        """
+        Validate ontology metadata after initialization.
+
+        Returns
+        -------
+        None
+            The dataclass is validated in place.
+
+        Raises
+        ------
+        ValueError
+            Raised if :attr:`term_url` is present but is not a valid URI.
+
+        Notes
+        -----
+        Validation is performed eagerly so invalid categorical metadata is caught
+        before a :py:class:`Column` sidecar is written.
+        """
         if self.term_url:
             check_if_valid_uri(self.term_url)
 
     def __repr__(self) -> str:
-        """Return a string representation of the Level."""
+        """Return a string representation of the Level object."""
         return f"<Level name={self.level_name}>"
 
 
 @dataclass(slots=True)
 class Hardware:
     """
-    Represents hardware/device specifications in BIDS metadata.
+    Represent hardware or device metadata recorded in BIDS sidecars.
 
-    Parameters
+    Attributes
     ----------
     manufacturer : str, optional
         The name of the hardware manufacturer.
@@ -150,10 +188,23 @@ class Hardware:
     device_serial_number : str, optional
         The serial number of the device.
 
+    See Also
+    --------
+    :py:class:`Institution`
+        Institution-level metadata often reported together with hardware details.
+    :py:class:`PhysioRecording`
+        Recording class that can embed hardware information.
+
     Notes
     -----
     This class is used to document the specific hardware and software
-    configuration used in data acquisition.
+    configuration used in data acquisition. It mirrors common manufacturer fields
+    found across BIDS modality sidecars.
+
+    Examples
+    --------
+    >>> Hardware(manufacturer="Elekta", manufacturers_model_name="VectorView")
+    <Hardware manufacturer=Elekta model=VectorView>
     """
 
     manufacturer: str | None = None
@@ -162,7 +213,7 @@ class Hardware:
     device_serial_number: str | None = None
 
     def __repr__(self) -> str:
-        """Return a string representation of the Hardware."""
+        """Return a string representation of the Hardware object."""
         return (
             f"<Hardware manufacturer={self.manufacturer} "
             f"model={self.manufacturers_model_name}>"
@@ -172,9 +223,9 @@ class Hardware:
 @dataclass(slots=True)
 class Institution:
     """
-    Represents institutional information in BIDS metadata.
+    Represent institution metadata associated with a BIDS acquisition site.
 
-    Parameters
+    Attributes
     ----------
     institution_name : str, optional
         The name of the institution.
@@ -183,10 +234,21 @@ class Institution:
     institutional_department_name : str, optional
         The name of the department within the institution.
 
+    See Also
+    --------
+    :py:class:`Hardware`
+        Acquisition-device metadata often stored alongside institution details.
+
     Notes
     -----
     This class is used to document the institution(s) responsible for
-    data acquisition and processing.
+    data acquisition and processing. The fields correspond to common optional
+    keys in BIDS sidecar metadata.
+
+    Examples
+    --------
+    >>> Institution(institution_name="University Hospital")
+    <Institution name=University Hospital>
     """
 
     institution_name: str | None = None
@@ -194,7 +256,7 @@ class Institution:
     institutional_department_name: str | None = None
 
     def __repr__(self) -> str:
-        """Return a string representation of the Institution."""
+        """Return a string representation of the Institution object."""
         return f"<Institution name={self.institution_name}>"
 
 
@@ -244,27 +306,29 @@ class Column:
     ValueError
         If term_url is provided but is not a valid URI.
 
+    See Also
+    --------
+    :py:class:`Level`
+        Categorical value definitions attached through :py:attr:`levels`.
+    :py:class:`abidskit.common.specs_phenotype.PhenotypeColumn`
+        Specialized phenotype-table column metadata.
+
     Notes
     -----
     The format property uses a custom setter to validate against allowed
-    BIDS formats. Term URLs are validated when provided (unless validation
-    is overridden in settings).
+    BIDS formats. Term URLs are validated when provided unless validation is
+    explicitly overridden in settings. Levels support categorical-column
+    documentation as described in BIDS JSON sidecars.
+
+    Examples
+    --------
+    >>> Column(name="trial_type", format="string", levels={"go": "Go trial"})
+    <Column name=trial_type format=string>
     """
 
     def __init__(
         self, name: str, **kwargs: str | int | float | Mapping | Iterable
     ) -> None:
-        """
-        Initialize a Column object.
-
-        Parameters
-        ----------
-        name : str
-            The name of the column as it appears in the TSV file.
-        **kwargs : str | int | float | Mapping | Iterable
-            Additional attributes to set on the column (e.g., long_name,
-            description, format, units, levels).
-        """
         self.column_name: str = name
 
         self.long_name: str | None = None
@@ -288,41 +352,18 @@ class Column:
             check_if_valid_uri(self.term_url)
 
     def __repr__(self) -> str:
-        """Return a string representation of the Column."""
+        """Return a string representation of the Column object."""
         return f"<Column name={self.column_name} format={self.format}>"
 
     @property
     def format(self) -> str | None:
-        """
-        Get the data format of the column values.
-
-        Returns
-        -------
-        str | None
-            The format type or None if not set.
-
-        See Also
-        --------
-        FORMAT_ALLOWED_FIELD_ENTRIES : Set of valid format values.
-        """
+        # numpydoc ignore=RT01
+        """Get the data format of the column values."""
         return self._format
 
     @format.setter  # noqa: A003
     def format(self, value: str) -> None:
-        """
-        Set the data format of the column values.
-
-        Parameters
-        ----------
-        value : str
-            The format type. Must be one of the values in
-            :py:const:`FORMAT_ALLOWED_FIELD_ENTRIES`.
-
-        Raises
-        ------
-        FieldEntryNotValidError
-            If the value is not a valid BIDS format type.
-        """
+        # numpydoc ignore=GL08
         if value not in FORMAT_ALLOWED_FIELD_ENTRIES:
             raise FieldEntryNotValidError(
                 f"Field `Format` must be one of {FORMAT_ALLOWED_FIELD_ENTRIES}"
@@ -331,38 +372,13 @@ class Column:
 
     @property
     def levels(self) -> Iterable[Level] | None:
-        """
-        Get the categorical levels defined for this column.
-
-        Returns
-        -------
-        Iterable[Level] | None
-            A sequence of Level objects or None if no levels are defined.
-        """
+        # numpydoc ignore=RT01
+        """Get the categorical levels defined for this column."""
         return self._levels
 
     @levels.setter
     def levels(self, value: Mapping | Iterable[Level]) -> None:
-        """
-        Set the categorical levels for this column.
-
-        Parameters
-        ----------
-        value : Mapping | Iterable[Level]
-            Either a mapping (dictionary) where keys are level names and values
-            are descriptions or level details, or a sequence of Level objects.
-
-        Raises
-        ------
-        TypeError
-            If the value is not a valid Mapping or Iterable of Level objects.
-
-        Notes
-        -----
-        When providing a Mapping, values can be either strings (used as
-        descriptions) or nested Mappings with level details (description,
-        term_url, etc.).
-        """
+        # numpydoc ignore=GL08
         if isinstance(value, Mapping):
             self._levels = []
             for key, val in value.items():
@@ -408,16 +424,23 @@ class Recording(Entity):
     root : pathlib.Path
         The file system path to the recording directory.
 
-    Notes
-    -----
-    Recordings are typically associated with a Run entity and contain
-    physiological data recorded during an experimental task or resting
-    period.
-
     See Also
     --------
     PhysioRecording : A subclass for physiological recordings with columns.
     Run : The Run entity that contains Recording objects.
+
+    Notes
+    -----
+    Recordings are typically associated with a :py:class:`Run` entity and contain
+    physiological data recorded during an experimental task or resting period.
+    Sample tables are loaded lazily from BIDS physio TSV files when
+    :py:attr:`data` is accessed.
+
+    Examples
+    --------
+    >>> recording = Recording(base_path="ses-01", recording_id="resp", sampling_frequency=100)
+    >>> recording.recording_id
+    'resp'
     """
 
     def __init__(
@@ -426,7 +449,6 @@ class Recording(Entity):
         recording_id: str,
         sampling_frequency: int | float,
     ):
-        """Initialize a Recording object."""
         super().__init__(_entity_id=recording_id, _entity_name="recording")
         self.recording_id: str = self._entity_id
         self.sampling_frequency: int | float = sampling_frequency
@@ -439,19 +461,8 @@ class Recording(Entity):
 
     @property
     def run(self) -> "Run | None":
-        """
-        Get the parent Run object for this Recording.
-
-        Returns
-        -------
-        Run | None
-            The parent :py:class:`Run` object, or None if not linked.
-
-        Warns
-        -----
-        TopLevelEntityNotLinkedWarning
-            If the Recording is not linked to a Run object when accessed.
-        """
+        # numpydoc ignore=RT01
+        """Get the parent Run object for this Recording."""
         if self._run:
             return self._run
 
@@ -460,25 +471,13 @@ class Recording(Entity):
 
     @run.setter
     def run(self, value: "Run") -> None:
-        """Set the parent Run object for this Recording."""
+        # numpydoc ignore=GL08
         self._run = value
 
     @property
     def data(self):
-        """
-        Get the recording data as a pandas DataFrame.
-
-        Returns
-        -------
-        pd.DataFrame
-            A DataFrame containing the recording data, with columns named
-            according to the column specifications.
-
-        Notes
-        -----
-        Data is lazily loaded from the TSV file on first access and cached.
-        The data is loaded using columns defined in the recording object.
-        """
+        # numpydoc ignore=RT01
+        """Get the recording data as a pandas DataFrame."""
         if self._data is None:
             # TODO: Rewrite to generalize for other data types than motion
             file_name = "*"
@@ -508,7 +507,7 @@ class Recording(Entity):
 
     @data.setter
     def data(self, value: pd.DataFrame) -> None:
-        """Set the recording data as a pandas DataFrame."""
+        # numpydoc ignore=GL08
         self._data = value
 
     def write(self, output_path: os.PathLike | str) -> None:
@@ -519,6 +518,17 @@ class Recording(Entity):
         ----------
         output_path : os.PathLike | str
             The file system path where the recording should be written.
+
+        Returns
+        -------
+        Sequence[PhysioRecording]
+            Physiological recordings associated with the run when implemented.
+
+        Raises
+        ------
+        NotImplementedError
+            If the recording write operation is attempted while
+            ``IGNORE_NOT_IMPLEMENTED`` is disabled.
 
         Warnings
         --------
@@ -562,16 +572,23 @@ class PhysioRecording(Recording):
     hardware : Hardware | None
         The hardware information.
 
-    Notes
-    -----
-    PhysioRecording is typically used for recordings with well-defined
-    column structures, as opposed to generic Recording objects.
-
     See Also
     --------
     Recording : The parent class for all recording types.
     Column : The column specification class.
     Hardware : Information about recording hardware.
+
+    Notes
+    -----
+    PhysioRecording is typically used for recordings with well-defined column
+    structures, as opposed to generic recording objects. It aligns with BIDS
+    physiological recording sidecars that describe sampling frequency, start
+    time, and channel columns.
+
+    Examples
+    --------
+    >>> cols = [Column(name="cardiac", units="mV")]
+    >>> PhysioRecording("ses-01", "cardiac", 1000, 0.0, cols)  # doctest: +SKIP
     """
 
     def __init__(
@@ -583,7 +600,6 @@ class PhysioRecording(Recording):
         columns: MutableSequence[Column],
         hardware: Hardware | None = None,
     ):
-        """Initialize a PhysioRecording object."""
         super().__init__(
             base_path=base_path,
             recording_id=recording_id,
@@ -624,31 +640,25 @@ class Run(Entity, Generic[A]):
     TypeError
         If run_id is not an integer.
 
+    See Also
+    --------
+    Acquisition : The parent acquisition entity that contains runs.
+    Recording : Physiological recordings within a run.
+
     Notes
     -----
     Run IDs must be integers and are used to index multiple runs within
     a single acquisition context. The ID is stored internally as a string
     for compatibility with BIDS naming conventions.
 
-    See Also
+    Examples
     --------
-    Acquisition : The parent acquisition entity that contains runs.
-    Recording : Physiological recordings within a run.
+    >>> run = Run(base_path="ses-01", run_id=1)
+    >>> run.run_id
+    '1'
     """
 
     def __init__(self, base_path: os.PathLike | str, run_id: int, **kwargs: Any):
-        """
-        Initialize a Run object.
-
-        Parameters
-        ----------
-        base_path : os.PathLike | str
-            The file system path to the run directory.
-        run_id : int
-            The numeric run identifier.
-        **kwargs : Any
-            Additional attributes to set on the run.
-        """
         if not isinstance(run_id, int):
             raise TypeError("run_id must be an index of type integer")
         run_id_str = str(run_id)
@@ -665,24 +675,13 @@ class Run(Entity, Generic[A]):
         set_attr_from_dict(self, kwargs)
 
     def __repr__(self):
-        """Return a string representation of the Run."""
+        """Return a string representation of the Run entity."""
         return f"Run id=run-{self.run_id}"
 
     @property
     def acquisition(self) -> A | None:
-        """
-        Get the parent Acquisition object for this Run.
-
-        Returns
-        -------
-        A | None
-            The parent acquisition object, or None if not linked.
-
-        Warns
-        -----
-        TopLevelEntityNotLinkedWarning
-            If the Run is not linked to an Acquisition object when accessed.
-        """
+        # numpydoc ignore=RT01
+        """Get the parent Acquisition object for this Run."""
         if self._acquisition:
             return self._acquisition
 
@@ -693,24 +692,12 @@ class Run(Entity, Generic[A]):
 
     @acquisition.setter
     def acquisition(self, value: A) -> None:
-        """Set the parent Acquisition object for this Run."""
+        # numpydoc ignore=GL08
         self._acquisition = value
 
     @property
     def physio(self):
-        """
-        Get physiological recordings associated with this Run.
-
-        Returns
-        -------
-        Sequence[PhysioRecording]
-            A sequence of physiological recording objects.
-
-        Warnings
-        --------
-        This method is not yet implemented and will raise a NotImplementedError
-        if the IGNORE_NOT_IMPLEMENTED setting is not enabled.
-        """
+        """Get physiological recordings associated with this Run."""
         if not get_settings_value("IGNORE_NOT_IMPLEMENTED"):
             raise NotImplementedError
         # if not self._physio:
@@ -748,19 +735,7 @@ class Run(Entity, Generic[A]):
 
     @physio.setter
     def physio(self, value: Sequence[dict] | Sequence[PhysioRecording]):
-        """
-        Set physiological recordings for this Run.
-
-        Parameters
-        ----------
-        value : Sequence[dict] | Sequence[PhysioRecording]
-            Either a sequence of dictionaries or PhysioRecording objects.
-
-        Warnings
-        --------
-        This method is not yet implemented and will raise a NotImplementedError
-        if the IGNORE_NOT_IMPLEMENTED setting is not enabled.
-        """
+        # numpydoc ignore=GL08
         if not get_settings_value("IGNORE_NOT_IMPLEMENTED"):
             raise NotImplementedError
 
@@ -815,50 +790,32 @@ class Acquisition(BaseAcquisition):
     runs : MutableSequence[Run]
         The runs associated with this acquisition.
 
+    See Also
+    --------
+    Run : Individual run objects within an acquisition.
+    Task : Task entities associated with acquisitions.
+
     Notes
     -----
     Acquisitions automatically discover and load runs from the file system.
     If no runs are found, a default run is created.
 
-    See Also
+    Examples
     --------
-    Run : Individual run objects within an acquisition.
-    Task : Task entities associated with acquisitions.
+    >>> acquisition = Acquisition(base_path="ses-01/meg", acquisition_id="acq-highres")
+    >>> acquisition.runs  # doctest: +SKIP
+    [Run id=run-0]
     """
 
     def __init__(self, base_path: os.PathLike | str, acquisition_id: str):
-        """
-        Initialize an Acquisition object.
-
-        Parameters
-        ----------
-        base_path : os.PathLike | str
-            The file system path to the acquisition directory.
-        acquisition_id : str
-            The unique acquisition identifier.
-        """
         super().__init__(base_path=base_path, acquisition_id=acquisition_id)
 
         self._task: Task | None = None
 
     @property
     def runs(self) -> MutableSequence[Run]:
-        """
-        Get the runs associated with this Acquisition.
-
-        Lazily loads and caches :class:`Run` objects from the acquisition directory on first access.
-
-        Returns
-        -------
-        MutableSequence[Run]
-            A sequence of Run objects associated with this acquisition.
-
-        Notes
-        -----
-        Runs are automatically discovered from the file system based on run
-        entity IDs found in filenames. If no runs are found, a default run
-        with ID 0 is created.
-        """
+        # numpydoc ignore=RT01
+        """Get the runs associated with this Acquisition."""
         if not self._runs:
             self._runs = []
             files = self.root.iterdir()
@@ -897,20 +854,7 @@ class Acquisition(BaseAcquisition):
 
     @runs.setter
     def runs(self, value: Sequence[int | Run]) -> None:
-        """
-        Set the runs for this Acquisition.
-
-        Parameters
-        ----------
-        value : Sequence[int | Run]
-            Either a sequence of integer run IDs that will be converted to
-            Run objects, or a sequence of Run objects.
-
-        Raises
-        ------
-        TypeError
-            If the value is not a valid sequence of int or Run objects.
-        """
+        # numpydoc ignore=GL08
         if isinstance(value, Sequence):
             if all(isinstance(entry, int) for entry in value):
                 self._runs = []
@@ -926,19 +870,8 @@ class Acquisition(BaseAcquisition):
 
     @property
     def task(self) -> "Task | None":
-        """
-        Get the task associated with this Acquisition.
-
-        Returns
-        -------
-        Task | None
-            The associated Task object, or None if not linked.
-
-        Warns
-        -----
-        TopLevelEntityNotLinkedWarning
-            If the Acquisition is not linked to a Task object when accessed.
-        """
+        # numpydoc ignore=RT01
+        """Get the task associated with this Acquisition."""
         if self._task:
             return self._task
 
@@ -950,5 +883,5 @@ class Acquisition(BaseAcquisition):
 
     @task.setter
     def task(self, value: "Task") -> None:
-        """Set the task associated with this Acquisition."""
+        # numpydoc ignore=GL08
         self._task = value
