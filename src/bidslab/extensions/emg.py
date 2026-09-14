@@ -575,7 +575,7 @@ class EMGRun(Run):
             file_name += f"_{self.run_id}" if not self._virtual_entity else ""
 
             self._recordings = {}
-            files = self.root.iterdir()
+            files = self.root.glob("*_emg.*")
             recording_labels = set()
             for file in files:
                 try:

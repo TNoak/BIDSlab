@@ -254,6 +254,30 @@ class Session(Entity):
                                 base_path=self.root,
                                 filename="motion/" + file.name,
                             )
+                    case "emg":
+                        files = list(
+                            pathlib.Path(output_path.parent / "emg").glob("*.bdf")
+                        )
+                        files.extend(
+                            list(pathlib.Path(output_path.parent / "emg").glob("*.edf"))
+                        )
+                        files.extend(
+                            list(
+                                pathlib.Path(output_path.parent / "emg").glob("*.bdf+")
+                            )
+                        )
+                        files.extend(
+                            list(
+                                pathlib.Path(output_path.parent / "emg").glob("*.edf+")
+                            )
+                        )
+                        for file in files:
+                            add_object_to_sequence(
+                                entity_list=self._scans,
+                                entity_class=Scan,
+                                base_path=self.root,
+                                filename="emg/" + file.name,
+                            )
                     case "eeg":
                         files = list(
                             pathlib.Path(output_path.parent / "eeg").glob("*.vhdr")

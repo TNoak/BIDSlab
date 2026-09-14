@@ -47,7 +47,7 @@ from bidslab.utils.string_manipulation import to_snakecase
 
 if TYPE_CHECKING:
     from bidslab.common.specs_dataset import Dataset
-    from bidslab.common.specs_misc import Event, Stim
+    from bidslab.common.specs_misc import Event
     from bidslab.common.specs_summary import Scan
 
 try:
@@ -124,6 +124,23 @@ def get_entity_from_file(path: pathlib.Path, entity_name: str) -> dict[str, str]
     entities = {}
     entity_name = entity_name.replace(" ", "")
     pattern = re.compile(rf"(?P<entity>({entity_name}))-(?P<value>[a-zA-Z0-9]+)")
+
+    for match in pattern.finditer(path.stem):
+        entities[match.group("entity")] = match.group("value")
+
+    return entities
+
+
+def get_entity_with_ending_from_file(
+    path: pathlib.Path,
+    entity_name: str,
+    file_ending: str,
+) -> dict[str, str]:
+    entities = {}
+    entity_name = entity_name.replace(" ", "")
+    pattern = re.compile(
+        rf"(?P<entity>({entity_name}))-(?P<value>[a-zA-Z0-9]+)*{file_ending}"
+    )
 
     for match in pattern.finditer(path.stem):
         entities[match.group("entity")] = match.group("value")
@@ -231,7 +248,7 @@ def get_edf_json_files(
 
 def add_object_to_sequence(
     entity_list: MutableSequence,
-    entity_class: "type[E] | type[EC] | type[EE] | type[MC] | type[Scan] | type[Event] | type[Stim]",
+    entity_class: "type[E] | type[EC] | type[EE] | type[MC] | type[Scan] | type[Event]",
     **kwargs: Any,
 ) -> None:
     entity_instance = entity_class(**kwargs)
