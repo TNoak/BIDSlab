@@ -269,15 +269,29 @@ class PhysioRecording(Recording):
         self.hardware: Hardware | None = hardware
 
         self._data: Any | None = None
+        self._events: Sequence[Event] | None = None
 
         for key, value in kwargs.items():
             setattr(self, key, value)
+
+    @property
+    def events(self) -> Sequence[Event] | None:
+        if not self._events:
+            self._events = get_events_from_files(
+                self, self.root, file_ending="physioevents"
+            )
+
+        return self._events
+
+    @events.setter
+    def events(self, value: Sequence[Event]) -> None:
+        self._events = value
 
     def write(self, output_path: os.PathLike | str) -> None:
         output_path_json = append_path(output_path, "_physio.json")
         output_path_tsv = append_path(output_path, "_physio.tsv.gz")
 
-        # TODO write data into _physio.tsv.gz
+        # write data into _physio.tsv.gz
         data_tsv = self._data
         if data_tsv is None:  # TODO remove
             data_tsv = pd.DataFrame()
@@ -289,11 +303,22 @@ class PhysioRecording(Recording):
             compression="gzip",
         )
 
-        # TODO write json sidecar
+        # write json sidecar
         description = self.__dict__.copy()
         description.pop("_data", None)
+        description.pop("_events", None)
         description = clean_dict(description)
         write_json(description, output_path_json)
+
+        # write physioevents
+        if self.events:
+            write_events_to_files(
+                self,
+                self.events,
+                output_path,
+                file_ending="physioevents",
+                compressed=True,
+            )
 
 
 class StimRecording(Recording):
@@ -428,6 +453,7 @@ class Run(Entity, Generic[A]):
                         recording_id=key,
                         virtual_entity=value,
                         base_path=self.root,
+                        run=self,
                         **description,
                     )
                 else:
@@ -602,7 +628,7 @@ def get_recordings_from_files(
 
 
 def get_events_from_files(
-    cls: Recording | Run, base_path: os.PathLike | str
+    cls: Recording | Run, base_path: os.PathLike | str, file_ending="events"
 ) -> MutableSequence[Event] | None:
     base_path = pathlib.Path(base_path)
 
@@ -628,17 +654,19 @@ def get_events_from_files(
     for folder in folders_json:
         if columns == {}:
             # get all possible files with _events.json
-            files_json = list(folder.glob("*_events.json"))
+            files_json = list(folder.glob(f"*_{file_ending}.json"))
             filenames_json = [f.name for f in files_json]
             file_entities_json = [
-                f.removesuffix("_events.json") for f in filenames_json
+                f.removesuffix(f"_{file_ending}.json") for f in filenames_json
             ]
 
             # check for entity mismatches and use first one working
             for file in file_entities_json:
                 if check_entity_mismatch(file, entities):
                     # load .json file and save it
-                    columns = parse_json_sidecar(folder / (file + "_events.json"))
+                    columns = parse_json_sidecar(
+                        folder / (file + f"_{file_ending}.json")
+                    )
                     break
         else:
             break
@@ -646,17 +674,22 @@ def get_events_from_files(
     for folder in folders_tsv:
         if events == []:
             # get all possible files with _events.tsv
-            files_tsv = list(folder.glob("*_events.tsv"))
-            filenames_tsv = [f.name for f in files_tsv]
-            file_entities_tsv = [f.removesuffix("_events.tsv") for f in filenames_tsv]
+            files_tsv = list(folder.glob(f"*_{file_ending}.tsv"))
+            files_tsv.extend(list(folder.glob(f"*_{file_ending}.tsv.gz")))
+            filenames_tsv = [f.stem.removesuffix(f"_{file_ending}") for f in files_tsv]
 
             # check for entity mismatches and use first one working
-            for file in file_entities_tsv:
+            for file in filenames_tsv:
                 if check_entity_mismatch(file, entities):
                     # load .tsv file and save it
-                    data = parse_descriptive_tsv(
-                        tsv_path=folder / (file + "_events.tsv")
-                    )
+                    try:
+                        data = parse_descriptive_tsv(
+                            tsv_path=folder / (file + f"_{file_ending}.tsv")
+                        )
+                    except FileNotFoundError:
+                        data = parse_descriptive_tsv(
+                            tsv_path=folder / (file + f"_{file_ending}.tsv.gz")
+                        )
                     for event in data:
                         add_object_to_sequence(
                             entity_list=events,
@@ -780,10 +813,17 @@ def get_stims_from_files(
 
 
 def write_events_to_files(
-    cls: Recording | Run, events: Sequence[Event], output_path: os.PathLike | str
+    cls: Recording | Run,
+    events: Sequence[Event],
+    output_path: os.PathLike | str,
+    file_ending="events",
+    compressed=False,
 ) -> None:
-    output_path_json = append_path(output_path, "_events.json")
-    output_path_tsv = append_path(output_path, "_events.tsv")
+    output_path_json = append_path(output_path, f"_{file_ending}.json")
+    if compressed:
+        output_path_tsv = append_path(output_path, f"_{file_ending}.tsv.gz")
+    else:
+        output_path_tsv = append_path(output_path, f"_{file_ending}.tsv")
 
     data_json = events[0].columns
     data_tsv = pd.DataFrame(event.__dict__ for event in events)
@@ -817,4 +857,9 @@ def write_events_to_files(
 
     if isinstance(data_json, dict):
         write_json(content=data_json, output_path=output_path_json)
-    data_tsv.to_csv(output_path_tsv, sep="\t", index=False, header=True)
+    if compressed:
+        data_tsv.to_csv(
+            output_path_tsv, sep="\t", index=False, header=True, compression="gzip"
+        )
+    else:
+        data_tsv.to_csv(output_path_tsv, sep="\t", index=False, header=True)
