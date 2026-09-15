@@ -389,7 +389,21 @@ class MotionRun(Run):
         self._data = value
 
     def list_channels(self) -> pd.DataFrame:
-        """Return a channel table suitable for ``*_channels.tsv`` output."""
+        """
+        Return a channel table suitable for ``*_channels.tsv`` output.
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame with one row per motion channel, containing all channel
+            metadata suitable for writing to a BIDS ``*_channels.tsv`` file.
+
+        Notes
+        -----
+        The returned DataFrame excludes ``None`` values and internal attributes
+        (such as ``columns``). Reference frame objects are replaced with their
+        names for serialization.
+        """
         channels_dataframe = pd.DataFrame()
         for motion_channel in self.channels if self.channels else []:
             channel_dict = motion_channel.__dict__.copy()
@@ -414,7 +428,19 @@ class MotionRun(Run):
         return channels_dataframe
 
     def _reference_frames(self) -> set[ReferenceFrame]:
-        """Collect unique :py:class:`ReferenceFrame` objects from channels."""
+        """
+        Collect unique :py:class:`ReferenceFrame` objects from channels.
+
+        Returns
+        -------
+        set[ReferenceFrame]
+            Set of unique reference frame objects referenced by this run's channels.
+
+        Notes
+        -----
+        This is an internal helper method used for serializing reference frame
+        metadata to channel JSON sidecars.
+        """
         reference_frames_set = set()
         for motion_channel in self.channels if self.channels else []:
             reference_frame = motion_channel.reference_frame
@@ -423,7 +449,19 @@ class MotionRun(Run):
         return reference_frames_set
 
     def _columns(self) -> set[Column]:
-        """Collect unique auxiliary channel columns for sidecar output."""
+        """
+        Collect unique auxiliary channel columns for sidecar output.
+
+        Returns
+        -------
+        set[Column]
+            Set of unique :py:class:`Column` objects from this run's channels.
+
+        Notes
+        -----
+        This is an internal helper method used for serializing column metadata
+        to channel JSON sidecars.
+        """
         columns_set = set()
         for motion_channel in self.channels if self.channels else []:
             for column in motion_channel.columns if motion_channel.columns else []:
@@ -437,7 +475,17 @@ class MotionRun(Run):
         Parameters
         ----------
         output_path : os.PathLike or str
-            Output file stem used to derive ``_motion`` and ``_channels`` files.
+            Output file stem used to derive ``*_motion.tsv``, ``*_channels.tsv``,
+            and ``*_channels.json`` files.
+
+        Notes
+        -----
+        Writes three files:
+        
+        - ``*_motion.tsv``: Motion data samples
+        - ``*_channels.tsv``: Channel metadata table
+        - ``*_channels.json``: Channel sidecar with column descriptions and
+          reference frame metadata
         """
         output_path = pathlib.Path(output_path)
         # write motion data to "*_motion.tsv"
@@ -1062,6 +1110,11 @@ def parse_motion_json_sidecar(sidecar_path: pathlib.Path) -> dict:
     dict
         Dictionary containing ``task``, ``hardware``, ``institution``, and
         ``motion`` sub-dictionaries.
+
+    See Also
+    --------
+    :py:func:`parse_json_sidecar`
+        Generic function for parsing JSON sidecar files.
     """
     with sidecar_path.open("r", encoding="utf-8") as f:
         data = json.load(f)
@@ -1088,7 +1141,27 @@ def parse_motion_json_sidecar(sidecar_path: pathlib.Path) -> dict:
 
 
 def get_reference_frames(reference_frames_levels: dict) -> dict[str, ReferenceFrame]:
-    """Create :py:class:`ReferenceFrame` objects from sidecar ``Levels`` data."""
+    """
+    Create :py:class:`ReferenceFrame` objects from sidecar ``Levels`` data.
+
+    Parameters
+    ----------
+    reference_frames_levels : dict
+        Dictionary containing reference frame metadata from a motion JSON sidecar,
+        typically extracted from the ``Levels`` field under ``reference_frame``.
+
+    Returns
+    -------
+    dict[str, ReferenceFrame]
+        Dictionary mapping reference frame names to :py:class:`ReferenceFrame` objects.
+
+    See Also
+    --------
+    :py:class:`ReferenceFrame`
+        Dataclass representing a single motion reference frame.
+    :py:func:`get_motion_channels`
+        Function that uses reference frames to build motion channel objects.
+    """
     reference_frames_dict = {}
     for ref_frame_name, ref_frame_values in reference_frames_levels.items():
         ref_frame_values_snakecase = {}
@@ -1110,13 +1183,33 @@ def get_motion_channels(
 
     Parameters
     ----------
-    tsv_path, json_path : pathlib.Path | None
-        Optional channel table and sidecar paths.
+    tsv_path : pathlib.Path | None
+        Path to a BIDS ``*_channels.tsv`` file containing motion channel definitions.
+        If provided, channel data is parsed from the TSV file.
+    json_path : pathlib.Path | None
+        Path to a BIDS ``*_channels.json`` sidecar file containing channel metadata.
+        If provided, column definitions and reference frame metadata are parsed
+        from the JSON file.
 
     Returns
     -------
     MutableSequence[MotionChannel]
-        Constructed motion channels with resolved reference-frame metadata.
+        List of :py:class:`MotionChannel` objects constructed from the parsed
+        TSV and JSON metadata, with associated column and reference-frame information.
+
+    See Also
+    --------
+    :py:class:`MotionChannel`
+        Dataclass representing a single motion channel definition.
+    :py:func:`get_reference_frames`
+        Function used to build reference frame objects from JSON metadata.
+
+    Notes
+    -----
+    If both ``tsv_path`` and ``json_path`` are provided, column metadata and
+    reference frame definitions from the JSON file are used to enrich the
+    channel definitions from the TSV file. Either or both parameters can be
+    ``None``, resulting in an empty list.
     """
     motion_channels: list[MotionChannel] = []
     columns = []

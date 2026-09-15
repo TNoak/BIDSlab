@@ -1172,7 +1172,37 @@ def get_emg_channels(
     tsv_path: pathlib.Path | None,
     json_path: pathlib.Path | None,
 ) -> MutableSequence[EMGChannel]:
-    """Build EMG channel objects from BIDS channel TSV/JSON files."""
+    """
+    Build EMG channel objects from BIDS channel TSV/JSON files.
+
+    Parameters
+    ----------
+    tsv_path : pathlib.Path | None
+        Path to a BIDS ``*_channels.tsv`` file containing EMG channel definitions.
+        If provided, channel data is parsed from the TSV file.
+    json_path : pathlib.Path | None
+        Path to a BIDS ``*_channels.json`` sidecar file containing channel metadata.
+        If provided, column definitions are parsed from the JSON file.
+
+    Returns
+    -------
+    MutableSequence[EMGChannel]
+        List of :py:class:`EMGChannel` objects constructed from the parsed
+        TSV and JSON metadata, with associated column information.
+
+    See Also
+    --------
+    :py:class:`EMGChannel`
+        Dataclass representing a single EMG channel definition.
+    :py:func:`get_emg_electrodes`
+        Similar function for building EMG electrode objects.
+
+    Notes
+    -----
+    If both ``tsv_path`` and ``json_path`` are provided, column metadata from
+    the JSON file is used to enrich the channel definitions from the TSV file.
+    Either or both parameters can be ``None``, resulting in an empty list.
+    """
     emg_channels: list[EMGChannel] = []
     columns = []
 
@@ -1201,7 +1231,37 @@ def get_emg_electrodes(
     tsv_path: pathlib.Path | None,
     json_path: pathlib.Path | None,
 ) -> MutableSequence[EMGElectrode]:
-    """Build EMG electrode objects from BIDS electrode TSV/JSON files."""
+    """
+    Build EMG electrode objects from BIDS electrode TSV/JSON files.
+
+    Parameters
+    ----------
+    tsv_path : pathlib.Path | None
+        Path to a BIDS ``*_electrodes.tsv`` file containing EMG electrode definitions.
+        If provided, electrode data is parsed from the TSV file.
+    json_path : pathlib.Path | None
+        Path to a BIDS ``*_electrodes.json`` sidecar file containing electrode metadata.
+        If provided, column definitions are parsed from the JSON file.
+
+    Returns
+    -------
+    MutableSequence[EMGElectrode]
+        List of :py:class:`EMGElectrode` objects constructed from the parsed
+        TSV and JSON metadata, with associated column information.
+
+    See Also
+    --------
+    :py:class:`EMGElectrode`
+        Dataclass representing a single EMG electrode definition.
+    :py:func:`get_emg_channels`
+        Similar function for building EMG channel objects.
+
+    Notes
+    -----
+    If both ``tsv_path`` and ``json_path`` are provided, column metadata from
+    the JSON file is used to enrich the electrode definitions from the TSV file.
+    Either or both parameters can be ``None``, resulting in an empty list.
+    """
     emg_electrodes: list[EMGElectrode] = []
     columns = []
 
