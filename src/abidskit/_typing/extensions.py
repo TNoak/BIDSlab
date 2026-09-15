@@ -1,4 +1,10 @@
-"""Typing protocols and aliases for extensions."""
+"""
+Typing protocols and aliases for extensions.
+
+This module provides type variable definitions for BIDS extension-specific classes
+in aBIDSkit. These type definitions enable static type checking, enhance IDE support,
+and ensure type safety when working with extension entities such as Motion and EMG.
+"""
 
 #  Copyright (c) 2026 by Lukas Behammer
 #  University of Augsburg
@@ -13,11 +19,12 @@ if TYPE_CHECKING:
     from abidskit.extensions.emg import EMGChannel, EMGElectrode
     from abidskit.extensions.motion import MotionChannel
 
-#: Type alias for MotionChannel.
+#: TypeVar bound to :py:class:`abidskit.extensions.motion.MotionChannel`
+#: and its subclasses.
 MC = TypeVar("MC", bound="MotionChannel")
 
-#: Type alias for EMGChannel.
+#: TypeVar bound to :py:class:`abidskit.extensions.emg.EMGChannel` and its subclasses.
 EC = TypeVar("EC", bound="EMGChannel")
 
-#: Type alias for EMGElectrode.
+#: TypeVar bound to :py:class:`abidskit.extensions.emg.EMGElectrode` and its subclasses.
 EE = TypeVar("EE", bound="EMGElectrode")
