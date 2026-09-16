@@ -1019,7 +1019,7 @@ class EMGTask(BaseTask):
 
     Examples
     --------
-    Load an EMG task and inspect its hierarchy::
+    Load an EMG task and inspect its hierarchy
 
     >>> task = EMGTask(base_path="sub-01/ses-01/emg", task_name="grip")
     >>> for acquisition in task.acquisitions:
