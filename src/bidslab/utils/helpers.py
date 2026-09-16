@@ -14,6 +14,7 @@ import re
 import shutil
 from collections.abc import Iterable, Iterator, MutableSequence, Sequence
 from functools import wraps
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, TypeVar, Union
 from warnings import catch_warnings, simplefilter, warn
 
@@ -293,7 +294,7 @@ def get_root_files(dataset: "Dataset") -> None:
 
 def get_matching_subpaths(
     path: pathlib.Path, matches: Sequence[str], root: pathlib.Path
-) -> list[pathlib.Path]:
+) -> set[Path]:
     """
     Return parent paths that match one or more glob-like patterns.
 
@@ -315,8 +316,8 @@ def get_matching_subpaths(
 
     Returns
     -------
-    list[pathlib.Path]
-        Matching path levels expressed as absolute paths below ``root``. An empty list
+    set[pathlib.Path]
+        Matching path levels expressed as absolute paths below ``root``. An empty set
         indicates that no parent level satisfied any pattern.
 
     Raises
@@ -340,7 +341,7 @@ def get_matching_subpaths(
     >>> root = pathlib.Path("dataset")
     >>> path = root / "sub-01" / "ses-01" / "func"
     >>> get_matching_subpaths(path, ["sub-*", "*/func"], root)
-    [PosixPath('dataset/sub-01'), PosixPath('dataset/sub-01/ses-01/func')]
+    {PosixPath('dataset/sub-01'), PosixPath('dataset/sub-01/ses-01/func')}
     """
     # Get matching subpaths in the root directory
     paths = list(path.relative_to(root).parents) + [path]
@@ -350,7 +351,7 @@ def get_matching_subpaths(
         for match in matches
         if dir_level.match(match)
     ]
-    return matching_subpaths[::-1]
+    return set(matching_subpaths[::-1])
 
 
 def get_entity_from_file(path: pathlib.Path, entity_name: str) -> dict[str, str]:
