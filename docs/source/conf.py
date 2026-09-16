@@ -63,6 +63,10 @@ html_theme = "pydata_sphinx_theme"
 # html_favicon = '../../branding/logo/Logo_aBIDSkit_wo-text.svg'
 html_title = f"{project} documentation v{release}"
 
+# -- Options for Autosummary -------------------------------------------------
+autosummary_generate = True
+autosummary_imported_members = True
+
 # -- Options for Autodoc -----------------------------------------------------
 
 ###############################################
@@ -105,14 +109,9 @@ todo_include_todos = True
 todo_link_only = True
 
 # -- Options for Numpydoc -----------------------------------------------------
-numpydoc_show_inherited_class_members = False
+numpydoc_show_inherited_class_members = True
+numpydoc_class_members_toctree = False
 numpydoc_attributes_as_param_list = True
-numpydoc_validation_checks = {"all", "EX01", "SA01", "ES01", "GL01", "PR01", "SS06"}
-numpydoc_validation_exclude = {
-    r"\.__repr__$",
-    r"\.__hash__$",
-    r"\.__init__$",
-}
 
 # -- Options for Coverage -----------------------------------------------------
 coverage_modules = ["abidskit"]
