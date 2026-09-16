@@ -60,7 +60,7 @@ exclude_patterns = ["typing.rst"]
 
 html_theme = "pydata_sphinx_theme"
 # html_static_path = ["_static"]
-# html_favicon = '../../branding/logo/Logo_aBIDSkit_wo-text.svg'
+# html_favicon = '../../branding/logo/Logo_BIDSlab_wo-text.svg'
 html_title = f"{project} documentation v{release}"
 
 # -- Options for Autodoc -----------------------------------------------------

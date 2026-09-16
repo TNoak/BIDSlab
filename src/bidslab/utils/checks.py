@@ -45,7 +45,7 @@ def check_readme(dataset: "Dataset", files: Sequence[pathlib.Path]):
     Notes
     -----
     This function changes the state of the `dataset` object by setting the
-    :py:attr:`~abidskit.common.specs_dataset.Dataset.readme_path` attribute if a README
+    :py:attr:`~bidslab.common.specs_dataset.Dataset.readme_path` attribute if a README
     file is found.
     Exception raising can be overridden by the global ``OVERRIDE_VALIDATION`` setting.
     """
@@ -86,7 +86,7 @@ def check_citation(dataset: "Dataset", files: Sequence[pathlib.Path]):
     Notes
     -----
     This function changes the state of the `dataset` object by setting the
-    :py:attr:`~abidskit.common.specs_dataset.Dataset.citation_path` attribute if a
+    :py:attr:`~bidslab.common.specs_dataset.Dataset.citation_path` attribute if a
     CITATION.cff file is found.
     Exception raising can be overridden by the global ``OVERRIDE_VALIDATION`` setting.
     """
@@ -127,7 +127,7 @@ def check_license(dataset: "Dataset", files: Sequence[pathlib.Path]):
     Notes
     -----
     This function changes the state of the `dataset` object by setting the
-    :py:attr:`~abidskit.common.specs_dataset.Dataset.license_path` attribute if a
+    :py:attr:`~bidslab.common.specs_dataset.Dataset.license_path` attribute if a
     LICENSE file is found.
     """
     for file in files:

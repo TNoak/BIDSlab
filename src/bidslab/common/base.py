@@ -1,7 +1,7 @@
 """
-Base classes for entities in aBIDSkit.
+Base classes for entities in BIDSlab.
 
-This module provides abstract base classes for entities used in the aBIDSkit
+This module provides abstract base classes for entities used in the BIDSlab
 library. These base classes define common attributes and methods that all
 entities must implement, ensuring a consistent interface across different
 types of entities.
@@ -39,7 +39,7 @@ if TYPE_CHECKING:
 @dataclass
 class Entity(ABC):
     """
-    Abstract base class for all entities in aBIDSkit.
+    Abstract base class for all entities in BIDSlab.
 
     Attributes
     ----------
@@ -50,7 +50,7 @@ class Entity(ABC):
 
     Notes
     -----
-    This class serves as a base for all entities in aBIDSkit, providing common private
+    This class serves as a base for all entities in BIDSlab, providing common private
     attributes and an abstract method for writing the entity to disk.
     The :py:meth:`write` method must be implemented by all subclasses and serves as a
     Protocol for writing the entity's data to a specified output path.
@@ -72,7 +72,7 @@ class Entity(ABC):
 
         See Also
         --------
-        abidskit.utils.helpers.write_entities
+        bidslab.utils.helpers.write_entities
             Function for writing entities to disk.
 
         Notes
@@ -118,7 +118,7 @@ def check_entity_mismatch(filename: str, entitylist: Sequence[str]) -> bool:
 
 class BaseTask(Entity, ABC):
     """
-    Abstract base class for Task entities in aBIDSkit.
+    Abstract base class for Task entities in BIDSlab.
 
     This class implements a BaseTask entity not intended to be instantiated directly.
     It serves as a base for specific task implementations, providing common attributes
@@ -203,7 +203,7 @@ class BaseTask(Entity, ABC):
 
         See Also
         --------
-        abidskit.utils.helpers.write_entities
+        bidslab.utils.helpers.write_entities
             Function for writing entities to disk.
         """
         pass
@@ -213,7 +213,7 @@ class BaseTask(Entity, ABC):
         """
         Property to get or set the top-level Datatype object.
 
-        Links to the top-level :py:class:`~abidskit.common.specs_dataype.Datatype`
+        Links to the top-level :py:class:`~bidslab.common.specs_dataype.Datatype`
         object associated with the Task.
 
         Returns
@@ -225,7 +225,7 @@ class BaseTask(Entity, ABC):
         -----
         TopLevelEntityNotLinkedWarning
             If the Task is not linked to a
-            :py:class:`~abidskit.common.specs_dataype.Datatype` object when accessed.
+            :py:class:`~bidslab.common.specs_dataype.Datatype` object when accessed.
         """
         if self._datatype:
             return self._datatype
@@ -240,7 +240,7 @@ class BaseTask(Entity, ABC):
 
 class BaseAcquisition(Entity, Generic[R], ABC):
     """
-    Abstract base class for Acquisition entities in aBIDSkit.
+    Abstract base class for Acquisition entities in BIDSlab.
 
     This class implements a BaseAcquisition entity not intended to be instantiated
     directly. It serves as a base for specific acquisition implementations, providing
@@ -308,7 +308,7 @@ class BaseAcquisition(Entity, Generic[R], ABC):
 
         See Also
         --------
-        abidskit.utils.helpers.write_entities
+        bidslab.utils.helpers.write_entities
             Function for writing entities to disk.
         """
         write_entities(output_path, self.runs.values())

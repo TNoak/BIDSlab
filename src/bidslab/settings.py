@@ -1,7 +1,7 @@
 """
-Settings management for aBIDSkit.
+Settings management for BIDSlab.
 
-This module provides functionality to manage and manipulate settings for the aBIDSkit
+This module provides functionality to manage and manipulate settings for the BIDSlab
 library. It includes a dataclass to hold the settings, context managers to temporarily
 override settings, and functions to set, get, and save settings.
 Settings can either be provided as a dictionary in code or loaded from a JSON file.
@@ -56,9 +56,9 @@ PACKAGE_OPTIONS = ["DATASET_FETCHING_PACKAGE", "DATA_LOADING_PACKAGE"]
 @dataclass(frozen=True)
 class Settings:
     """
-    Settings for aBIDSkit.
+    Settings for BIDSlab.
 
-    A dataclass that holds the settings for aBIDSkit.
+    A dataclass that holds the settings for BIDSlab.
 
     Attributes
     ----------
@@ -86,7 +86,7 @@ class Settings:
 
 SETTINGS: Settings = Settings()
 """
-Global settings instance for aBIDSkit.
+Global settings instance for BIDSlab.
 
 See Also
 --------

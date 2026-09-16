@@ -1,8 +1,8 @@
 ####################################
-Welcome to aBIDSkit's documentation!
+Welcome to BIDSlab's documentation!
 ####################################
 
-This is the official documentation for BIDSlab, a comprehensive toolkit for working with BIDS-formatted data. Here you will find guides, tutorials, and API references to help you get started and make the most of aBIDSkit.
+This is the official documentation for BIDSlab, a comprehensive toolkit for working with BIDS-formatted data. Here you will find guides, tutorials, and API references to help you get started and make the most of BIDSlab.
 
 .. warning::
 

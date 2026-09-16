@@ -1,4 +1,4 @@
-"""Helper functions for various tasks in the aBIDSkit package."""
+"""Helper functions for various tasks in the BIDSlab package."""
 
 #  Copyright (c) 2025 by Lukas Behammer
 #  University of Augsburg
