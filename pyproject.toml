@@ -6,7 +6,7 @@ authors = [
     { name = "Lukas Behammer", email = "lukas.behammer@uni-a.de" },
 ]
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 keywords = [
     "BIDS",
     "neuroimaging",
