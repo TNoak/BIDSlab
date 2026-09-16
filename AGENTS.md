@@ -18,13 +18,13 @@ All Python docstrings must follow numpy conventions with these sections in order
    - Example: "Load a BIDS dataset from disk."
    - NOT: "Loads a BIDS dataset" or "Loading a BIDS dataset"
 
-2. **Extended Summary** (Optional for simple functions, required for complex classes)
+1. **Extended Summary** (Optional for simple functions, required for complex classes)
 
    - One or more paragraphs explaining the purpose, behavior, and context
    - Include relevant background information and use cases
    - Link to related concepts with proper cross-references
 
-3. **Parameters** (Required if function/class takes arguments)
+1. **Parameters** (Required if function/class takes arguments)
 
    - Format: `name : type` followed by description
    - Multi-type parameters: `type1 | type2`
@@ -39,7 +39,7 @@ All Python docstrings must follow numpy conventions with these sections in order
          Whether to recursively load subdirectories. Default is False.
      ```
 
-4. **Returns** (Required for functions that return values)
+1. **Returns** (Required for functions that return values)
 
    - Format: `type` followed by description
    - For multiple return values, list each
@@ -51,7 +51,7 @@ All Python docstrings must follow numpy conventions with these sections in order
          A dictionary containing the loaded dataset with keys for each entity.
      ```
 
-5. **Raises** (Recommended for error-prone functions/classes)
+1. **Raises** (Recommended for error-prone functions/classes)
 
    - List all exceptions the code can raise
    - Include condition that triggers each exception
@@ -66,7 +66,7 @@ All Python docstrings must follow numpy conventions with these sections in order
          If the dataset structure is invalid.
      ```
 
-6. **Warnings** (Use when applicable)
+1. **Warnings** (Use when applicable)
 
    - For deprecations, experimental features, or important caveats
    - Example:
@@ -76,7 +76,7 @@ All Python docstrings must follow numpy conventions with these sections in order
      This functionality is experimental and may change in future releases.
      ```
 
-7. **See Also** (Recommended for classes and important functions)
+1. **See Also** (Recommended for classes and important functions)
 
    - Related functions/classes using proper cross-references
    - Use :py:class:, :py:func:, :py:meth: with tilde (~) for short display
@@ -90,7 +90,7 @@ All Python docstrings must follow numpy conventions with these sections in order
          Core dataset class.
      ```
 
-8. **Notes** (Recommended for non-trivial code)
+1. **Notes** (Recommended for non-trivial code)
 
    - Implementation details, algorithm explanations
    - BIDS-specific conventions and rationale
@@ -104,7 +104,7 @@ All Python docstrings must follow numpy conventions with these sections in order
      for large datasets.
      ```
 
-9. **Examples** (Highly recommended for all public classes/functions)
+1. **Examples** (Highly recommended for all public classes/functions)
 
    - Practical, executable code snippets
    - Use `# doctest: +SKIP` for examples requiring external data/setup
@@ -148,20 +148,20 @@ The tilde (~) shortens display to only the last component (e.g., "ClassName" ins
    - Complex classes: 500+ characters
    - Core classes: 1000+ characters
 
-2. **Section Completeness**
+1. **Section Completeness**
 
    - Simple functions: Summary, Parameters, Returns, Raises
    - Complex classes: All 9 sections with emphasis on Notes and Examples
    - Extension classes: Comprehensive with extended summary and multiple examples
 
-3. **Example Quality**
+1. **Example Quality**
 
    - Every public class should have at least one example
    - Every user-facing function should have at least one example
    - Examples should demonstrate typical usage patterns
    - Examples requiring external data should use `# doctest: +SKIP`
 
-4. **Special Considerations**
+1. **Special Considerations**
 
    - Only the getter methods of properties are documented with a one-line description with the docstring prepanded by `# numpydoc ignore=RT01` on the line above the docstring
    - The setter method is not documented and has a `# numpydoc ignore=GL08` in place of a docstring
@@ -190,11 +190,11 @@ docs/source/
 Each module RST file should contain:
 
 1. **Module Overview** - Purpose and scope of the module
-2. **Architecture** - How components fit together
-3. **Key Concepts** - Important terminology and patterns
-4. **Usage Examples** - Common workflows with code
-5. **API Reference** - Automodule directive pulling Python docstrings
-6. **See Also** - Links to related modules if applicable
+1. **Architecture** - How components fit together
+1. **Key Concepts** - Important terminology and patterns
+1. **Usage Examples** - Common workflows with code
+1. **API Reference** - Automodule directive pulling Python docstrings
+1. **See Also** - Links to related modules if applicable
 
 ## Ruff Documentation Checks
 
@@ -347,7 +347,7 @@ Before committing documentation changes:
 
    Expected: "All checks passed!"
 
-2. **Run numpydoc lint**:
+1. **Run numpydoc lint**:
 
    ```bash
    python -m numpydoc lint ./src/bidslab/**/*.py
@@ -355,7 +355,7 @@ Before committing documentation changes:
 
    Expected: No errors
 
-3. **Verify Python compilation**:
+1. **Verify Python compilation**:
 
    ```bash
    python -m py_compile src/bidslab/module.py
@@ -363,7 +363,7 @@ Before committing documentation changes:
 
    Expected: No errors
 
-4. **Build Sphinx documentation**:
+1. **Build Sphinx documentation**:
 
    ```bash
    python -m sphinx -b html docs/source docs/build/html
@@ -371,7 +371,7 @@ Before committing documentation changes:
 
    Expected: "build succeeded, XXX warnings"
 
-5. **Spot-check HTML output**:
+1. **Spot-check HTML output**:
 
    - Verify docs/build/html/ is created
    - Check that cross-references are functional
@@ -398,12 +398,12 @@ Before committing documentation changes:
 When enhancing documentation:
 
 1. **Always maintain consistency** with existing documented classes
-2. **Follow the section order** strictly (Summary → Parameters → Returns → etc.)
-3. **Use proper cross-references** with tilde (~) notation
-4. **Include practical examples** for user-facing classes/functions
-5. **Document all parameters** including optional ones
-6. **Validate with Ruff and numpydoc** before considering work complete
-7. **Build Sphinx** to verify rendering
+1. **Follow the section order** strictly (Summary → Parameters → Returns → etc.)
+1. **Use proper cross-references** with tilde (~) notation
+1. **Include practical examples** for user-facing classes/functions
+1. **Document all parameters** including optional ones
+1. **Validate with Ruff and numpydoc** before considering work complete
+1. **Build Sphinx** to verify rendering
 
 ## References
 
