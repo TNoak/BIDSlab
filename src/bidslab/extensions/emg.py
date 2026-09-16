@@ -419,6 +419,8 @@ class EMGRecording(Recording):
         Recording mode, such as continuous or epoched acquisition.
     software_filters : MutableMapping[str, Filter] | str
         Software filtering description stored in the EMG sidecar.
+    virtual_entity : bool
+        Parameter to distinguish virtual and real entities.
     **kwargs
         Optional recording metadata, linked hardware or institution objects,
         channels, electrodes, coordinate systems, and inherited sidecar content.
@@ -632,6 +634,8 @@ class EMGRecording(Recording):
 
     @property
     def coordinate_systems(self) -> MutableSequence[EMGCoordinateSystem] | None:
+        # numpydoc ignore=RT01
+        """Return coordinate systems associated with the recording."""
         if self._coordinate_systems is None:
             self._coordinate_systems = []
             # TODO load corrdsystems from files
@@ -670,6 +674,7 @@ class EMGRecording(Recording):
 
     @coordinate_systems.setter
     def coordinate_systems(self, value: MutableSequence[EMGCoordinateSystem]) -> None:
+        # numpydoc ignore=GL08
         self._coordinate_systems = value
 
     @property
@@ -706,6 +711,8 @@ class EMGRecording(Recording):
 
     @property
     def events(self) -> Sequence[Event] | None:
+        # numpydoc ignore=RT01
+        """Load or return cached events sequence."""
         if self._events is None:
             self._events = get_events_from_files(self, self.root)
 
@@ -713,6 +720,7 @@ class EMGRecording(Recording):
 
     @events.setter
     def events(self, value: Sequence[Event]) -> None:
+        # numpydoc ignore=GL08
         self._events = value
 
     def _update_description(self) -> None:
@@ -721,6 +729,14 @@ class EMGRecording(Recording):
         _update_description_data(self, file_name)
 
     def write(self, output_path):
+        """
+        Write recording-level EMG files.
+
+        Parameters
+        ----------
+        output_path : os.PathLike | str
+            The path where the output files will be written.
+        """
         # write events files
         if self.events:
             write_events_to_files(self, self.events, output_path)
@@ -788,6 +804,21 @@ class EMGRecording(Recording):
         # path can only contain sub, ses, acq, recording
 
     def list_channels(self) -> pd.DataFrame:
+        """
+        Return a channel table suitable for ``*_channels.tsv`` output.
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame with one row per emg channel, containing all channel
+            metadata suitable for writing to a BIDS ``*_channels.tsv`` file.
+
+        Notes
+        -----
+        The returned DataFrame excludes ``None`` values and internal attributes
+        (such as ``columns``). Reference frame objects are replaced with their
+        names for serialization.
+        """
         channels_dataframe = pd.DataFrame()
         for emg_channel in self.channels if self.channels else []:
             channel_dict = emg_channel.__dict__.copy()
@@ -811,6 +842,21 @@ class EMGRecording(Recording):
         return channels_dataframe
 
     def list_electrodes(self) -> pd.DataFrame:
+        """
+        Return a electrodes table suitable for ``*_electrodes.tsv`` output.
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame with one row per electrode, containing all electrode
+            metadata suitable for writing to a BIDS ``*_electrodes.tsv`` file.
+
+        Notes
+        -----
+        The returned DataFrame excludes ``None`` values and internal attributes
+        (such as ``columns``). Reference frame objects are replaced with their
+        names for serialization.
+        """
         electrodes_dataframe = pd.DataFrame()
         for emg_electrode in self.electrodes if self.electrodes else []:
             electrode_dict = emg_electrode.__dict__.copy()
@@ -840,6 +886,8 @@ class EMGRun(Run):
         Directory containing run-level EMG files.
     run_id : int
         Numeric run identifier used to resolve ``run-<index>`` entities.
+    virtual_entity : bool
+        Parameter to distinguish virtual and real entities.
     **kwargs : Any
         Optional acquisition link and inherited description metadata.
 
@@ -1013,6 +1061,14 @@ class EMGRun(Run):
         _update_description_data(self, file_name)
 
     def write(self, output_path: os.PathLike | str) -> None:
+        """
+        Write run-level EMG files.
+
+        Parameters
+        ----------
+        output_path : os.PathLike | str
+            The path where the output files will be written.
+        """
         super().write(output_path)
         assert self.recordings is not None
         write_entities(output_path, self.recordings.values())
@@ -1029,6 +1085,10 @@ class EMGAcquisition(BaseAcquisition):
         Directory containing acquisition-level EMG files.
     acquisition_id : str
         BIDS acquisition label, usually ``acq-<label>``.
+    task : EMGTask
+        Top level task entity.
+    virtual_entity : bool
+        Parameter to distinguish virtual and real entities.
     **kwargs : Any
         Optional task link, inherited sidecar description metadata, and
         preconstructed runs.
@@ -1193,6 +1253,14 @@ class EMGAcquisition(BaseAcquisition):
         _update_description_data(self, file_name)
 
     def get_top_level_entities(self) -> list[str | Any]:
+        """
+        Method to get all top level entities.
+
+        Returns
+        -------
+        list
+            A list containing the entity_ids of all top level entities.
+        """
         assert self.task is not None
         entities = self.task.get_top_level_entities()
         entities.append(self.acquisition_id)
@@ -1345,12 +1413,6 @@ class EMGTask(BaseTask):
         ----------
         output_path : os.PathLike | str
             The path where the output files will be written.
-
-        Raises
-        ------
-        NotImplementedError
-            If generic EMG task writing is requested while not-implemented
-            behavior is enforced.
         """
         write_entities(output_path, self.acquisitions.values())
         # TODO check if right

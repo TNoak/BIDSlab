@@ -300,6 +300,8 @@ class MotionRun(Run):
         Directory containing run-level motion files.
     run_id : int
         Numeric run identifier used to resolve ``run-<index>`` entities.
+    virtual_entity : bool
+        Parameter to distinguish virtual and real entities.
     **kwargs
         Optional linked objects and cached metadata, most commonly
         ``acquisition``, ``channels``, or preloaded ``data``.
@@ -419,6 +421,8 @@ class MotionRun(Run):
 
     @property
     def events(self) -> Sequence[Event] | None:
+        # numpydoc ignore=RT01
+        """Load or return cached events sequence."""
         if self._events is None:
             self._events = get_events_from_files(self, self.root)
 
@@ -426,6 +430,7 @@ class MotionRun(Run):
 
     @events.setter
     def events(self, value: Sequence[Event]) -> None:
+        # numpydoc ignore=GL08
         self._events = value
 
     def list_channels(self) -> pd.DataFrame:
@@ -580,6 +585,8 @@ class MotionAcquisition(BaseAcquisition):
         BIDS acquisition label, usually written as ``acq-<label>``.
     sampling_frequency : int | float
         Nominal sampling frequency of the motion system in hertz.
+    virtual_entity : bool
+        Parameter to distinguish virtual and real entities.
     **kwargs
         Optional acquisition metadata such as channel counts, effective sampling
         frequency, missing-value markers, recording duration, and artifact
@@ -777,6 +784,14 @@ class MotionAcquisition(BaseAcquisition):
             raise TypeError("Field `Runs` must be a list of Run objects")
 
     def get_top_level_entities(self) -> list[str | Any]:
+        """
+        Method to get all top level entities.
+
+        Returns
+        -------
+        list
+            A list containing the entity_ids of all top level entities.
+        """
         assert self.tracking_system is not None
         entities = self.tracking_system.get_top_level_entities()
         entities.append(self.acquisition_id)
@@ -796,6 +811,8 @@ class TrackSys(Entity):
     motion_description : dict | None, optional
         Parsed motion sidecar content inherited by acquisitions when explicit
         acquisition-level JSON sidecars are absent.
+    virtual_entity : bool
+        Parameter to distinguish virtual and real entities.
     **kwargs : dict | Hardware | Institution | MotionTask | MutableSequence
         Optional linked objects and metadata, including hardware, institution,
         parent task, and preconstructed acquisitions.
@@ -1018,6 +1035,14 @@ class TrackSys(Entity):
             )
 
     def get_top_level_entities(self) -> list[str | Any]:
+        """
+        Method to get all top level entities.
+
+        Returns
+        -------
+        list
+            A list containing the entity_ids of all top level entities.
+        """
         assert self.task is not None
         entities = self.task.get_top_level_entities()
         entities.append(self.tracking_system_id)

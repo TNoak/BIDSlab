@@ -402,6 +402,28 @@ class Column:
 
 @dataclass
 class Event:
+    """
+    Represent an Event.
+
+    Parameters
+    ----------
+    onset : float
+        Onset (in seconds) of the event.
+    duration : float
+        Duration of the event (measured from onset) in seconds.
+    **kwargs : Any
+        Keyword arguments containing additional events metadata.
+
+    Attributes
+    ----------
+    onset : float
+        Onset (in seconds) of the event.
+    duration : float
+        Duration of the event (measured from onset) in seconds.
+    columns : dict[str, Any]
+        Dictionary containing column information.
+    """
+
     def __init__(
         self,
         onset: float,
@@ -434,6 +456,8 @@ class Recording(Entity):
         The unique identifier for this recording.
     sampling_frequency : int | float
         The sampling frequency of the recording in Hz.
+    virtual_entity : bool
+        Parameter to distinguish virtual and real entities.
 
     Attributes
     ----------
@@ -504,6 +528,14 @@ class Recording(Entity):
         self._run = value
 
     def get_top_level_entities(self) -> list[str | Any]:
+        """
+        Method to get all top level entities.
+
+        Returns
+        -------
+        list
+            A list containing the entity_ids of all top level entities.
+        """
         assert self.run is not None
         entities = self.run.get_top_level_entities()
         entities.append(self.recording_id)
@@ -537,6 +569,10 @@ class PhysioRecording(Recording):
         The column specifications for the data in this recording.
     hardware : Hardware, optional
         Information about the hardware used for this recording.
+    virtual_entity : bool
+        Parameter to distinguish virtual and real entities.
+    **kwargs
+        Optional recording metadata.
 
     Attributes
     ----------
@@ -596,6 +632,8 @@ class PhysioRecording(Recording):
 
     @property
     def events(self) -> Sequence[Event] | None:
+        # numpydoc ignore=RT01
+        """Load or return cached physioevents sequence."""
         if not self._events:
             self._events = get_events_from_files(
                 self, self.root, file_ending="physioevents"
@@ -605,9 +643,18 @@ class PhysioRecording(Recording):
 
     @events.setter
     def events(self, value: Sequence[Event]) -> None:
+        # numpydoc ignore=GL08
         self._events = value
 
     def write(self, output_path: os.PathLike | str) -> None:
+        """
+        Write physio recording files.
+
+        Parameters
+        ----------
+        output_path : os.PathLike | str
+            The path where the output files will be written.
+        """
         output_path_json = append_path(output_path, "_physio.json")
         output_path_tsv = append_path(output_path, "_physio.tsv.gz")
 
@@ -643,11 +690,49 @@ class PhysioRecording(Recording):
 
 
 class StimRecording(Recording):
+    """
+    Represents a stim recording with defined columns.
+
+    This class extends Recording to include column specifications
+    used for Continuously-sampled, stimulus-related signals.
+
+    Parameters
+    ----------
+    base_path : os.PathLike | str
+        The file system path to the directory containing recording data.
+    recording_id : str
+        The unique identifier for this recording.
+    sampling_frequency : int
+        The sampling frequency of the recording in Hz.
+    start_time : int | float
+        The start time of the recording relative to some reference point.
+    columns : MutableSequence[Column]
+        The column specifications for the data in this recording.
+    virtual_entity : bool
+        Parameter to distinguish virtual and real entities.
+    **kwargs
+        Optional recording metadata.
+
+    Attributes
+    ----------
+    start_time : int | float
+        The start time of the recording.
+    columns : MutableSequence[Column]
+        The column specifications.
+    sampling_frequency : int
+        The sampling frequency of the recording in Hz.
+
+    See Also
+    --------
+    Recording : The parent class for all recording types.
+    Column : The column specification class.
+    """
+
     def __init__(
         self,
         base_path: os.PathLike | str,
         recording_id: str,
-        sampling_frequency: int,
+        sampling_frequency: int | float,
         start_time: int | float,
         columns: MutableSequence[Column],
         virtual_entity: bool = False,
@@ -663,6 +748,7 @@ class StimRecording(Recording):
         self.root: pathlib.Path = pathlib.Path(base_path)
         self.start_time: int | float = start_time
         self.columns: MutableSequence[Column] = columns
+        self.sampling_frequency: int | float = sampling_frequency
 
         self._data: Any | None = None
 
@@ -671,13 +757,24 @@ class StimRecording(Recording):
 
     @property
     def data(self) -> Any | None:
+        # numpydoc ignore=RT01
+        """Get the data of the stim recording."""
         return self._data
 
     @data.setter
     def data(self, value: pd.DataFrame) -> None:
+        # numpydoc ignore=GL08
         self._data = value
 
     def write(self, output_path: os.PathLike | str) -> None:
+        """
+        Write stim recording files.
+
+        Parameters
+        ----------
+        output_path : os.PathLike | str
+            The path where the output files will be written.
+        """
         output_path_json = append_path(output_path, "_stim.json")
         output_path_tsv = append_path(output_path, "_stim.tsv.gz")
 
@@ -715,6 +812,8 @@ class Run(Entity, Generic[A]):
         The file system path to the directory containing run data.
     run_id : int
         The numeric identifier for this run (must be an integer index).
+    virtual_entity : bool
+        Parameter to distinguish virtual and real entities.
     **kwargs : Any
         Additional attributes to set on the run.
 
@@ -797,6 +896,7 @@ class Run(Entity, Generic[A]):
 
     @property
     def physio(self) -> dict[str, PhysioRecording] | None:
+        # numpydoc ignore=RT01
         """Get physiological recordings associated with this Run."""
         if self._physio is None:
             recording_labels = get_recordings_from_files(self, self.root, "physio")
@@ -846,15 +946,26 @@ class Run(Entity, Generic[A]):
 
     @property
     def stims(self) -> dict[str, StimRecording] | None:
+        # numpydoc ignore=RT01
+        """Return stim recordings associated with the run."""
         if self._stims is None:
             self._stims = get_stims_from_files(self, self.root)
         return self._stims
 
     @stims.setter
     def stims(self, value: dict[str, StimRecording]) -> None:
+        # numpydoc ignore=GL08
         self._stims = value
 
     def get_top_level_entities(self) -> list[str | Any]:
+        """
+        Method to get all top level entities.
+
+        Returns
+        -------
+        list
+            A list containing the entity_ids of all top level entities.
+        """
         assert self.acquisition is not None
         entities = self.acquisition.get_top_level_entities()
         entities.append(self.run_id)
@@ -889,6 +1000,8 @@ class Acquisition(BaseAcquisition):
         The file system path to the acquisition directory.
     acquisition_id : str
         The unique identifier for the acquisition.
+    virtual_entity : bool
+        Parameter to distinguish virtual and real entities.
 
     Attributes
     ----------
@@ -1016,6 +1129,14 @@ class Acquisition(BaseAcquisition):
         self._task = value
 
     def get_top_level_entities(self) -> list[str | Any]:
+        """
+        Method to get all top level entities.
+
+        Returns
+        -------
+        list
+            A list containing the entity_ids of all top level entities.
+        """
         assert self.task is not None
         entities = self.task.get_top_level_entities()
         entities.append(self.acquisition_id)
@@ -1025,6 +1146,23 @@ class Acquisition(BaseAcquisition):
 def get_recordings_from_files(
     run: Run, base_path: os.PathLike | str, file_ending: str
 ) -> dict[str, bool]:
+    """
+    Get recording ids from file names.
+
+    Parameters
+    ----------
+    run : Run
+        The ruun object associated with the recordings.
+    base_path : os.Pathike | str
+        The initial path to find the files.
+    file_ending : str
+        The ending of the files (not including the extension).
+
+    Returns
+    -------
+    dict[str, bool]
+        A dict containing the recording_ids and if they are virtual_entities.
+    """
     # file_ending eg "physio" or "eeg", not extension eg ".json"
     # returns all rercording-labels and if they are virtual entities
     labels = {}
@@ -1058,6 +1196,23 @@ def get_recordings_from_files(
 def get_events_from_files(
     cls: Recording | Run, base_path: os.PathLike | str, file_ending="events"
 ) -> MutableSequence[Event] | None:
+    """
+    Get Events from files.
+
+    Parameters
+    ----------
+    cls : Recording | Run
+        The object containing the events.
+    base_path : os.Pathike | str
+        The initial path to find the files.
+    file_ending : str, optional
+        An optional different file ending (used for physioevents).
+
+    Returns
+    -------
+    MutableSequence[Event]
+        A sequence containing the events.
+    """
     base_path = pathlib.Path(base_path)
 
     events: MutableSequence[Event] = []
@@ -1135,6 +1290,21 @@ def get_events_from_files(
 def get_stims_from_files(
     cls: Run, base_path: os.PathLike | str
 ) -> dict[str, StimRecording] | None:
+    """
+    Get StimRecordings from files.
+
+    Parameters
+    ----------
+    cls : Run
+        The run object containing the stim recordings.
+    base_path : os.Pathike | str
+        The initial path to find the files.
+
+    Returns
+    -------
+    dict[str, StimRecording]
+        Dict containing the stim recordings and their ids.
+    """
     base_path = pathlib.Path(base_path)
 
     stims = {}
@@ -1247,6 +1417,22 @@ def write_events_to_files(
     file_ending="events",
     compressed=False,
 ) -> None:
+    """
+    Write a sequence of events to disk.
+
+    Parameters
+    ----------
+    cls : Recording | Run
+        The object containing the events.
+    events : Sequence[Event]
+        The event sequence.
+    output_path : os.Pathike | str
+        The output path for the file.
+    file_ending : str, optional
+        An optional different file ending (used for physioevents).
+    compressed : bool
+        Compression of the output file.
+    """
     output_path_json = append_path(output_path, f"_{file_ending}.json")
     if compressed:
         output_path_tsv = append_path(output_path, f"_{file_ending}.tsv.gz")

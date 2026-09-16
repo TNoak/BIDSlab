@@ -238,6 +238,14 @@ class Datatype:
             raise TypeError("Field `Tasks` must be a list of Task objects")
 
     def get_top_level_entities(self) -> list[str | Any]:
+        """
+        Method to get all top level entities.
+
+        Returns
+        -------
+        list
+            A list containing the entity_ids of all top level entities.
+        """
         assert self.session is not None
         return self.session.get_top_level_entities()
 

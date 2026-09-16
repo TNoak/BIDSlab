@@ -161,6 +161,8 @@ class Session(Entity):
         Filesystem path to the session directory.
     session_id : str
         BIDS session identifier including the ``ses-`` prefix.
+    virtual_entity : bool
+        Parameter to distinguish virtual and real entities.
     **kwargs
         Additional session metadata and linked entities.
 
@@ -352,6 +354,14 @@ class Session(Entity):
             raise TypeError("Field `Datatypes` must be a list of Datatype objects")
 
     def get_top_level_entities(self) -> list[str | Any]:
+        """
+        Method to get all top level entities.
+
+        Returns
+        -------
+        list
+            A list containing the entity_ids of all top level entities.
+        """
         assert self.participant is not None
         entities = self.participant.get_top_level_entities()
         entities.append(self.session_id)
@@ -474,6 +484,8 @@ class Participant(Entity):
         Path to the participant directory.
     participant_id : str
         BIDS participant identifier including the ``sub-`` prefix.
+    virtual_entity : bool
+        Parameter to distinguish virtual and real entities.
     **kwargs
         Participant metadata, linked dataset reference, phenotype entries, and
         nested session definitions.
@@ -608,6 +620,8 @@ class Participant(Entity):
 
     @property
     def sessions(self) -> dict[str, Session]:
+        # numpydoc ignore=RT01
+        """Get sessions linked to the participant."""
         if not self._sessions:
             tsv_path, _ = get_tsv_json_files(
                 self.root, f"{self.participant_id}_sessions"
@@ -678,6 +692,14 @@ class Participant(Entity):
         return sessions_dataframe
 
     def get_top_level_entities(self) -> list[str | Any]:
+        """
+        Method to get all top level entities.
+
+        Returns
+        -------
+        list
+            A list containing the entity_ids of all top level entities.
+        """
         return [self.participant_id]
 
     def write(self, output_path: os.PathLike | str) -> None:

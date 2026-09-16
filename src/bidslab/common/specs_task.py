@@ -36,6 +36,8 @@ class Task(BaseTask):
         Directory containing files for the task.
     task_name : str
         Human-readable task name used to derive the BIDS ``task-`` entity.
+    virtual_entity : bool
+        Parameter to distinguish virtual and real entities.
     **kwargs
         Additional task metadata and optional linked entities.
 

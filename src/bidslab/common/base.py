@@ -48,6 +48,8 @@ class Entity(ABC):
         The unique identifier for the entity.
     _entity_name : str
         The name of the entity type.
+    _virtual_entity : bool
+        Parameter to distinguish virtual and real entities.
 
     Notes
     -----
