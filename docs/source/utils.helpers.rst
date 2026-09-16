@@ -1,6 +1,6 @@
 Helpers module
 --------------
 
-.. automodule:: abidskit.utils.helpers
+.. automodule:: bidslab.utils.helpers
 
-.. currentmodule:: abidskit.utils.helpers
+.. currentmodule:: bidslab.utils.helpers

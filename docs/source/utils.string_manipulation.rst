@@ -1,6 +1,6 @@
 String manipulation module
 --------------------------
 
-.. automodule:: abidskit.utils.string_manipulation
+.. automodule:: bidslab.utils.string_manipulation
 
-.. currentmodule:: abidskit.utils.string_manipulation
+.. currentmodule:: bidslab.utils.string_manipulation

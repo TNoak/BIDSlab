@@ -1,5 +1,5 @@
 Misc module
 -----------
 
-.. automodule:: abidskit.common.specs_misc
+.. automodule:: bidslab.common.specs_misc
    :show-inheritance: True

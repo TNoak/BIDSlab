@@ -1,6 +1,6 @@
 IO module
 ---------
 
-.. automodule:: abidskit.io
+.. automodule:: bidslab.io
 
-.. currentmodule:: abidskit.io
+.. currentmodule:: bidslab.io

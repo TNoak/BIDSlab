@@ -1,6 +1,6 @@
 Settings module
 ---------------
 
-.. automodule:: abidskit.settings
+.. automodule:: bidslab.settings
 
-.. currentmodule:: abidskit.settings
+.. currentmodule:: bidslab.settings

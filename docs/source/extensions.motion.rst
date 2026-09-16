@@ -1,5 +1,5 @@
 Motion module
 -------------
 
-.. automodule:: abidskit.extensions.motion
+.. automodule:: bidslab.extensions.motion
    :show-inheritance: True

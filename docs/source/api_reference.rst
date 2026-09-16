@@ -1,9 +1,9 @@
 API Reference
 -------------
 
-This is the API reference for the aBIDSkit package. The following sections provide
+This is the API reference for the BIDSlab package. The following sections provide
 detailed information about the various modules and functionalities available in
-aBIDSkit.
+BIDSlab.
 
 .. toctree::
    :maxdepth: 2

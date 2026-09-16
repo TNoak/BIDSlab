@@ -2,7 +2,7 @@ Utils subpackage
 ----------------
 
 This subpackage provides utility functions and classes that support various operations
-within the aBIDSkit package.
+within the BIDSlab package.
 
 .. toctree::
    :maxdepth: 2

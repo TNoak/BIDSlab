@@ -1,5 +1,5 @@
 Phenotype module
 ----------------
 
-.. automodule:: abidskit.common.specs_phenotype
+.. automodule:: bidslab.common.specs_phenotype
    :show-inheritance: True

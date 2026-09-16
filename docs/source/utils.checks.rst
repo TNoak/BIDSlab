@@ -1,6 +1,6 @@
 Checks module
 -------------
 
-.. automodule:: abidskit.utils.checks
+.. automodule:: bidslab.utils.checks
 
-.. currentmodule:: abidskit.utils.checks
+.. currentmodule:: bidslab.utils.checks

@@ -1,6 +1,6 @@
 Base module
 -----------
 
-.. automodule:: abidskit.common.base
+.. automodule:: bidslab.common.base
    :show-inheritance: True
    :exclude-members: runs, datatype

@@ -1,6 +1,6 @@
 Exceptions module
 -----------------
 
-.. automodule:: abidskit.utils.exceptions
+.. automodule:: bidslab.utils.exceptions
 
-.. currentmodule:: abidskit.utils.exceptions
+.. currentmodule:: bidslab.utils.exceptions

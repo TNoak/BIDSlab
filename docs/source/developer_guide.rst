@@ -89,7 +89,7 @@ If you installed the dev dependencies, you can build the documentation with the 
 
 Alternatively, if you want to rebuild the documentation automatically on changes you can use the following command::
 
-    sphinx-autobuild --open-browser docs/source docs/build/html --watch src/abidskit
+    sphinx-autobuild --open-browser docs/source docs/build/html --watch src/bidslab
 
 The documentation will be available in the ``docs/build`` directory. If you build the documentation multiple times, you may have to delete the ``docs/build`` directory before building again.
 This is, for example, possible with::

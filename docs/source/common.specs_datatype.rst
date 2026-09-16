@@ -1,5 +1,5 @@
 Datatype module
 ---------------
 
-.. automodule:: abidskit.common.specs_datatype
+.. automodule:: bidslab.common.specs_datatype
    :show-inheritance: True

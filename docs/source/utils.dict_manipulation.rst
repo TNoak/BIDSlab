@@ -1,7 +1,7 @@
 Dict manipulation module
 ------------------------
 
-.. automodule:: abidskit.utils.dict_manipulation
+.. automodule:: bidslab.utils.dict_manipulation
    :exclude-members: ManipulateKeysOption
 
-.. currentmodule:: abidskit.utils.dict_manipulation
+.. currentmodule:: bidslab.utils.dict_manipulation

@@ -20,11 +20,11 @@ from sphinx.ext import autodoc
 
 sys.path.insert(0, os.path.abspath("../../src"))
 
-project = "aBIDSkit"
+project = "BIDSlab"
 copyright = "2025, Lukas Behammer"
 author = "Lukas Behammer"
 
-with open("../../src/abidskit/__init__.py") as f:
+with open("../../src/bidslab/__init__.py") as f:
     setup_lines = f.readlines()
 version = "vUndefined"
 for line in setup_lines:
@@ -113,5 +113,5 @@ numpydoc_validation_exclude = {
 }
 
 # -- Options for Coverage -----------------------------------------------------
-coverage_modules = ["abidskit"]
+coverage_modules = ["bidslab"]
 coverage_statistics_to_stdout = True
