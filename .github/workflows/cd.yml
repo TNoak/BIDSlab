@@ -55,7 +55,7 @@ jobs:
       - name: Publish Python distribution to Test PyPI
         uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33
         with:
-          # repository-url: https://test.pypi.org/legacy/
+          repository-url: https://test.pypi.org/legacy/
           print-hash: true
 
   publish-github:
