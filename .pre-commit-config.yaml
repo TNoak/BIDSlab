@@ -141,6 +141,11 @@ repos:
           CODE_OF_CONDUCT
           )
 
+  - repo: https://github.com/zizmorcore/zizmor-pre-commit
+    rev: v1.26.1
+    hooks:
+      - id: zizmor
+
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.16.1
     hooks:
