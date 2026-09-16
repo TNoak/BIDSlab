@@ -50,7 +50,7 @@ requires = ["setuptools>=80", "setuptools-scm[simple]>=9.2"]
 build-backend = "setuptools.build_meta"
 
 [dependency-groups]
-tests = [
+test = [
     "pytest",
     "pytest-cov",
     "pytest-xdist",
@@ -59,6 +59,7 @@ tests = [
     "pytest-doctestplus",
     "syrupy",
     "mimesis",
+    "typing_extensions",
 ]
 docs = [
     "sphinx",
