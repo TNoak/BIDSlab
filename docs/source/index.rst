@@ -81,7 +81,7 @@ Main Documentation Sections
    :maxdepth: 2
    :caption: Using BIDSlab
 
-   Quick Start Guide <#quick-start>
+   .. Quick Start Guide <quick-start>
    .. user_guide
 
 .. toctree::
