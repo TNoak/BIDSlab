@@ -1,7 +1,7 @@
 Exceptions Module
 =================
 
-The Exceptions module provides custom exception classes and warninigs for error handling
+The Exceptions module provides custom exception classes and warnings for error handling
 and reporting throughout the aBIDSkit package. These exceptions provide specific error
 types for different failure conditions.
 

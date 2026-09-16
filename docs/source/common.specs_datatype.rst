@@ -22,18 +22,18 @@ Modalities
 Supported modalities include:
 
 .. Comment
-- **anat** - Anatomical images (T1w, T2w, FLAIR, etc.)
-- **func** - Functional images (fMRI, BOLD, etc.)
-- **dwi** - Diffusion-weighted images
-- **fmap** - Field maps
-- **perf** - Perfusion images
+    - **anat** - Anatomical images (T1w, T2w, FLAIR, etc.)
+    - **func** - Functional images (fMRI, BOLD, etc.)
+    - **dwi** - Diffusion-weighted images
+    - **fmap** - Field maps
+    - **perf** - Perfusion images
 
 - **motion** - Motion capture and tracking data
 - **emg** - Electromyography recordings
 
 .. Comment
-- **eeg** - Electroencephalography (planned)
-- **meg** - Magnetoencephalography (planned)
+    - **eeg** - Electroencephalography (planned)
+    - **meg** - Magnetoencephalography (planned)
 
 Module API
 ----------

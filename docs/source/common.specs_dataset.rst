@@ -29,11 +29,11 @@ Structure
 A Dataset contains:
 
 - **Participants** - Individual participants or research subjects
-  - **Sessions** - Individual recording or assessment sessions per subject
-    - **Datatypes** - Modality-specific data (anat, func, motion, emg, etc.)
-      - **Tasks** - Information about the performed task
-        - **Acquisitions** - Specific acquisition configurations
-          - **Runs** - Individual repetitions of measurements
+    - **Sessions** - Individual recording or assessment sessions per subject
+        - **Datatypes** - Modality-specific data (anat, func, motion, emg, etc.)
+            - **Tasks** - Information about the performed task
+                - **Acquisitions** - Specific acquisition configurations
+                    - **Runs** - Individual repetitions of measurements
 
 Following the BIDS standard, some of those are optional.
 
