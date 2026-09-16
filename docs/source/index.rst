@@ -17,6 +17,11 @@ Welcome to BIDSlab's documentation!
    .. changelog
 
 BIDSlab is a Python package for loading, manipulating, and saving BIDS (Brain Imaging Data Structure) datasets.
+
+.. important::
+
+   This project is not affiliated with or endorsed by the BIDS organization, but is intended to be a useful tool for working with BIDS datasets.
+
 This documentation provides comprehensive guides and API references for working with BIDS data programmatically.
 
 .. note::
