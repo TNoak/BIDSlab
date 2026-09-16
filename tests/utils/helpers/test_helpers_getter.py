@@ -19,52 +19,52 @@ PATHS = [
         pathlib.Path(
             "C:/Users/user/Documents/Projects/BIDS_dataset/sub-01/ses-01/task-walking"
         ),
-        [
+        {
             pathlib.Path("C:/Users/user/Documents/Projects/BIDS_dataset/sub-01/ses-01"),
             pathlib.Path("C:/Users/user/Documents/Projects/BIDS_dataset/sub-01"),
-        ],
+        },
     ),
     (
         pathlib.Path("/home/user/Documents/Projects/BIDS_dataset"),
         pathlib.Path(
             "/home/user/Documents/Projects/BIDS_dataset/sub-01/ses-01/task-walking"
         ),
-        [
+        {
             pathlib.Path("/home/user/Documents/Projects/BIDS_dataset/sub-01/ses-01"),
             pathlib.Path("/home/user/Documents/Projects/BIDS_dataset/sub-01"),
-        ],
+        },
     ),
     (
         pathlib.Path("C:/BIDS_dataset"),
         pathlib.Path("C:/BIDS_dataset/sub-01/ses-01/task-walking"),
-        [
+        {
             pathlib.Path("C:/BIDS_dataset/sub-01/ses-01"),
             pathlib.Path("C:/BIDS_dataset/sub-01"),
-        ],
+        },
     ),
     (
         pathlib.Path("/BIDS_dataset"),
         pathlib.Path("/BIDS_dataset/sub-01/ses-01/task-walking"),
-        [
+        {
             pathlib.Path("/BIDS_dataset/sub-01/ses-01"),
             pathlib.Path("/BIDS_dataset/sub-01"),
-        ],
+        },
     ),
     (
         pathlib.Path("C:/ses-01/sub-01/BIDS_dataset"),
         pathlib.Path("C:/ses-01/sub-01/BIDS_dataset/sub-01/ses-01/task-walking"),
-        [
+        {
             pathlib.Path("C:/ses-01/sub-01/BIDS_dataset/sub-01/ses-01"),
             pathlib.Path("C:/ses-01/sub-01/BIDS_dataset/sub-01"),
-        ],
+        },
     ),
     (
         pathlib.Path("/ses-01/sub-01/BIDS_dataset"),
         pathlib.Path("/ses-01/sub-01/BIDS_dataset/sub-01/ses-01/task-walking"),
-        [
+        {
             pathlib.Path("/ses-01/sub-01/BIDS_dataset/sub-01/ses-01"),
             pathlib.Path("/ses-01/sub-01/BIDS_dataset/sub-01"),
-        ],
+        },
     ),
 ]
 
