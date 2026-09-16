@@ -19,14 +19,14 @@ If you want to suggest a feature to BIDSlab, please open an [issue](https://gith
 You want to contribute code to BIDSlab? Great! Here is some information to get you started:
 
 1. Have a look at the [open issues](https://github.com/cimt-unia/BIDSlab/issues) or the To-Do list in the [TODO](https://github.com/cimt-unia/BIDSlab/blob/main/TODO) file to see if there is something you would like to work on.
-2. Fork the repository and create a new branch for your feature or bug fix.
-3. Write your code and tests.
-4. Make sure that all tests pass by running `pytest`.
-5. Create a pull request to the `dev` branch of the repository.
-6. We will review your pull request and provide feedback.
-7. Once your pull request is approved, we will merge it into the `dev` branch.
-8. The changes on `dev` will be tested and merged into the `main` branch.
-9. Your contribution will be part of the next release of BIDSlab!
+1. Fork the repository and create a new branch for your feature or bug fix.
+1. Write your code and tests.
+1. Make sure that all tests pass by running `pytest`.
+1. Create a pull request to the `dev` branch of the repository.
+1. We will review your pull request and provide feedback.
+1. Once your pull request is approved, we will merge it into the `dev` branch.
+1. The changes on `dev` will be tested and merged into the `main` branch.
+1. Your contribution will be part of the next release of BIDSlab!
 
 For more information on the development see the [development guide](https://github.com/cimt-unia/BIDSlab/blob/main/CONTRIBUTING.md).
 

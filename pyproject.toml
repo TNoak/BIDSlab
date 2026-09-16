@@ -109,7 +109,6 @@ extend-exclude = [
     "build",
     "dist",
 ]
-target-version = "py312"
 
 [tool.ruff.lint]
 preview = true
@@ -235,6 +234,7 @@ testpaths = [
 addopts = "-ra --cov --cov-branch --cov-append --cov-report=term-missing --cov-report=xml --import-mode=importlib --random-order --strict-config --strict-markers"
 minversion = "9"
 xfail_strict = true
+log_level = "INFO"
 filterwarnings = [
     "error",
 ]

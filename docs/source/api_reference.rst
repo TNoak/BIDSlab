@@ -77,7 +77,9 @@ Usage Patterns
    for participant in dataset.participants:
        for session in participant.sessions:
            for datatype in session.datatypes:
-               print(f"{participant.participant_id}/{session.session_id}/{datatype.datatype_name}")
+               print(
+                   f"{participant.participant_id}/{session.session_id}/{datatype.datatype_name}"
+               )
 
 **Saving Modifications**
 

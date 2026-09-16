@@ -69,8 +69,8 @@ Using Type Hints
 
 Best practices for using type hints in BIDSlab:
 
-1. **Import types from typing module** - Use `from typing import ...`
-2. **Use modern syntax** - Prefer `list[T]` over `List[T]` (Python 3.9+)
+1. **Import types from typing module** - Use ``from typing import ...``
+2. **Use modern syntax** - Prefer ``list[T]`` over ``List[T]`` (Python 3.9+)
 3. **Be specific** - Use Union/Optional only when necessary
 4. **Document complex types** - Add Notes sections to docstrings when needed
 5. **Test with mypy** - Run static type checking regularly
@@ -81,6 +81,7 @@ Example:
 
    from typing import Optional, Sequence
    from bidslab.common.specs_dataset import Dataset
+
 
    def process_dataset(
        dataset: Dataset,

@@ -8,7 +8,7 @@ These include information about the dataset's individual data files, participant
 Overview
 --------
 
-The Summary module handles information from "data summary files" such as, for example, `participant.tsv` files.
+The Summary module handles information from "data summary files" such as, for example, ``participant.tsv`` files.
 It implements classes to store metadata for participants, sessions and scans.
 
 Module API

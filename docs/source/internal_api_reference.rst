@@ -47,6 +47,7 @@ Creating a Custom Extension
 
    from bidslab.common.base import BaseTask
 
+
    class CustomTask(BaseTask):
        """Custom extended task for your modality.
 

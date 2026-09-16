@@ -49,6 +49,7 @@ Basic Usage
 
    # Override settings temporarily
    from bidslab.settings import override_settings_values
+
    with override_settings_values({"setting_name": "temp_value"}):
        # Code here uses temporary settings
        pass
