@@ -196,6 +196,7 @@
 - Update changelog
 - Try upload to test pypi
 - Build and install package when previous steps fail
+- Try pypi release by setting condition to always
 
 ## [0.2.0] - 2025-09-25
 
