@@ -22,7 +22,7 @@ from warnings import warn
 
 import pandas as pd
 
-from bidslab.common.base import BaseAcquisition, BaseTask
+from bidslab.common.base import BaseAcquisition, BaseTask, check_entity_mismatch
 from bidslab.common.specs_misc import (
     Column,
     Event,
@@ -44,7 +44,6 @@ from bidslab.utils.exceptions import (
 from bidslab.utils.helpers import (
     add_object_to_sequence,
     append_path,
-    check_entity_mismatch,
     get_edf_json_files,
     get_entity_from_file,
     get_tsv_json_files,

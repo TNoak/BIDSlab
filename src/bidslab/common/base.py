@@ -18,7 +18,7 @@ import os
 import pathlib
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Generic, MutableSequence
+from typing import TYPE_CHECKING, Any, Generic, MutableSequence, Sequence
 from warnings import warn
 
 from bidslab._typing import R
@@ -84,7 +84,36 @@ class Entity(ABC):
 
     # recursive method that returns all top level entities above this one
     @abstractmethod
-    def get_top_level_entities(self) -> list[str | Any]: ...
+    def get_top_level_entities(self) -> list[str | Any]:
+        """
+        Abstract method to get all top level entities.
+
+        Returns
+        -------
+        list
+            A list containing the entity_ids of all top level entities.
+        """
+        ...
+
+
+def check_entity_mismatch(filename: str, entitylist: Sequence[str]) -> bool:
+    """
+    Check if the entity_ids in a filename match the ones in a list.
+
+    Parameters
+    ----------
+    filename : str
+        The part of filename containing the entities.
+    entitylist : Sequence[str]
+        A list with the entity_ids
+
+    Returns
+    -------
+    bool
+        The matching of both inputs
+    """
+    entities = filename.split("_")
+    return set(entities).issubset(entitylist)
 
 
 class BaseTask(Entity, ABC):

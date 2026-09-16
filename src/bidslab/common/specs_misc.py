@@ -23,7 +23,7 @@ from warnings import warn
 import pandas as pd
 
 from bidslab._typing import A
-from bidslab.common.base import BaseAcquisition, Entity
+from bidslab.common.base import BaseAcquisition, Entity, check_entity_mismatch
 from bidslab.settings import get_settings_value
 from bidslab.utils.checks import check_if_valid_uri
 from bidslab.utils.dict_manipulation import clean_dict, manipulate_dictkeys
@@ -34,7 +34,6 @@ from bidslab.utils.exceptions import (
 from bidslab.utils.helpers import (
     add_object_to_sequence,
     append_path,
-    check_entity_mismatch,
     copy_file,
     get_entity_from_file,
     load_tsv_data,

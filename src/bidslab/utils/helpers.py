@@ -634,10 +634,3 @@ def _pkg_str_to_pkg_name(pkg_str: str) -> str:
             return "numpy"
         case _:
             raise ValueError(f"Unknown package string: {pkg_str}")
-
-
-def check_entity_mismatch(filename: str, entitylist: Sequence[str]) -> bool:
-    # check if any entity in the string is also contained in the list
-    # check if the string filename only contains entities in the list
-    entities = filename.split("_")
-    return set(entities).issubset(entitylist)
