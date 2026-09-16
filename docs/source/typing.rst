@@ -54,6 +54,7 @@ Module API
 
 .. automodule:: bidslab._typing.base
    :member-order: bysource
+   :exclude-members: A, E, R, T
 
 .. currentmodule:: bidslab._typing.base
 
@@ -61,6 +62,7 @@ Module API
 
 .. automodule:: bidslab._typing.extensions
    :member-order: bysource
+   :exclude-members: EC, EE, MC
 
 .. currentmodule:: bidslab._typing.extensions
 

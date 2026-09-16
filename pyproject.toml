@@ -67,8 +67,11 @@ docs = [
     "sphinxcontrib-email",
     "sphinx-copybutton",
     "sphinx-last-updated-by-git",
-    "numpydoc",
     "pydata-sphinx-theme",
+    # These are duplicates of other dependency groups, but sometimes only the docs group
+    # is installed and not all dependencies from the other groups are needed.
+    "numpydoc",
+    "pytest-doctestplus",
 ]
 lint = [
     "ruff",
@@ -188,6 +191,7 @@ exclude = [  # don't report on objects that match any of these regex
     '\.__repr__$',
     '\.__hash__$',
     '\.__init__$',
+    'bidslab._typing.'
 ]
 exclude_files = [ # don't process filepaths that match these regex
     '^tests/.*',

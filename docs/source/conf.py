@@ -10,29 +10,23 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-# -- Project information -----------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
-
 import os
 import sys
 
 from sphinx.ext import autodoc
+from importlib.metadata import version as get_version
 
 sys.path.insert(0, os.path.abspath("../../src"))
+
+release = get_version("bidslab")
+version = release
+
+# -- Project information -----------------------------------------------------
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "BIDSlab"
 copyright = "2025, Lukas Behammer"
 author = "Lukas Behammer"
-
-with open("../../src/bidslab/__init__.py") as f:
-    setup_lines = f.readlines()
-version = "vUndefined"
-for line in setup_lines:
-    if line.startswith("__version__"):
-        version = line.split('"')[1]
-        break
-
-release = version
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -52,16 +46,55 @@ extensions = [
     "pytest_doctestplus.sphinx.doctestplus",
 ]
 
-# templates_path = ["_templates"]
-exclude_patterns = ["typing.rst"]
+templates_path = ["_templates"]
+exclude_patterns = []
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = "pydata_sphinx_theme"
-# html_static_path = ["_static"]
+html_static_path = ["_static"]
 # html_favicon = '../../branding/logo/Logo_BIDSlab_wo-text.svg'
-html_title = f"{project} documentation v{release}"
+html_title = f"{project} v{release}"
+html_baseurl = os.environ.get("READTHEDOCS_CANONICAL_URL", "/")
+# html_logo = "../../branding/logo.png"
+html_theme_options = {
+    "icon_links": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/cimt-unia/bidslab",
+            "icon": "fa-brands fa-github",
+            "type": "fontawesome",
+        }
+    ],
+    "icon_links_label": "Quick Links",
+    "use_edit_page_button": True,
+    "secondary_sidebar_items": [
+        "page-toc",
+        "edit-this-page",
+        "sourcelink",
+        "sidebar-ethical-ads.html"
+    ],
+    "show_prev_next": False,
+    "footer_start": ["copyright"],
+    "footer_center": ["sphinx-version"],
+    "footer_end": ["theme-version"],
+    # "logo": {
+    #     "text": f"{project} v{release}",
+    #     "image_light": "../../branding/logo.png",
+    # },
+}
+html_context = {
+    "github_user": "cimt-unia",
+    "github_repo": "bidslab",
+    "github_version": "main",
+    "doc_path": "docs/source",
+}
+html_sidebars = {
+    "quickstart": [],
+    "developer_guide": [],
+    "changelog": [],
+}
 
 # -- Options for Autosummary -------------------------------------------------
 autosummary_generate = True
@@ -98,10 +131,10 @@ napoleon_use_admonition_for_notes = True
 napoleon_use_rtype = False
 napoleon_preprocess_types = True
 napoleon_type_aliases = {
-    "A": "Object",
-    "E": "Object",
-    "R": "Object",
-    "T": "Object",
+    "A": "bidslab.common.base.BaseAcquisition",
+    "E": "bidslab.common.base.Entity",
+    "R": "bidslab.common.specs_misc.Run",
+    "T": "bidslab.common.base.BaseTask",
 }
 
 # -- Options for Todo ---------------------------------------------------------

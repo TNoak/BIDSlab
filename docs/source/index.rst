@@ -2,6 +2,20 @@
 Welcome to BIDSlab's documentation!
 ####################################
 
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+   :hidden:
+
+   .. Quick Start Guide <quick-start>
+   .. user_guide
+
+   api_reference
+   internal_api_reference
+   developer_guide
+   todo_list
+   .. changelog
+
 BIDSlab is a Python package for loading, manipulating, and saving BIDS (Brain Imaging Data Structure) datasets.
 This documentation provides comprehensive guides and API references for working with BIDS data programmatically.
 
@@ -72,45 +86,6 @@ Key Features
 
 **📚 Well-Documented**
    Extensive API documentation with numpy-style docstrings and examples throughout.
-
-
-Main Documentation Sections
-=============================
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Using BIDSlab
-
-   .. Quick Start Guide <quick-start>
-   .. user_guide
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Core Concepts
-
-   api_reference
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Supported Modalities
-
-   extensions
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Reference
-
-   Common API <api_reference>
-   Internal API <internal_api_reference>
-
-.. toctree::
-   :hidden:
-   :caption: Development
-
-   developer_guide
-   internal_api_reference
-   todo_list
-   .. changelog
 
 
 Supported BIDS Modalities
