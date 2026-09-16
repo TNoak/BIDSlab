@@ -105,8 +105,9 @@ def set_attr_from_dict(obj: T, data: dict) -> None:
 
     Notes
     -----
-    Warnings of type :py:class:`abidskit.utils.exceptions.TopLevelEntityNotLinkedWarning`
-    are silenced while assignments are performed.
+    Warnings of type
+    :py:class:`abidskit.utils.exceptions.TopLevelEntityNotLinkedWarning` are silenced
+    while assignments are performed.
 
     Examples
     --------
@@ -220,7 +221,8 @@ def parse_descriptive_tsv(tsv_path: pathlib.Path) -> Iterator[dict]:
     See Also
     --------
     :py:func:`load_tsv_data`
-        Loads TSV content into :py:class:`pandas.DataFrame` or :py:class:`numpy.ndarray`.
+        Loads TSV content into :py:class:`pandas.DataFrame` or
+        :py:class:`numpy.ndarray`.
 
     Notes
     -----
@@ -541,7 +543,10 @@ def get_edf_json_files(
 
     Examples
     --------
-    >>> signal_path, meta_path = get_edf_json_files(pathlib.Path("."), "sub-01_task-rest_physio")
+    >>> signal_path, meta_path = get_edf_json_files(
+    ...     pathlib.Path("."),
+    ...     "sub-01_task-rest_physio"
+    ... )
     >>> signal_path.suffix in {".edf", ".bdf"}
     True
     """

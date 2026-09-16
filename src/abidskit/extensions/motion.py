@@ -121,7 +121,8 @@ class ReferenceFrame:
     ...     rotation_order="XYZ",
     ...     rotation_rule="intrinsic",
     ...     spatial_axes="+X anterior, +Y left, +Z superior",
-    ...     description="Global optical motion-capture frame centered between force plates.",
+    ...     description="Global optical motion-capture frame centered between" +
+    ...         "force plates.",
     ... )
 
     Segment-local or device-local frames can be described in the same way:
@@ -481,7 +482,7 @@ class MotionRun(Run):
         Notes
         -----
         Writes three files:
-        
+
         - ``*_motion.tsv``: Motion data samples
         - ``*_channels.tsv``: Channel metadata table
         - ``*_channels.json``: Channel sidecar with column descriptions and

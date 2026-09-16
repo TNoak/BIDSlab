@@ -170,7 +170,11 @@ def clean_dict(
 
     Examples
     --------
-    >>> clean_dict({"root": pathlib.Path("."), "sampling_frequency": 1000, "note": None})
+    >>> clean_dict({
+    ...     "root": pathlib.Path("."),
+    ...     "sampling_frequency": 1000,
+    ...     "note": None
+    ... })
     {'SamplingFrequency': 1000}
     """
     dict_output = delete_none_from_dict(dict_input)
@@ -366,16 +370,17 @@ def add_levels_to_dict(
     Returns
     -------
     dict
-        Updated ``output_dict`` with a ``Levels`` entry under ``output_dict[column_name]``.
-        When a level contains only a description, the stored value is that string;
-        otherwise a nested metadata dictionary is stored.
+        Updated ``output_dict`` with a ``Levels`` entry under
+        ``output_dict[column_name]``. When a level contains only a description, the
+        stored value is that string; otherwise a nested metadata dictionary is stored.
 
     Raises
     ------
     KeyError
         Raised when ``column_name`` is not present in ``output_dict``.
     TypeError
-        Raised when a level object cannot be converted with :py:func:`dataclasses.asdict`.
+        Raised when a level object cannot be converted with
+        :py:func:`dataclasses.asdict`.
 
     See Also
     --------

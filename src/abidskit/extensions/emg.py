@@ -179,7 +179,8 @@ class EMGCoordinateSystem:
     ...     name="biceps-grid",
     ...     emg_coordinate_system="Other",
     ...     emg_coordinate_units="mm",
-    ...     emg_coordinate_system_description="High-density grid placed over biceps brachii.",
+    ...     emg_coordinate_system_description="High-density grid placed over biceps " +
+    ...         "brachii.",
     ...     parent_coordinate_system=coords,
     ...     anchor_coordinates=[25, 10, 0],
     ...     anchor_electrode="E01",

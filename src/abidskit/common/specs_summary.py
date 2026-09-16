@@ -101,7 +101,10 @@ class Scan:
 
     Examples
     --------
-    >>> scan = Scan(base_path="sub-01/ses-01", filename="meg/sub-01_ses-01_task-rest_meg.fif")
+    >>> scan = Scan(
+    ...     base_path="sub-01/ses-01",
+    ...     filename="meg/sub-01_ses-01_task-rest_meg.fif"
+    ... )
     >>> scan.filepath
     PosixPath('sub-01/ses-01/meg/sub-01_ses-01_task-rest_meg.fif')
     """
@@ -199,7 +202,7 @@ class Session(Entity):
     Examples
     --------
     >>> session = Session(base_path="sub-01/ses-01", session_id="ses-01")
-    >>> session.datatypes  # doctest: +SKIP
+    >>> session.datatypes
     [<Datatype ...>]
     """
 

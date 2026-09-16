@@ -169,7 +169,10 @@ class FieldPresentWarning(Warning):
     Examples
     --------
     >>> import warnings
-    >>> warnings.warn("License should be omitted when CITATION.cff is present.", FieldPresentWarning)
+    >>> warnings.warn(
+    ...     "License should be omitted when CITATION.cff is present.",
+    ...     FieldPresentWarning
+    ... )
     """
 
     pass
@@ -264,7 +267,10 @@ class FileTypeUnsupportedWarning(Warning):
     Examples
     --------
     >>> import warnings
-    >>> warnings.warn("Only .tsv[.gz] and .json are supported.", FileTypeUnsupportedWarning)
+    >>> warnings.warn(
+    ...     "Only .tsv[.gz] and .json are supported.",
+    ...     FileTypeUnsupportedWarning
+    ... )
     """
 
     pass
@@ -337,7 +343,10 @@ class MultipleFilesFoundWarning(Warning):
     Examples
     --------
     >>> import warnings
-    >>> warnings.warn("Multiple JSON files found. Using the first one found.", MultipleFilesFoundWarning)
+    >>> warnings.warn(
+    ...     "Multiple JSON files found. Using the first one found.",
+    ...     MultipleFilesFoundWarning
+    ... )
     """
 
     pass
@@ -385,7 +394,10 @@ class TopLevelEntityNotLinkedWarning(Warning):
     Examples
     --------
     >>> import warnings
-    >>> warnings.warn("Top-level entity could not be linked.", TopLevelEntityNotLinkedWarning)
+    >>> warnings.warn(
+    ...     "Top-level entity could not be linked.",
+    ...     TopLevelEntityNotLinkedWarning
+    ... )
     """
 
     pass

@@ -438,7 +438,11 @@ class Recording(Entity):
 
     Examples
     --------
-    >>> recording = Recording(base_path="ses-01", recording_id="resp", sampling_frequency=100)
+    >>> recording = Recording(
+    ...     base_path="ses-01",
+    ...     recording_id="resp",
+    ...     sampling_frequency=100,
+    ... )
     >>> recording.recording_id
     'resp'
     """
@@ -588,7 +592,7 @@ class PhysioRecording(Recording):
     Examples
     --------
     >>> cols = [Column(name="cardiac", units="mV")]
-    >>> PhysioRecording("ses-01", "cardiac", 1000, 0.0, cols)  # doctest: +SKIP
+    >>> PhysioRecording("ses-01", "cardiac", 1000, 0.0, cols)
     """
 
     def __init__(
@@ -803,7 +807,7 @@ class Acquisition(BaseAcquisition):
     Examples
     --------
     >>> acquisition = Acquisition(base_path="ses-01/meg", acquisition_id="acq-highres")
-    >>> acquisition.runs  # doctest: +SKIP
+    >>> acquisition.runs
     [Run id=run-0]
     """
 

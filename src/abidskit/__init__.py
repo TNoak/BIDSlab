@@ -1,3 +1,4 @@
+# numpydoc ignore=SS02
 """
 aBIDSkit is a Python package for working with BIDS datasets.
 

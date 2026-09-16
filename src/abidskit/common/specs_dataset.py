@@ -360,8 +360,8 @@ class Dataset:
     Examples
     --------
     >>> dataset = Dataset(root="dataset", bids_version="1.10.0")
-    >>> dataset.load()  # doctest: +SKIP
-    >>> dataset.participants  # doctest: +SKIP
+    >>> dataset.load()
+    >>> dataset.participants
     [<Participant ...>]
     """
 
@@ -581,8 +581,8 @@ class Dataset:
 
         Examples
         --------
-        >>> df = dataset.list_participants()  # doctest: +SKIP
-        >>> list(df.columns)  # doctest: +SKIP
+        >>> df = dataset.list_participants()
+        >>> list(df.columns)
         ['participant_id', 'age', 'sex']
         """
         participants_dataframe = pd.DataFrame()
@@ -657,7 +657,7 @@ class Dataset:
 
         Examples
         --------
-        >>> dataset.write("out-dataset", overwrite=True)  # doctest: +SKIP
+        >>> dataset.write("out-dataset", overwrite=True)
         """
         output_path = self.root if not output_path else output_path
         output_path = pathlib.Path(output_path)
@@ -763,7 +763,7 @@ class Dataset:
 
         Examples
         --------
-        >>> dataset.write_phenotype("out-dataset")  # doctest: +SKIP
+        >>> dataset.write_phenotype("out-dataset")
         """
         output_path = pathlib.Path(output_path)
 
@@ -867,8 +867,8 @@ def get_participants_from_files(
 
     Examples
     --------
-    >>> participants = get_participants_from_files(dataset, tsv_path, json_path)  # doctest: +SKIP
-    >>> participants[0].participant_id  # doctest: +SKIP
+    >>> participants = get_participants_from_files(dataset, tsv_path, json_path)
+    >>> participants[0].participant_id
     'sub-01'
     """
     participants: MutableSequence[Participant] = []
@@ -956,8 +956,8 @@ def get_phenotypes_from_files(
 
     Examples
     --------
-    >>> phenotypes = get_phenotypes_from_files(dataset)  # doctest: +SKIP
-    >>> phenotypes.get('sub-01', [])  # doctest: +SKIP
+    >>> phenotypes = get_phenotypes_from_files(dataset)
+    >>> phenotypes.get('sub-01', [])
     [<MeasurementTool ...>]
     """
     measurement_tools: dict[str, MutableSequence] = {}

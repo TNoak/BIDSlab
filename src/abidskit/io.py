@@ -90,7 +90,10 @@ def load_dataset(path: os.PathLike | str, bids_version: str = "1.10.1") -> Datas
     ...     for session in participant.sessions:
     ...         for datatype in session.datatypes:
     ...             if datatype.datatype_name == "motion":
-    ...                 print(f"Motion data for {participant.participant_id}/{session.session_id}")
+    ...                 print(
+    ...                     f"Motion data for {participant.participant_id}/" +
+    ...                     f"{session.session_id}"
+    ...                 )
     """
     if not isinstance(path, pathlib.Path):
         path = pathlib.Path(path)
@@ -153,8 +156,8 @@ def write_dataset(
     - Data files and associated JSON sidecars
     - Task-specific metadata files
 
-    The dataset must have valid metadata before writing. Use overwrite=True with caution,
-    as it will replace existing files in the output directory.
+    The dataset must have valid metadata before writing. Use overwrite=True with
+    caution, as it will replace existing files in the output directory.
 
     Examples
     --------

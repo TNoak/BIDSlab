@@ -243,11 +243,12 @@ class Datatype:
 
         Notes
         -----
-        The method delegates serialization to :py:func:`abidskit.utils.helpers.write_entities`
-        so each task can emit modality-specific BIDS files beneath ``output_path``.
+        The method delegates serialization to
+        :py:func:`abidskit.utils.helpers.write_entities` so each task can emit
+        modality-specific BIDS files beneath ``output_path``.
 
         Examples
         --------
-        >>> datatype.write("out/sub-01_ses-01")  # doctest: +SKIP
+        >>> datatype.write("out/sub-01_ses-01")
         """
         write_entities(output_path, self.tasks)
