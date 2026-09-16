@@ -159,6 +159,7 @@ ignore = [
     "E114",
     "E117",
     "RUF105",
+    "RUF106",
     "RUF201",
     "S101",  # TODO: Remove
     "SLF001",
