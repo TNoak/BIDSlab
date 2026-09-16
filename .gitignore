@@ -269,8 +269,7 @@ cython_debug/
 
 ### Custom additions
 releaserc.toml
-TODO
-data
+data/
 src/bidslab/config
 src/bidslab/parser
 

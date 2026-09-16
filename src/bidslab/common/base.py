@@ -1,3 +1,12 @@
+"""
+Base classes for entities in aBIDSkit.
+
+This module provides abstract base classes for entities used in the aBIDSkit
+library. These base classes define common attributes and methods that all
+entities must implement, ensuring a consistent interface across different
+types of entities.
+"""
+
 #  Copyright (c) 2025 by Lukas Behammer
 #  University of Augsburg
 #  Department of Computer Science
@@ -29,12 +38,49 @@ if TYPE_CHECKING:
 
 @dataclass
 class Entity(ABC):
+    """
+    Abstract base class for all entities in aBIDSkit.
+
+    Attributes
+    ----------
+    _entity_id : str
+        The unique identifier for the entity.
+    _entity_name : str
+        The name of the entity type.
+
+    Notes
+    -----
+    This class serves as a base for all entities in aBIDSkit, providing common private
+    attributes and an abstract method for writing the entity to disk.
+    The :py:meth:`write` method must be implemented by all subclasses and serves as a
+    Protocol for writing the entity's data to a specified output path.
+    """
+
     _entity_id: str
     _entity_name: str
     _virtual_entity: bool
 
     @abstractmethod
-    def write(self, output_path: os.PathLike | str) -> None: ...
+    def write(self, output_path: os.PathLike | str) -> None:
+        """
+        Abstract method to write the entity to disk.
+
+        Parameters
+        ----------
+        output_path : os.PathLike | str
+            The path where the entity should be written.
+
+        See Also
+        --------
+        abidskit.utils.helpers.write_entities
+            Function for writing entities to disk.
+
+        Notes
+        -----
+        This method must be implemented by all subclasses of Entity and serves as a
+        Protocol for writing the entity's data to a specified output path.
+        """
+        ...
 
     # recursive method that returns all top level entities above this one
     @abstractmethod
@@ -42,6 +88,40 @@ class Entity(ABC):
 
 
 class BaseTask(Entity, ABC):
+    """
+    Abstract base class for Task entities in aBIDSkit.
+
+    This class implements a BaseTask entity not intended to be instantiated directly.
+    It serves as a base for specific task implementations, providing common attributes
+    and methods that all task entities must implement.
+
+    Parameters
+    ----------
+    base_path : os.PathLike | str
+        The base path where the task data is located.
+    task_name : str
+        The name of the task.
+    **kwargs
+        Additional keyword arguments to set as attributes of the task. Refer to the
+        attributes for possible fields.
+
+    Attributes
+    ----------
+    task_id : str | None
+        The unique identifier for the task. Will be automatically generated from
+        :py:attr:`task_name` if not provided.
+    task_name : str
+        The name of the task.
+    task_description : str | None
+        A description of the task.
+    instructions : str | None
+        Instructions for the task.
+    root : pathlib.Path
+        The root path of the task data.
+    datatype : Datatype | None
+        The top-level Datatype object linked to the Task.
+    """
+
     @abstractmethod
     def __init__(
         self,
@@ -73,6 +153,7 @@ class BaseTask(Entity, ABC):
         )
 
     def __repr__(self) -> str:
+        """Return a string representation of the Task entity."""
         return f"<Task id={self.task_id}>"
 
     def get_top_level_entities(self) -> list[str | Any]:
@@ -83,10 +164,40 @@ class BaseTask(Entity, ABC):
 
     @abstractmethod
     def write(self, output_path: os.PathLike | str) -> None:
+        """
+        Abstract method to write the entity to disk.
+
+        Parameters
+        ----------
+        output_path : os.PathLike | str
+            The path where the entity should be written.
+
+        See Also
+        --------
+        abidskit.utils.helpers.write_entities
+            Function for writing entities to disk.
+        """
         pass
 
     @property
     def datatype(self) -> "Datatype | None":
+        """
+        Property to get or set the top-level Datatype object.
+
+        Links to the top-level :py:class:`~abidskit.common.specs_dataype.Datatype`
+        object associated with the Task.
+
+        Returns
+        -------
+        Datatype | None
+            The top-level Datatype object linked to the Task, or None if not linked.
+
+        Warns
+        -----
+        TopLevelEntityNotLinkedWarning
+            If the Task is not linked to a
+            :py:class:`~abidskit.common.specs_dataype.Datatype` object when accessed.
+        """
         if self._datatype:
             return self._datatype
 
@@ -99,6 +210,30 @@ class BaseTask(Entity, ABC):
 
 
 class BaseAcquisition(Entity, Generic[R], ABC):
+    """
+    Abstract base class for Acquisition entities in aBIDSkit.
+
+    This class implements a BaseAcquisition entity not intended to be instantiated
+    directly. It serves as a base for specific acquisition implementations, providing
+    common attributes and methods that all acquisition entities must implement.
+
+    Parameters
+    ----------
+    base_path : os.PathLike | str
+        The base path where the acquisition data is located.
+    acquisition_id : str
+        The unique identifier for the acquisition.
+
+    Attributes
+    ----------
+    acquisition_id : str
+        The unique identifier for the acquisition.
+    root : pathlib.Path
+        The root path of the acquisition data.
+    runs : MutableSequence[R] | None
+        The top-level Run objects associated with the Acquisition.
+    """
+
     @abstractmethod
     def __init__(
         self,
@@ -118,6 +253,7 @@ class BaseAcquisition(Entity, Generic[R], ABC):
         self._runs: dict[str, R] | None = None
 
     def __repr__(self) -> str:
+        """Return a string representation of the Acquisition entity."""
         return f"<Acquisition id={self.acquisition_id}>"
 
     @property
@@ -137,5 +273,13 @@ class BaseAcquisition(Entity, Generic[R], ABC):
     def runs(self, value: MutableSequence[int | R] | dict[str, R]) -> None:
         pass
 
-    def write(self, output_path: os.PathLike | str) -> None:
+    def write(self, output_path: os.PathLike | str) -> None:  # numpydoc ignore=PR01
+        """
+        Write the entity to disk.
+
+        See Also
+        --------
+        abidskit.utils.helpers.write_entities
+            Function for writing entities to disk.
+        """
         write_entities(output_path, self.runs.values())

@@ -1,3 +1,5 @@
+"""String manipulation utilities."""
+
 #  Copyright (c) 2025 by Lukas Behammer
 #  University of Augsburg
 #  Department of Computer Science
@@ -30,6 +32,19 @@ SHORT_FORMS = {
 
 
 def to_titlecase(string: str) -> str:
+    """
+    Convert a string to TitleCase, preserving known short forms.
+
+    Parameters
+    ----------
+    string : str
+        The input string to convert.
+
+    Returns
+    -------
+    str
+        The converted TitleCase string.
+    """
     parts = re.split(r"[_ ]", string)
     parts = [
         SHORT_FORMS[part.lower()] if part.lower() in SHORT_FORMS else part.title()
@@ -39,6 +54,19 @@ def to_titlecase(string: str) -> str:
 
 
 def to_snakecase(string: str) -> str:
+    """
+    Convert a string to snake_case, preserving known short forms.
+
+    Parameters
+    ----------
+    string : str
+        The input string to convert.
+
+    Returns
+    -------
+    str
+        The converted snake_case string.
+    """
     for _, value in SHORT_FORMS.items():
         if value == "ACCEL":
             # avoid matching ANGACCEL
@@ -55,5 +83,18 @@ def to_snakecase(string: str) -> str:
 
 
 def remove_special_characters(string: str) -> str:
+    """
+    Remove special characters from a string, replacing them with '+'.
+
+    Parameters
+    ----------
+    string : str
+        The input string to process.
+
+    Returns
+    -------
+    str
+        The processed string with special characters replaced by '+'.
+    """
     string = re.sub(r"[^a-zA-Z0-9]", " ", string)
     return re.sub(r"\s+", "+", string).strip("+")
