@@ -163,3 +163,9 @@ repos:
         entry: python tools/generate_requirements.py
         language: system
         stages: [pre-commit]
+
+      - id: generate_todos
+        name: Generate ToDos
+        entry: python tools/generate_todos.py
+        language: system
+        stages: [pre-commit]
