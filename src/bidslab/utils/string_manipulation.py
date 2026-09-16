@@ -115,11 +115,11 @@ def to_snakecase(string: str) -> str:
     for _, value in SHORT_FORMS.items():
         if value == "ACCEL":
             # avoid matching ANGACCEL
-            string = re.sub("(?<!ANG)(ACCEL)", f" {value} ", string)
+            string = re.sub(r"(?<!ANG)(ACCEL)", f" {value} ", string)
         elif value == "ID":
             # avoid matching RRID or BIDS
             # TODO: make this more robust
-            string = re.sub("(?<!RR)(ID)(?!S)", f" {value} ", string)
+            string = re.sub(r"(?<!RR)(ID)(?!S)", f" {value} ", string)
         else:
             string = re.sub(value, f" {value} ", string)
     string = re.sub(r"[_ ]", "_", string.strip())

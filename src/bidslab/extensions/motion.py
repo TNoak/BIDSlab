@@ -17,8 +17,9 @@ import json
 import os
 import pathlib
 import re
+from collections.abc import Mapping, MutableSequence, Sequence
 from dataclasses import asdict, dataclass
-from typing import Any, Mapping, MutableSequence, Sequence
+from typing import Any
 from warnings import warn
 
 import pandas as pd
@@ -262,7 +263,7 @@ class MotionChannel:
         """Get the BIDS channel type."""
         return self._type
 
-    @type.setter  # noqa: A003
+    @type.setter
     def type(self, value: str) -> None:
         # numpydoc ignore=GL08
         if value not in MOTION_CHANNEL_TYPE_ALLOWED_FIELD_ENTRIES:
@@ -657,7 +658,7 @@ class MotionAcquisition(BaseAcquisition):
             "SamplingFrequencyEffective", None
         )
 
-        self._tracking_system: "TrackSys | None" = None
+        self._tracking_system: TrackSys | None = None
 
         set_attr_from_dict(self, kwargs)
 

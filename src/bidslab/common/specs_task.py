@@ -14,7 +14,8 @@ dataset tree.
 #  SPDX-License-Identifier: BSD-3-Clause
 
 import os
-from typing import TYPE_CHECKING, MutableSequence
+from collections.abc import MutableSequence
+from typing import TYPE_CHECKING
 
 from bidslab.common.base import BaseTask
 from bidslab.common.specs_misc import Acquisition

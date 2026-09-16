@@ -15,16 +15,12 @@ specifications.
 
 import os
 import pathlib
+from collections.abc import Iterable, Mapping, MutableMapping, MutableSequence, Sequence
 from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
     Any,
     Generic,
-    Iterable,
-    Mapping,
-    MutableMapping,
-    MutableSequence,
-    Sequence,
 )
 from warnings import warn
 
@@ -367,7 +363,7 @@ class Column:
         """Get the data format of the column values."""
         return self._format
 
-    @format.setter  # noqa: A003
+    @format.setter
     def format(self, value: str) -> None:
         # numpydoc ignore=GL08
         if value not in FORMAT_ALLOWED_FIELD_ENTRIES:

@@ -12,14 +12,11 @@ import os
 import pathlib
 import re
 import shutil
+from collections.abc import Iterable, Iterator, MutableSequence, Sequence
 from functools import wraps
 from typing import (
     TYPE_CHECKING,
     Any,
-    Iterable,
-    Iterator,
-    MutableSequence,
-    Sequence,
     TypeVar,
 )
 from warnings import catch_warnings, simplefilter, warn

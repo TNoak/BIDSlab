@@ -34,11 +34,11 @@ are used internally by the library's functions and classes.
 #  SPDX-License-Identifier: BSD-3-Clause
 
 __all__ = [
-    "A",
-    "E",
     "EC",
     "EE",
     "MC",
+    "A",
+    "E",
     "PEntity",
     "R",
     "T",

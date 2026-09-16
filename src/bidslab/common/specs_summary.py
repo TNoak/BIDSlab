@@ -15,7 +15,8 @@ standard TSV/JSON files and directory layouts.
 
 import os
 import pathlib
-from typing import TYPE_CHECKING, Any, Mapping, MutableSequence, Sequence
+from collections.abc import Mapping, MutableSequence, Sequence
+from typing import TYPE_CHECKING, Any
 from warnings import warn
 
 import pandas as pd

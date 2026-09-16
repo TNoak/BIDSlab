@@ -12,7 +12,8 @@ used for BIDS ``phenotype/`` tables.
 #
 #  SPDX-License-Identifier: BSD-3-Clause
 
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
+from typing import TYPE_CHECKING, Any
 from warnings import warn
 
 from bidslab.common.specs_misc import Column
@@ -125,7 +126,7 @@ class MeasurementTool:
         self.description: str | None = None
         self.term_url: str | None = None
 
-        self._participant: "Participant | None" = None
+        self._participant: Participant | None = None
 
         self.columns: Sequence[PhenotypeColumn] | None = None
 

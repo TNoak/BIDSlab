@@ -17,14 +17,11 @@ import json
 import os
 import pathlib
 import re
+from collections.abc import Mapping, MutableMapping, MutableSequence, Sequence
 from dataclasses import asdict, dataclass
 from typing import (
     TYPE_CHECKING,
     Any,
-    Mapping,
-    MutableMapping,
-    MutableSequence,
-    Sequence,
 )
 from warnings import warn
 
@@ -320,7 +317,7 @@ class EMGChannel:
         """Return the validated EMG channel type."""
         return self._type
 
-    @type.setter  # noqa: A003
+    @type.setter
     def type(self, value: str) -> None:
         # numpydoc ignore=GL08
         if value not in EMG_CHANNEL_TYPE_ALLOWED_FIELD_ENTRIES:
@@ -538,7 +535,7 @@ class EMGRecording(Recording):
 
         self._events: Sequence[Event] | None = None
 
-        self._run: "EMGRun | None" = None
+        self._run: EMGRun | None = None
 
         # Try to set attributes from arguments
         set_attr_from_dict(self, kwargs)
@@ -1086,7 +1083,7 @@ class EMGAcquisition(BaseAcquisition):
             virtual_entity=virtual_entity,
         )
 
-        self._task: "EMGTask | None" = task
+        self._task: EMGTask | None = task
 
         self._update_description()
 
@@ -1340,7 +1337,7 @@ class EMGTask(BaseTask):
                 "Field `Acquisitions` must be a list of EMGAcquisition objects"
             )
 
-    def write(self, output_path: os.PathLike | str) -> None:  # noqa: ARG002 TODO: Remove
+    def write(self, output_path: os.PathLike | str) -> None:
         """
         Write task-level EMG files.
 

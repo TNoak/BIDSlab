@@ -8,9 +8,10 @@
 #  SPDX-License-Identifier: BSD-3-Clause
 
 import pathlib
+from collections.abc import Callable, MutableMapping, Sequence
 from dataclasses import asdict
 from enum import IntEnum
-from typing import TYPE_CHECKING, Callable, MutableMapping, Sequence
+from typing import TYPE_CHECKING
 
 from bidslab.utils.string_manipulation import to_titlecase
 

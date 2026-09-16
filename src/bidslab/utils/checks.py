@@ -9,7 +9,8 @@
 
 import pathlib
 import re
-from typing import TYPE_CHECKING, Any, Sequence
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any
 from warnings import warn
 
 from uritools import isuri
@@ -416,13 +417,13 @@ def check_files(dataset: "Dataset", files: Sequence[pathlib.Path]):
         # TODO: Check how to handle multiple license files
         if re.match(r"CHANGES(\..*)?", file.name):
             dataset.changes_path = dataset.root / file
-        elif re.match(r"sourcedata", file.name):
+        elif file.name.startswith(r"sourcedata"):
             dataset.sourcedata_path = dataset.root / "sourcedata"
-        elif re.match(r"code", file.name):
+        elif file.name.startswith(r"code"):
             dataset.code_path = dataset.root / "code"
-        elif re.match(r"stimuli", file.name):
+        elif file.name.startswith(r"stimuli"):
             dataset.stimuli_path = dataset.root / "stimuli"
-        elif re.match(r"phenotype", file.name):
+        elif file.name.startswith(r"phenotype"):
             dataset.phenotype_path = dataset.root / "phenotype"
-        elif re.match(r"derivatives", file.name):
+        elif file.name.startswith(r"derivatives"):
             dataset.derivatives_path = dataset.root / "derivatives"

@@ -5,8 +5,8 @@
 #
 #  SPDX-License-Identifier: BSD-3-Clause
 
+from collections.abc import Sequence
 from copy import deepcopy
-from typing import Sequence
 
 from bidslab.common.specs_dataset import Dataset
 

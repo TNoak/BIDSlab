@@ -16,7 +16,8 @@ with each datatype.
 
 import os
 import pathlib
-from typing import TYPE_CHECKING, Any, Iterable, Mapping
+from collections.abc import Iterable, Mapping
+from typing import TYPE_CHECKING, Any
 from warnings import warn
 
 from bidslab.common.base import BaseTask

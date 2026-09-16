@@ -16,8 +16,8 @@ follow the Brain Imaging Data Structure (BIDS).
 
 import os
 import pathlib
+from collections.abc import Mapping, MutableSequence, Sequence
 from dataclasses import dataclass
-from typing import Mapping, MutableSequence, Sequence
 
 import pandas as pd
 
@@ -997,7 +997,7 @@ def get_phenotypes_from_files(
                             f"Field `participant_id` is required as column in "
                             f"phenotype/{toolname}.tsv"
                         )
-                    if not measurement_tools.get(participant_id, None):
+                    if not measurement_tools.get(participant_id):
                         measurement_tools[participant_id] = []
                     measurement_tools[participant_id].append(
                         MeasurementTool(

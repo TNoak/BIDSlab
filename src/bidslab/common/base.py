@@ -17,8 +17,9 @@ types of entities.
 import os
 import pathlib
 from abc import ABC, abstractmethod
+from collections.abc import MutableSequence, Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Generic, MutableSequence, Sequence
+from typing import TYPE_CHECKING, Any, Generic
 from warnings import warn
 
 from bidslab._typing import R

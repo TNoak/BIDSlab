@@ -17,10 +17,10 @@ Settings can either be provided as a dictionary in code or loaded from a JSON fi
 import json
 import os
 import pathlib
+from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Generator
 
 
 class PackageFetching(StrEnum):
