@@ -138,6 +138,27 @@ convention = "numpy"
 known-first-party = ["src/BIDSlab"]
 
 ######################################################################
+# Numpydoc
+[tool.numpydoc_validation]
+checks = [
+    "all",  # report on all checks, except the below
+    "EX01",
+    "SA01",
+    "ES01",
+]
+exclude = [  # don't report on objects that match any of these regex
+    '\.__repr__$',
+    '\.__hash__$',
+    '\.__init__$',
+]
+exclude_files = [ # don't process filepaths that match these regex
+    '^tests/.*',
+    '^docs/.*',
+    '^tools/.*',
+]
+
+
+######################################################################
 # MyPy
 [tool.mypy]
 exclude = [
