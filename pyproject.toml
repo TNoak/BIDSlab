@@ -88,6 +88,7 @@ build = [
 release = [
     {include-group = "build"},
     "twine",
+    "git-cliff"
 ]
 tox = [
     "tox>=4.49.0",
