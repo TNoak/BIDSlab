@@ -1,0 +1,28 @@
+Manually maintained list of TODOs for the project.
+--------------------------------------------------
+
+TODO: Update the README
+TODO: Update the Developer GUIDE
+TODO: Update the CONTRIBUTING.md
+TODO: Change dev guide link in CONTRIBUTING.md
+TODO: Build index page automatically from README
+TODO: Add a developing section in the docs combining todo list and dev guide
+TODO: Check if CHANGES according to CPAN
+TODO: Check if CHANGES, LICENSE and README files are UTF-8 or ASCII encoded
+TODO: distinguish between file_path is None and not in file checks
+TODO: HED can be object of strings
+TODO: check if participant_id is of "sub-<label>" format
+TODO: Use datetime?
+TODO: Add samples
+TODO: files in root_dir (e.g. task, scan, etc) should be readable
+TODO: lists of classes as dicts to be searchable
+TODO: add filtering
+TODO: add get method to get a specific participant, session, etc (e.g. OrderedDict)
+TODO: rename get_root_files to set_root_files
+TODO: rename specs_description to specs_dataset
+TODO: Whereto save scans; in session or participant?
+TODO: move method list_... to a property ..._as_pd
+TODO: add sub-, ses- prefixes to participant_id and session_id
+TODO: adjust generic Errors and Warnings
+TODO: run_ids set can have run_ids from other acquisition in class Acquisition, maybe set self.root to file path not dir path
+TODO: harmonize base_bath and root
