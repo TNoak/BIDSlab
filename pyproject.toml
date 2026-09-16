@@ -113,11 +113,12 @@ extend-exclude = [
     "build",
     "dist",
 ]
+output-prefer-rule-codes = true
 
 [tool.ruff.lint]
 preview = true
 select = [
-   "A",
+    "A",
     "ANN",
     "ARG",
     "ASYNC",
@@ -154,9 +155,13 @@ ignore = [
     "D401", # due to numpydoc SS05 implementing this
     "D206",
     "D300",
+    "D421",  # TODO: Remove
     "E111",
     "E114",
     "E117",
+    "RUF105",
+    "RUF201",
+    "S101",  # TODO: Remove
     "SLF001",
     "W191",
 ]
