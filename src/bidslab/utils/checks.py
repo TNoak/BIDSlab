@@ -67,16 +67,10 @@ def check_readme(dataset: "Dataset", files: Sequence[pathlib.Path]):
 
     Notes
     -----
-    Supported file names are ``README``, ``README.md``, ``README.txt``, and
-    ``README.rst``. Exception raising can be overridden by the global
-    ``OVERRIDE_VALIDATION`` setting.
-    The function updates ``dataset.readme_path`` when a README is found.
-
-    Examples
-    --------
-    >>> check_readme(dataset, list(dataset.root.iterdir()))
-    >>> dataset.readme_path.name.startswith("README")
-    True
+    This function changes the state of the `dataset` object by setting the
+    :py:attr:`~bidslab.common.specs_dataset.Dataset.readme_path` attribute if a README
+    file is found.
+    Exception raising can be overridden by the global ``OVERRIDE_VALIDATION`` setting.
     """
     readme_found = False
 
@@ -138,15 +132,10 @@ def check_citation(dataset: "Dataset", files: Sequence[pathlib.Path]):
 
     Notes
     -----
-    The function currently records the file path only; parsing and value propagation
-    from ``CITATION.cff`` are marked as future work in the implementation.
-    The function updates ``dataset.citation_path`` when a citation file is found.
-
-    Examples
-    --------
-    >>> check_citation(dataset, list(dataset.root.iterdir()))
-    >>> dataset.citation_path.name
-    'CITATION.cff'
+    This function changes the state of the `dataset` object by setting the
+    :py:attr:`~abidskit.common.specs_dataset.Dataset.citation_path` attribute if a
+    CITATION.cff file is found.
+    Exception raising can be overridden by the global ``OVERRIDE_VALIDATION`` setting.
     """
     for file in files:
         if re.match(r"^CITATION\.cff$", file.name):
@@ -195,16 +184,9 @@ def check_license(dataset: "Dataset", files: Sequence[pathlib.Path]):
 
     Notes
     -----
-    Supported file names are ``LICENSE``, ``LICENSE.md``, ``LICENSE.txt``, and
-    ``LICENSE.rst``. The function does not yet compare the short license identifier in
-    ``dataset_description.json`` against the actual file content.
-    The function updates ``dataset.license_path`` when a LICENSE file is found.
-
-    Examples
-    --------
-    >>> check_license(dataset, list(dataset.root.iterdir()))
-    >>> dataset.license_path is not None
-    True
+    This function changes the state of the `dataset` object by setting the
+    :py:attr:`~bidslab.common.specs_dataset.Dataset.license_path` attribute if a
+    LICENSE file is found.
     """
     for file in files:
         if re.match(r"^LICENSE(\.md|\.txt|\.rst)?$", file.name):

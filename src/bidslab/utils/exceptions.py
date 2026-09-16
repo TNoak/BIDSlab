@@ -1,4 +1,4 @@
-"""Custom exceptions and warnings for aBIDSkit."""
+"""Custom exceptions and warnings for BIDSlab."""
 
 #  Copyright (c) 2025 by Lukas Behammer
 #  University of Augsburg

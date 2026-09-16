@@ -274,5 +274,6 @@ src/bidslab/config
 src/bidslab/parser
 
 bids-examples-master/
+temp/
 demo/*
 #!demo/*.py

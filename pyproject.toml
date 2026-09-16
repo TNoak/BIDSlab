@@ -6,7 +6,7 @@ authors = [
     { name = "Lukas Behammer", email = "lukas.behammer@uni-a.de" },
 ]
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 keywords = [
     "BIDS",
     "neuroimaging",
@@ -117,12 +117,8 @@ select = [
 ]
 ignore = [
     "B028",
-    "D100", # TODO: Remove
-    "D101", # TODO: Remove
-    "D102", # TODO: Remove
-    "D103", # TODO: Remove
-    "D105", # TODO: Remove
-    "D104",
+    "D105",
+    "D401", # due to numpydoc SS05 implementing this
     "D206",
     "D300",
     "E111",
@@ -132,14 +128,35 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["ARG002", ]
-"tools/generate_requirements.py" = ["CPY001", ] # TODO: Remove
+"tests/*" = ["ARG002", "D"]
+"tools/generate_requirements.py" = ["CPY001", "D"] # TODO: Remove
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
 
 [tool.ruff.lint.isort]
 known-first-party = ["src/BIDSlab"]
+
+######################################################################
+# Numpydoc
+[tool.numpydoc_validation]
+checks = [
+    "all",  # report on all checks, except the below
+    "EX01",
+    "SA01",
+    "ES01",
+]
+exclude = [  # don't report on objects that match any of these regex
+    '\.__repr__$',
+    '\.__hash__$',
+    '\.__init__$',
+]
+exclude_files = [ # don't process filepaths that match these regex
+    '^tests/.*',
+    '^docs/.*',
+    '^tools/.*',
+]
+
 
 ######################################################################
 # MyPy

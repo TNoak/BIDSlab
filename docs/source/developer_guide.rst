@@ -10,7 +10,7 @@ Clone the latest version of the repository with the following command
 
 .. code-block:: bash
 
-    git clone --recurse-submodules -b dev https://github.com/cimt-unia/abidskit
+    git clone --recurse-submodules -b dev https://github.com/cimt-unia/bidslab
 
 It's best practice to use a virtual environment for development. For example you can create a new virtual environment with the following command
 

@@ -1,8 +1,8 @@
 """
 I/O functions for BIDS datasets.
 
-This module provides functions to load and write BIDS datasets using the aBIDSkit
-library. It wraps around the :py:class:`~abidskit.common.specs_dataset.Dataset` class
+This module provides functions to load and write BIDS datasets using the BIDSlab
+library. It wraps around the :py:class:`~bidslab.common.specs_dataset.Dataset` class
 to provide easier access to loading and saving datasets via simple function calls.
 """
 
@@ -23,15 +23,12 @@ def load_dataset(path: os.PathLike | str, bids_version: str = "1.10.1") -> Datas
     """
     Load a BIDS dataset from disk as a Dataset object.
 
-    This function loads a complete BIDS dataset from the specified file system path,
-    parses all dataset structure and metadata, and returns a fully-populated
-    :py:class:`~abidskit.common.specs_dataset.Dataset` object. The dataset is validated
-    against the specified BIDS version to ensure compliance.
-
-    The function provides a convenient high-level interface to the
-    :py:class:`~abidskit.common.specs_dataset.Dataset` class and its
-    :py:meth:`~abidskit.common.specs_dataset.Dataset.load` method. It automatically
-    handles path normalization and dataset initialization.
+    This function loads a BIDS dataset located at the given file system path and
+    returns it as a :py:class:`~bidslab.common.specs_dataset.Dataset` object. The
+    dataset is validated against the specified BIDS version. This function wraps around
+    the :py:class:`~bidslab.common.specs_dataset.Dataset` class and its
+    :py:meth:`~bidslab.common.specs_dataset.Dataset.load` method
+    from :py:mod:`~bidslab.common.specs_dataset`.
 
     Parameters
     ----------
@@ -45,7 +42,7 @@ def load_dataset(path: os.PathLike | str, bids_version: str = "1.10.1") -> Datas
     Returns
     -------
     Dataset
-        The loaded BIDS dataset as a :py:class:`~abidskit.common.specs_dataset.Dataset`
+        The loaded BIDS dataset as a :py:class:`~bidslab.common.specs_dataset.Dataset`
         object. Contains all subjects, sessions, datatypes, tasks, and metadata
         loaded from the dataset directory.
 
