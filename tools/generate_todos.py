@@ -32,5 +32,6 @@ for ln in lines:
         out.append(ln)
 
 dst.parent.mkdir(parents=True, exist_ok=True)
-dst.write_text("\n".join(out) + "\n", encoding="utf-8")
+# TODO: make more robust, add a newline at end if not present
+dst.write_text("\n".join(out), encoding="utf-8")
 print(f"Wrote {dst}")
