@@ -14,11 +14,7 @@ import re
 import shutil
 from collections.abc import Iterable, Iterator, MutableSequence, Sequence
 from functools import wraps
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    TypeVar,
-)
+from typing import TYPE_CHECKING, Any, TypeVar, Union
 from warnings import catch_warnings, simplefilter, warn
 
 import edf_reader
@@ -763,7 +759,8 @@ def copy_file(
 
 
 def write_entities(
-    output_path: os.PathLike | str, entities: "Sequence[PEntity]" | Iterable[PEntity]
+    output_path: os.PathLike | str,
+    entities: Union["Sequence[PEntity]", Iterable[PEntity]],
 ) -> None:
     """
     Write one or more portable entities to disk.

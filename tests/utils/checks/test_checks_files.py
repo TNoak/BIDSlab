@@ -112,10 +112,12 @@ class TestCITATION:
 
     @pytest.mark.parametrize(
         ("files", "attribute"),
-        itertools.zip_longest(
-            [],
-            ["how_to_acknowledge", "license", "references_and_links"],
-            fillvalue=["CITATION.cff"],
+        list(
+            itertools.zip_longest(
+                [],
+                ["how_to_acknowledge", "license", "references_and_links"],
+                fillvalue=["CITATION.cff"],
+            )
         ),
     )
     def test_citation_with_fields(self, test_dataset, tmp_root, files, attribute):
