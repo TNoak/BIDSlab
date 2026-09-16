@@ -57,6 +57,11 @@ repos:
       - id: ruff-format
         args: [--config=pyproject.toml]
 
+  - repo: https://github.com/jendrikseipp/vulture
+    rev: 'v2.16'
+    hooks:
+      - id: vulture
+
   - repo: https://github.com/scientific-python/cookie
     rev: 2026.03.02
     hooks:
