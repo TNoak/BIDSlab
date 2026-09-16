@@ -6,15 +6,21 @@ Please adhere to the following guidelines and explanations when contributing to 
 Environment setup
 -----------------
 
-Clone the latest version of the repository with the following command::
+Clone the latest version of the repository with the following command
+
+.. code-block:: bash
 
     git clone --recurse-submodules -b dev https://github.com/cimt-unia/abidskit
 
-It's best practice to use a virtual environment for development. For example you can create a new virtual environment with the following command::
+It's best practice to use a virtual environment for development. For example you can create a new virtual environment with the following command
+
+.. code-block:: bash
 
     python -m venv /path/to/myenv
 
-To set up the development environment, you need to install the dependencies for the project. You can do this by running the following command after cloning the repository::
+To set up the development environment, you need to install the dependencies for the project. You can do this by running the following command after cloning the repository
+
+.. code-block:: bash
 
     pip install -e .[dev]
 
@@ -23,7 +29,9 @@ This will install the project in editable mode and install the development depen
 Running tests
 -------------
 
-You can run the tests with the following command from the root of the repository::
+You can run the tests with the following command from the root of the repository
+
+.. code-block:: bash
 
     pytest
 
@@ -83,16 +91,22 @@ Documentation
 
 We use `Sphinx <https://www.sphinx-doc.org/en/master/>`_ to generate our API reference. Please add documentation to all new public features and changes via docstrings in the code.
 `NumPy <https://numpydoc.readthedocs.io/en/latest/format.html>`_ style docstrings must be used. Additionally .rst files are used for more detailed documentation.
-If you installed the dev dependencies, you can build the documentation with the following command::
+If you installed the dev dependencies, you can build the documentation with the following command
+
+.. code-block:: bash
 
     sphinx-build -b html docs/source docs/build/html
 
-Alternatively, if you want to rebuild the documentation automatically on changes you can use the following command::
+Alternatively, if you want to rebuild the documentation automatically on changes you can use the following command
+
+.. code-block:: bash
 
     sphinx-autobuild --open-browser docs/source docs/build/html --watch src/abidskit
 
 The documentation will be available in the ``docs/build`` directory. If you build the documentation multiple times, you may have to delete the ``docs/build`` directory before building again.
-This is, for example, possible with::
+This is, for example, possible with
+
+.. code-block:: bash
 
     cd docs
     make clean
@@ -109,21 +123,29 @@ NEP 29 is followed for the project. Please have a look at the `NEP 29 <https://n
 Pre-commit usage
 ----------------
 
-This repository uses `pre-commit <https://pre-commit.com/>`_ to manage the hooks. Please install pre-commit with the following command::
+This repository uses `pre-commit <https://pre-commit.com/>`_ to manage the hooks. Please install pre-commit with the following command
+
+.. code-block:: bash
 
     pip install pre-commit
 
-To install pre-commit hooks, run the following command::
+To install pre-commit hooks, run the following command
+
+.. code-block:: bash
 
     pre-commit install
 
-You can now run the pre-commit hooks manually with the following command::
+You can now run the pre-commit hooks manually with the following command
+
+.. code-block:: bash
 
     pre-commit run --all-files
 
 Tox
 ---
-We use `tox <https://tox.wiki/en/latest/>`_ to automate testing in different environments. You can run the tests in parallel mode with the following command::
+We use `tox <https://tox.wiki/en/latest/>`_ to automate testing in different environments. You can run the tests in parallel mode with the following command
+
+.. code-block:: bash
 
     tox -p
 
