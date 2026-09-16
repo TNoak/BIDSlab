@@ -1,3 +1,31 @@
+"""
+Typing subpackage for aBIDSkit.
+
+This subpackage provides type definitions, type variables, and protocols used
+throughout the aBIDSkit package. It enables static type checking, improves IDE
+support, and ensures type safety when working with BIDS entities.
+
+The subpackage is organized into:
+
+- :py:mod:`abidskit._typing.base` - Type definitions for core BIDS entity classes
+- :py:mod:`abidskit._typing.extensions` - Type definitions for extension-specific
+  classes
+
+See Also
+--------
+:py:mod:`abidskit._typing.base`
+    Type definitions for base classes including Acquisition, Entity, Run, and Task.
+:py:mod:`abidskit._typing.extensions`
+    Type definitions for extension classes including MotionChannel, EMGChannel,
+    and EMGElectrode.
+
+Notes
+-----
+This is an internal module primarily used for type hints within aBIDSkit itself.
+Users typically do not need to import from this module directly, as the types
+are used internally by the library's functions and classes.
+"""
+
 #  Copyright (c) 2025 by Lukas Behammer
 #  University of Augsburg
 #  Department of Computer Science

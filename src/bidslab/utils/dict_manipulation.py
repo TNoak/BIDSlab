@@ -19,7 +19,32 @@ if TYPE_CHECKING:
 
 
 class ManipulateKeysOption(IntEnum):
-    """Enumeration for options in dictionary key manipulation."""
+    """
+    Enumeration controlling how dictionary keys are transformed.
+
+    The enum is used by :py:func:`clean_dict` to decide whether key normalization
+    should be applied to all levels, skipped entirely, or restricted to nested
+    dictionaries.
+
+    Attributes
+    ----------
+    NO_MANIPULATION
+        Preserve all keys exactly as provided.
+    ALL_KEYS_MANIPULATE
+        Apply the configured string transformation to all dictionary keys.
+    SKIP_TOP_LEVEL_MANIPULATE
+        Preserve top-level keys while transforming nested dictionary keys.
+
+    See Also
+    --------
+    :py:func:`clean_dict`
+        Consumer of these key-transformation policies.
+
+    Examples
+    --------
+    >>> ManipulateKeysOption.ALL_KEYS_MANIPULATE
+    <ManipulateKeysOption.ALL_KEYS_MANIPULATE: 0>
+    """
 
     NO_MANIPULATION = -1
     ALL_KEYS_MANIPULATE = 0
@@ -31,23 +56,39 @@ def manipulate_dictkeys(
     string_manipulation: Callable[[str], str] = to_titlecase,
 ) -> dict:
     """
-    Convert all keys in the dictionary with the manipulation function recursively.
+    Recursively transform dictionary keys with a string conversion function.
 
     Parameters
     ----------
     dict_input : dict
-        The input dictionary.
+        Dictionary whose keys should be transformed.
     string_manipulation : Callable[[str], str], optional
-        A function to manipulate the keys of the dictionary. Default is `to_titlecase`.
+        Callable applied to each key. The default,
+        :py:func:`abidskit.utils.string_manipulation.to_titlecase`, is suitable for
+        converting internal field names to BIDS-style metadata keys.
 
     Returns
     -------
     dict
-        The dictionary with all keys converted with the manipulation function.
+        New dictionary with transformed keys. Values that are nested dictionaries are
+        processed recursively.
+
+    See Also
+    --------
+    :py:func:`clean_dict`
+        Applies this transformation as one step of broader dictionary cleanup.
+    :py:func:`abidskit.utils.string_manipulation.to_titlecase`
+        Default key-conversion function.
 
     Notes
     -----
-    If input is not of type dict, it will be returned without modification.
+    The ``Levels`` key receives special handling so that nested level descriptions are
+    transformed without altering the top-level semantic structure expected by BIDS.
+
+    Examples
+    --------
+    >>> manipulate_dictkeys({"sampling_frequency": 1000})
+    {'SamplingFrequency': 1000}
     """
     dict_output = {}
     for key, value in list(dict_input.items()):
@@ -78,43 +119,63 @@ def clean_dict(
     string_manipulation: Callable[[str], str] = to_titlecase,
 ) -> dict:
     """
-    Clean the input dictionary.
+    Clean a dictionary for serialization or metadata export.
 
-    Remove None values, private fields, convert paths to strings,
-    and optionally convert keys via the manipulation function in `kwargs`.
+    The cleaning pipeline removes ``None`` values, drops private keys, converts
+    :py:class:`pathlib.Path` objects to strings, removes the reserved ``root`` key,
+    and optionally transforms keys to a target naming convention.
 
     Parameters
     ----------
     dict_input : dict
-        The input dictionary.
-    skip_keys_to_manipulate : {0, -1, 1}
-        Option to control title casing of keys. Must be one of:
-
-        - -1: Do not convert any keys.
-
-        - 0: Convert all keys.
-
-        - 1: Convert all keys except top-level keys.
+        Dictionary to clean.
+    skip_keys_to_manipulate : ManipulateKeysOption, optional
+        Policy controlling whether keys are transformed. ``NO_MANIPULATION`` keeps all
+        keys unchanged, ``ALL_KEYS_MANIPULATE`` transforms every key, and
+        ``SKIP_TOP_LEVEL_MANIPULATE`` preserves only the top-level keys. Default is
+        :py:attr:`ManipulateKeysOption.ALL_KEYS_MANIPULATE`.
     include_sequences : bool, optional
-        Whether to include sequence values in the cleaning process. Default is False.
+        If ``True``, dictionaries contained inside list values are cleaned
+        recursively. Default is ``False``.
     string_manipulation : Callable[[str], str], optional
-        A function to manipulate the keys of the dictionary. Default is `to_titlecase`.
+        Function used to transform keys when manipulation is enabled. Default is
+        :py:func:`abidskit.utils.string_manipulation.to_titlecase`.
 
     Returns
     -------
     dict
-        The cleaned dictionary.
+        Cleaned dictionary ready for JSON export or object population.
+
+    Raises
+    ------
+    ValueError
+        Raised when ``skip_keys_to_manipulate`` is not a valid
+        :py:class:`ManipulateKeysOption` member.
 
     See Also
     --------
-    bidslab.utils.dict_manipulation.delete_none_from_dict
-        Function to delete None values from a dictionary.
-    bidslab.utils.dict_manipulation.delete_private_fields_from_dict
-        Function to delete private fields from a dictionary.
-    bidslab.utils.dict_manipulation.manipulate_dictkeys
-        Function to convert dictionary keys using a manipulation function.
-    bidslab.utils.dict_manipulation.dict_paths_to_strings
-        Function to convert pathlib.Path values to strings in a dictionary.
+    :py:func:`delete_none_from_dict`
+        Removes ``None`` values recursively.
+    :py:func:`delete_private_fields_from_dict`
+        Removes keys whose names start with ``"_"``.
+    :py:func:`dict_paths_to_strings`
+        Converts :py:class:`pathlib.Path` values to strings.
+    :py:func:`manipulate_dictkeys`
+        Applies key renaming after structural cleanup.
+
+    Notes
+    -----
+    The cleanup is partly in-place because :py:func:`delete_none_from_dict` mutates
+    nested dictionaries while removing ``None`` values.
+
+    Examples
+    --------
+    >>> clean_dict({
+    ...     "root": pathlib.Path("."),
+    ...     "sampling_frequency": 1000,
+    ...     "note": None
+    ... })
+    {'SamplingFrequency': 1000}
     """
     dict_output = delete_none_from_dict(dict_input)
     dict_output = delete_private_fields_from_dict(dict_output)
@@ -157,17 +218,32 @@ def clean_dict(
 
 def dict_paths_to_strings(dict_input: dict) -> dict:
     """
-    Convert all ``pathlib.Path`` values in the dictionary to strings recursively.
+    Recursively convert :py:class:`pathlib.Path` values to strings.
 
     Parameters
     ----------
     dict_input : dict
-        The input dictionary.
+        Dictionary whose values may include nested dictionaries and path objects.
 
     Returns
     -------
     dict
-        The dictionary with all ``pathlib.Path`` values converted to strings.
+        Copy of the input structure in which every :py:class:`pathlib.Path` value has
+        been replaced by its string representation.
+
+    See Also
+    --------
+    :py:func:`clean_dict`
+        Incorporates this conversion into a broader cleanup pipeline.
+
+    Notes
+    -----
+    Non-dictionary containers other than direct path values are preserved unchanged.
+
+    Examples
+    --------
+    >>> dict_paths_to_strings({"path": pathlib.Path("sub-01")})
+    {'path': 'sub-01'}
     """
     dict_output: dict[str, dict | str] = {}
     for key, value in list(dict_input.items()):
@@ -184,17 +260,35 @@ def dict_paths_to_strings(dict_input: dict) -> dict:
 
 def delete_private_fields_from_dict(dict_input: MutableMapping) -> dict:
     """
-    Delete all private fields (keys starting with '_') recursively from the dictionary.
+    Remove private keys from a nested mapping.
 
     Parameters
     ----------
     dict_input : MutableMapping
-        The input dictionary.
+        Mapping to clean. Keys beginning with ``"_"`` are treated as private.
 
     Returns
     -------
     dict
-        The cleaned dictionary without private fields.
+        New dictionary without private keys. Nested dictionaries are processed
+        recursively.
+
+    See Also
+    --------
+    :py:func:`delete_none_from_dict`
+        Removes missing values rather than private keys.
+    :py:func:`clean_dict`
+        Uses this helper during metadata normalization.
+
+    Notes
+    -----
+    Only non-dictionary values are tested directly; nested mappings are traversed and
+    rebuilt.
+
+    Examples
+    --------
+    >>> delete_private_fields_from_dict({"name": "rest", "_internal": 1})
+    {'name': 'rest'}
     """
     dict_output = {}
     for key, value in list(dict_input.items()):
@@ -209,17 +303,33 @@ def delete_private_fields_from_dict(dict_input: MutableMapping) -> dict:
 
 def delete_none_from_dict(dict_input: dict) -> dict:
     """
-    Delete None values recursively from all of the dictionaries.
+    Remove ``None`` values recursively from a dictionary structure.
 
     Parameters
     ----------
     dict_input : dict
-        The input dictionary.
+        Dictionary to clean. Nested dictionaries and dictionaries inside lists are
+        processed recursively.
 
     Returns
     -------
     dict
-        The cleaned dictionary without None values.
+        The same dictionary instance with all ``None``-valued keys removed.
+
+    See Also
+    --------
+    :py:func:`clean_dict`
+        Wraps this helper with additional cleanup steps.
+
+    Notes
+    -----
+    This function mutates ``dict_input`` in place. Lists are traversed only to clean
+    dictionary items they contain; other list items are left unchanged.
+
+    Examples
+    --------
+    >>> delete_none_from_dict({"a": 1, "b": None, "c": {"d": None, "e": 2}})
+    {'a': 1, 'c': {'e': 2}}
     """
     # Source - https://stackoverflow.com/a/66127889
     # Posted by Vova, modified by community. See post 'Timeline' for change history
@@ -242,21 +352,53 @@ def add_levels_to_dict(
     levels: "Sequence[Level]", column_name: str, output_dict: dict
 ) -> dict:
     """
-    Convert Level objects to dictionary and add them under "Levels" key.
+    Add serialized level descriptors under a column's ``Levels`` key.
+
+    In BIDS sidecars, categorical columns can define a ``Levels`` mapping that
+    explains the meaning of coded values. This helper converts a sequence of
+    level-like dataclass instances into the required dictionary representation.
 
     Parameters
     ----------
     levels : Sequence[Level]
-        A sequence of Level objects to be converted and added.
+        Sequence of level objects, each expected to provide a ``level_name`` field and
+        additional serializable metadata.
     column_name : str
-        The column name under which the levels will be added.
+        Name of the column entry inside ``output_dict`` that should receive the
+        ``Levels`` mapping.
     output_dict : dict
-        The dictionary to which the levels will be added.
+        Dictionary to update in place.
 
     Returns
     -------
     dict
-        The updated dictionary with levels added under the specified column name.
+        Updated ``output_dict`` with a ``Levels`` entry under
+        ``output_dict[column_name]``. When a level contains only a description, the
+        stored value is that string; otherwise a nested metadata dictionary is stored.
+
+    Raises
+    ------
+    KeyError
+        Raised when ``column_name`` is not present in ``output_dict``.
+    TypeError
+        Raised when a level object cannot be converted with
+        :py:func:`dataclasses.asdict`.
+
+    See Also
+    --------
+    :py:func:`clean_dict`
+        Cleans the serialized level metadata before insertion.
+
+    Examples
+    --------
+    >>> from dataclasses import dataclass
+    >>> @dataclass
+    ... class Level:
+    ...     level_name: str
+    ...     description: str
+    >>> output = {"trial_type": {}}
+    >>> add_levels_to_dict([Level("go", "Go trial")], "trial_type", output)
+    {'trial_type': {'Levels': {'go': 'Go trial'}}}
     """
     levels_dict = {}
     for level in levels:

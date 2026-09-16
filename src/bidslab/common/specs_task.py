@@ -1,3 +1,11 @@
+"""
+Task-level BIDS specification classes.
+
+This module provides the generic :py:class:`Task` implementation used to model
+BIDS task entities and discover acquisition sub-entities from an existing
+dataset tree.
+"""
+
 #  Copyright (c) 2025 by Lukas Behammer
 #  University of Augsburg
 #  Department of Computer Science
@@ -18,6 +26,40 @@ if TYPE_CHECKING:
 
 
 class Task(BaseTask):
+    """
+    Represent a generic BIDS task entity.
+
+    Parameters
+    ----------
+    base_path : os.PathLike or str
+        Directory containing files for the task.
+    task_name : str
+        Human-readable task name used to derive the BIDS ``task-`` entity.
+    **kwargs
+        Additional task metadata and optional linked entities.
+
+    Attributes
+    ----------
+    cog_atlas_id : str | None
+        Optional Cognitive Atlas identifier for specialized task modalities.
+    cog_poid : str | None
+        Optional Cognitive Paradigm Ontology identifier.
+    acquisitions : MutableSequence[Acquisition]
+        Acquisition objects associated with this task.
+
+    See Also
+    --------
+    :py:class:`abidskit.common.base.BaseTask`
+        Abstract base class providing common task behavior.
+    :py:class:`abidskit.common.specs_misc.Acquisition`
+        Acquisition entity loaded beneath a task.
+
+    Notes
+    -----
+    The base implementation discovers acquisitions from filenames containing the
+    ``acq-`` entity.
+    """
+
     def __init__(
         self,
         base_path: os.PathLike | str,
@@ -39,6 +81,8 @@ class Task(BaseTask):
 
     @property
     def acquisitions(self) -> dict[str, Acquisition]:
+        # numpydoc ignore=RT01
+        """Get acquisitions associated with the task."""
         if not self._acquisitions:
             self._acquisitions = {}
             files = self.root.iterdir()
@@ -81,6 +125,7 @@ class Task(BaseTask):
     def acquisitions(
         self, value: MutableSequence[str | Acquisition] | dict[str, Acquisition]
     ) -> None:
+        # numpydoc ignore=GL08
         if isinstance(value, MutableSequence):
             if all(isinstance(entry, str) for entry in value):
                 self._acquisitions = {}
@@ -107,6 +152,35 @@ class Task(BaseTask):
             )
 
     def write(self, output_path: os.PathLike | str) -> None:
+        """
+        Write task-level files to disk.
+
+        Parameters
+        ----------
+        output_path : os.PathLike or str
+            Destination directory for task content.
+
+        Returns
+        -------
+        None
+            This method is currently a placeholder.
+
+        Raises
+        ------
+        NotImplementedError
+            If generic task serialization is requested while
+            ``IGNORE_NOT_IMPLEMENTED`` is disabled.
+
+        Warnings
+        --------
+        This method is not yet implemented and will raise a NotImplementedError
+        if the IGNORE_NOT_IMPLEMENTED setting is not enabled.
+
+        Notes
+        -----
+        Generic task serialization has not yet been implemented in aBIDSkit.
+        Specialized task subclasses are expected to provide concrete writers.
+        """
         # TODO: implement writing of basic Task data
         if not get_settings_value("IGNORE_NOT_IMPLEMENTED"):
             raise NotImplementedError

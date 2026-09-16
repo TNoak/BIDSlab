@@ -1,3 +1,11 @@
+"""
+Participant, session, and scan summary specification classes.
+
+This module models hierarchical BIDS summary entities beneath a dataset:
+participants, sessions, scans, and helper functions for discovering them from
+standard TSV/JSON files and directory layouts.
+"""
+
 #  Copyright (c) 2025 by Lukas Behammer
 #  University of Augsburg
 #  Department of Computer Science
@@ -52,6 +60,56 @@ ALLOWED_DATATYPES = {
 
 
 class Scan:
+    """
+    Represent one entry in a BIDS scans table.
+
+    Parameters
+    ----------
+    base_path : os.PathLike or str
+        Base directory used to resolve the recorded filename.
+    filename : os.PathLike or str
+        Relative path stored in ``*_scans.tsv``.
+    **kwargs
+        Additional scan metadata such as acquisition time and HED tags.
+
+    Attributes
+    ----------
+    filename : pathlib.Path
+        Relative scan filename.
+    acq_time : str | None
+        Acquisition timestamp from the scans table.
+    hed : str | None
+        Optional HED annotation string.
+    columns : Sequence[str] | None
+        Optional list of column names originating from the sidecar metadata.
+    filepath : pathlib.Path
+        Resolved path returned by :py:attr:`filepath`.
+
+    Raises
+    ------
+    FieldMissingError
+        If ``filename`` is empty.
+
+    See Also
+    --------
+    :py:class:`Session`
+        Session entity that owns scan entries.
+
+    Notes
+    -----
+    BIDS permits ``*_scans.tsv`` files at subject and session levels to describe
+    data files and acquisition times.
+
+    Examples
+    --------
+    >>> scan = Scan(
+    ...     base_path="sub-01/ses-01",
+    ...     filename="meg/sub-01_ses-01_task-rest_meg.fif"
+    ... )
+    >>> scan.filepath
+    PosixPath('sub-01/ses-01/meg/sub-01_ses-01_task-rest_meg.fif')
+    """
+
     def __init__(
         self, base_path: os.PathLike | str, filename: os.PathLike | str, **kwargs: Any
     ) -> None:
@@ -67,14 +125,84 @@ class Scan:
             raise FieldMissingError("Field `Filename` is required in Scan")
 
     def __repr__(self) -> str:
+        """Return a string representation of the Scan object."""
         return f"<Scan filename={self.filename}>"
 
     @property
     def filepath(self) -> pathlib.Path:
+        # numpydoc ignore=RT01
+        """Get the resolved filesystem path for the scan file."""
         return self.root / self.filename
+
+    @property
+    def session(self) -> "Session | None":
+        # numpydoc ignore=RT01
+        """Get the session linked to this scan."""
+        if self._session:
+            return self._session
+
+        warn("Scan is not linked to a Session object.", TopLevelEntityNotLinkedWarning)
+        return self._session
+
+    @session.setter
+    def session(self, value: "Session") -> None:
+        # numpydoc ignore=GL08
+        self._session = value
 
 
 class Session(Entity):
+    """
+    Represent a BIDS session belonging to a participant.
+
+    Parameters
+    ----------
+    base_path : os.PathLike or str
+        Filesystem path to the session directory.
+    session_id : str
+        BIDS session identifier including the ``ses-`` prefix.
+    **kwargs
+        Additional session metadata and linked entities.
+
+    Attributes
+    ----------
+    session_id : str
+        Session identifier.
+    acq_time : str | None
+        Session-level acquisition time if provided.
+    pathology : str | int | None
+        Optional pathology label.
+    hed : str | None
+        Optional HED annotation.
+    scans : Sequence[Scan] | None
+        Scan entries loaded from BIDS scans tables.
+    datatypes : Sequence[Datatype]
+        Datatype directories available inside the session.
+
+    Raises
+    ------
+    FieldMissingError
+        If ``session_id`` is missing.
+
+    See Also
+    --------
+    :py:class:`Participant`
+        Parent participant entity.
+    :py:func:`get_scans_from_files`
+        Helper used to load scans metadata.
+
+    Notes
+    -----
+    Session objects bridge participant-level metadata with modality-specific
+    datatype folders. They reflect the BIDS hierarchy ``sub-*/ses-*`` when such
+    folders are present and gracefully fall back to single-session layouts.
+
+    Examples
+    --------
+    >>> session = Session(base_path="sub-01/ses-01", session_id="ses-01")
+    >>> session.datatypes
+    [<Datatype ...>]
+    """
+
     def __init__(
         self,
         base_path: os.PathLike | str,
@@ -106,10 +234,13 @@ class Session(Entity):
             raise FieldMissingError("Field `Session_id` is required in Session")
 
     def __repr__(self) -> str:
+        """Return a string representation of the Session entity."""
         return f"<Session id={self.session_id}>"
 
     @property
     def participant(self) -> "Participant | None":
+        # numpydoc ignore=RT01
+        """Get the participant that owns this session."""
         if self._participant:
             return self._participant
 
@@ -121,10 +252,13 @@ class Session(Entity):
 
     @participant.setter
     def participant(self, value: "Participant") -> None:
+        # numpydoc ignore=GL08
         self._participant = value
 
     @property
     def scans(self) -> Sequence[Scan] | None:
+        # numpydoc ignore=RT01
+        """Get scans metadata associated with the session."""
         if not self._scans:
             dataset_root = self.root
 
@@ -155,6 +289,7 @@ class Session(Entity):
 
     @scans.setter
     def scans(self, value: Sequence[Mapping] | Sequence[Scan]) -> None:
+        # numpydoc ignore=GL08
         # TODO: handle columns here
         if isinstance(value, Sequence):
             if all(isinstance(entry, Mapping) for entry in value):
@@ -169,6 +304,8 @@ class Session(Entity):
 
     @property
     def datatypes(self) -> dict[str, Datatype]:
+        # numpydoc ignore=RT01
+        """Get datatype directories contained in the session."""
         if not self._datatypes:
             self._datatypes = {}
             for file in self.root.iterdir():
@@ -187,6 +324,7 @@ class Session(Entity):
     def datatypes(
         self, value: Sequence[str] | Sequence[Datatype] | dict[str, Datatype]
     ) -> None:
+        # numpydoc ignore=GL08
         if isinstance(value, Sequence):
             if all(isinstance(entry, str) for entry in value):
                 self._datatypes = {}
@@ -219,6 +357,24 @@ class Session(Entity):
         return entities
 
     def write(self, output_path: os.PathLike | str) -> None:
+        """
+        Write the session contents to disk.
+
+        Parameters
+        ----------
+        output_path : os.PathLike or str
+            Output path stem used for datatype serialization.
+
+        Returns
+        -------
+        None
+            Datatype folders are written as side effects.
+
+        Notes
+        -----
+        When multiple sessions exist, a participant-level ``*_sessions.tsv`` file
+        is written before recursively serializing each session subtree.
+        """
         output_path = pathlib.Path(output_path)
 
         for datatype in self.datatypes.values():
@@ -308,6 +464,61 @@ class Session(Entity):
 
 
 class Participant(Entity):
+    """
+    Represent a BIDS participant and its nested session data.
+
+    Parameters
+    ----------
+    base_path : os.PathLike or str
+        Path to the participant directory.
+    participant_id : str
+        BIDS participant identifier including the ``sub-`` prefix.
+    **kwargs
+        Participant metadata, linked dataset reference, phenotype entries, and
+        nested session definitions.
+
+    Attributes
+    ----------
+    participant_id : str
+        Participant identifier.
+    species : str | int | None
+        Species information, defaulting to ``"homo sapiens"`` for old-version
+        compatibility when enabled.
+    age : int | None
+        Participant age.
+    sex : str | None
+        Participant sex.
+    handedness : str | None
+        Handedness label.
+    strain : str | int | None
+        Optional strain information for non-human subjects.
+    strain_rrid : str | None
+        RRID for the strain.
+    hed : str | None
+        Optional HED annotation.
+    phenotype : Sequence[MeasurementTool] | None
+        Phenotype measurement rows linked to the participant.
+    sessions : Sequence[Session]
+        Session entities nested below the participant.
+
+    Raises
+    ------
+    FieldMissingError
+        If ``participant_id`` is missing.
+
+    Notes
+    -----
+    Participant metadata corresponds to the BIDS ``participants.tsv`` and
+    ``participants.json`` files. Participant objects also act as the join point
+    for phenotype rows and nested session folders within the dataset hierarchy.
+
+    Examples
+    --------
+    >>> participant = Participant(base_path="sub-01", participant_id="sub-01")
+    >>> participant.participant_id
+    'sub-01'
+    """
+
     def __init__(
         self,
         base_path: os.PathLike | str,
@@ -347,10 +558,13 @@ class Participant(Entity):
             raise FieldMissingError("Field `Participant_id` is required in Participant")
 
     def __repr__(self) -> str:
+        """Return a string representation of the Participant entity."""
         return f"<Participant id={self.participant_id}>"
 
     @property
     def dataset(self) -> "Dataset | None":
+        # numpydoc ignore=RT01
+        """Get the dataset linked to this participant."""
         if self._dataset:
             return self._dataset
 
@@ -359,16 +573,20 @@ class Participant(Entity):
 
     @dataset.setter
     def dataset(self, value: "Dataset") -> None:
+        # numpydoc ignore=GL08
         self._dataset = value
 
     @property
     def phenotype(self) -> Sequence[MeasurementTool] | None:
+        # numpydoc ignore=RT01
+        """Get phenotype measurements linked to the participant."""
         return self._phenotype
 
     @phenotype.setter
     def phenotype(
         self, value: Sequence[Mapping] | Sequence[MeasurementTool] | None
     ) -> None:
+        # numpydoc ignore=GL08
         if isinstance(value, Sequence):
             if all(isinstance(entry, Mapping) for entry in value):
                 self._phenotype = []
@@ -412,6 +630,7 @@ class Participant(Entity):
 
     @sessions.setter
     def sessions(self, value: Sequence[Mapping] | Sequence[Session]) -> None:
+        # numpydoc ignore=GL08
         if isinstance(value, Sequence):
             if all(isinstance(entry, Mapping) for entry in value):
                 self._sessions = {}
@@ -429,6 +648,19 @@ class Participant(Entity):
             raise TypeError("Field `Sessions` must be a list of Session objects")
 
     def list_sessions(self) -> pd.DataFrame:
+        """
+        Build a tabular summary of participant sessions.
+
+        Returns
+        -------
+        pd.DataFrame
+            DataFrame ready for serialization to ``*_sessions.tsv``.
+
+        Notes
+        -----
+        Empty columns and internal linkage attributes are removed so the result
+        matches BIDS session-table expectations.
+        """
         sessions_dataframe = pd.DataFrame()
         for session in self.sessions.values():
             session_dict = session.__dict__.copy()
@@ -448,6 +680,19 @@ class Participant(Entity):
         return [self.participant_id]
 
     def write(self, output_path: os.PathLike | str) -> None:
+        """
+        Write the session contents to disk.
+
+        Parameters
+        ----------
+        output_path : os.PathLike or str
+            Output path stem used for datatype serialization.
+
+        Returns
+        -------
+        None
+            Datatype folders are written as side effects.
+        """
         output_path = pathlib.Path(output_path)
 
         # write sessions description to "sessions.tsv"
@@ -480,6 +725,31 @@ def get_sessions_from_files(
     participant: Participant,
     tsv_path: pathlib.Path | None,
 ) -> dict[str, Session]:
+    """
+    Build session objects for a participant.
+
+    Parameters
+    ----------
+    participant : Participant
+        Participant owning the sessions.
+    tsv_path : pathlib.Path | None
+        Optional path to the participant ``*_sessions.tsv`` file.
+
+    Returns
+    -------
+    dict[str, Session]
+        Constructed session objects.
+
+    Raises
+    ------
+    FieldMissingError
+        If a sessions TSV row omits ``session_id``.
+
+    Notes
+    -----
+    This helper supports both explicit ``*_sessions.tsv`` metadata and implicit
+    directory-based discovery for datasets that only encode sessions via folders.
+    """
     sessions: MutableSequence[Session] = []
     if tsv_path:
         data = parse_descriptive_tsv(tsv_path)
@@ -519,6 +789,29 @@ def get_scans_from_files(
     session: Session,
     dataset_root: pathlib.Path,
 ) -> Sequence[Scan]:
+    """
+    Load scan table entries for a session from the BIDS hierarchy.
+
+    Parameters
+    ----------
+    session : Session
+        Session for which scan metadata should be loaded.
+    dataset_root : pathlib.Path
+        Root of the containing dataset, used to resolve inheritance levels.
+
+    Returns
+    -------
+    Sequence[Scan]
+        Scan objects parsed from the nearest applicable scans tables.
+
+    Notes
+    -----
+    The BIDS inheritance principle is approximated by walking matching subject
+    and session subpaths and applying the furthest-down ``*_scans.tsv`` file.
+    Scan-column descriptions from JSON sidecars are converted into
+    :py:class:`~abidskit.common.specs_misc.Column` objects and attached to every
+    resulting :py:class:`Scan`.
+    """
     # For every level before sessions:
     # - scans.json can be in root, subject or session level
     # - scans.tsv can be in subject or session level and the one from the entity

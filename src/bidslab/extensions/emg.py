@@ -1,3 +1,11 @@
+"""
+EMG extension models for BIDS electromyography datasets.
+
+This module implements EMG-specific hardware, coordinate system, channel,
+electrode, recording, acquisition, and task models together with helper
+functions for parsing EMG sidecars and tabular metadata.
+"""
+
 #  Copyright (c) 2026 by Lukas Behammer
 #  University of Augsburg
 #  Department of Computer Science
@@ -75,12 +83,115 @@ EMG_CHANNEL_TYPE_ALLOWED_FIELD_ENTRIES = {
 
 @dataclass(slots=True)
 class EMGHardware(Hardware):
+    """
+    Extend generic hardware metadata with EMG electrode manufacturer fields.
+
+    Attributes
+    ----------
+    electrode_manufacturer : str | None, optional
+        Manufacturer of the surface, fine-wire, or high-density electrodes used
+        during acquisition.
+    electrode_manufacturers_model_name : str | None, optional
+        Manufacturer-reported model name or catalog number for the electrodes.
+
+    See Also
+    --------
+    :py:class:`EMGRecording`
+        Recording-level container that links hardware and channel metadata.
+
+    Notes
+    -----
+    Store electrode-specific vendor information here when the amplifier and the
+    electrodes come from different manufacturers. This complements the inherited
+    :py:class:`~abidskit.common.specs_misc.Hardware` fields describing the main
+    recording system.
+
+    Examples
+    --------
+    Record both amplifier and electrode vendor information
+
+    >>> hardware = EMGHardware(
+    ...     manufacturer="Delsys",
+    ...     manufacturers_model_name="Trigno Avanti",
+    ...     electrode_manufacturer="Delsys",
+    ...     electrode_manufacturers_model_name="DE-2.1",
+    ... )
+    """
+
     electrode_manufacturer: str | None = None
     electrode_manufacturers_model_name: str | None = None
 
 
 @dataclass(slots=True)
 class EMGCoordinateSystem:
+    """
+    Represent an EMG electrode coordinate system.
+
+    Attributes
+    ----------
+    name : str
+        Local identifier used to reference the coordinate system.
+    emg_coordinate_system : str
+        Coordinate-system keyword defined by the BIDS standard, for example
+        ``CapTrak``, ``EEGLAB`` or ``Other``.
+    emg_coordinate_units : str
+        Spatial units used for electrode coordinates, typically ``mm`` or ``cm``.
+    emg_coordinate_system_description : str | None, optional
+        Required explanatory text when ``emg_coordinate_system`` is ``Other``.
+    parent_coordinate_system : EMGCoordinateSystem | None, optional
+        Parent system used for hierarchical localization, such as registering a
+        muscle grid to a body-segment frame.
+    anchor_coordinates : Sequence[int | float] | None, optional
+        Coordinates of the anchor point in the parent system.
+    anchor_electrode : str | None, optional
+        Electrode name used as anchor when nesting coordinate systems.
+
+    Raises
+    ------
+    FieldMissingError
+        If a required description or anchoring field is omitted.
+
+    See Also
+    --------
+    :py:class:`EMGElectrode`
+        Electrode definitions that use this coordinate system.
+    :py:class:`EMGRecording`
+        Recording-level container that aggregates electrodes and channels.
+
+    Notes
+    -----
+    The EMG extension requires additional descriptive fields when the coordinate
+    system is ``Other`` or linked to a parent coordinate system. This is useful
+    for documenting electrode grids on anatomical landmarks, custom templates,
+    or digitized skin coordinates.
+
+    Examples
+    --------
+    Define a digitized anatomical coordinate system
+
+    >>> coords = EMGCoordinateSystem(
+    ...     name="forearm-grid",
+    ...     emg_coordinate_system="Other",
+    ...     emg_coordinate_units="mm",
+    ...     emg_coordinate_system_description=(
+    ...         "2D grid aligned with the radius-ulna axis on the dominant forearm."
+    ...     ),
+    ... )
+
+    Register a child grid to a segment-level parent frame
+
+    >>> EMGCoordinateSystem(
+    ...     name="biceps-grid",
+    ...     emg_coordinate_system="Other",
+    ...     emg_coordinate_units="mm",
+    ...     emg_coordinate_system_description="High-density grid placed over biceps " +
+    ...         "brachii.",
+    ...     parent_coordinate_system=coords,
+    ...     anchor_coordinates=[25, 10, 0],
+    ...     anchor_electrode="E01",
+    ... )
+    """
+
     name: str
     emg_coordinate_system: str
     emg_coordinate_units: str
@@ -90,6 +201,7 @@ class EMGCoordinateSystem:
     anchor_electrode: str | None = None
 
     def __post_init__(self):
+        """Validate coordinate system configuration."""
         if (
             self.emg_coordinate_system == "Other"
             and not self.emg_coordinate_system_description
@@ -111,13 +223,65 @@ class EMGCoordinateSystem:
                 )
 
     def __repr__(self) -> str:
+        """Return a string representation of the EMGCoordinateSystem object."""
         return f"<EMGCoordinateSystem name={self.name}>"
 
     def __hash__(self) -> int:
+        """Return a hash of the coordinate system."""
         return id(self)
 
 
 class EMGChannel:
+    """
+    Represent one EMG channel definition from ``*_channels.tsv``.
+
+    Parameters
+    ----------
+    name : str
+        Channel name used in tabular metadata and renamed sample data columns.
+    type : str
+        BIDS channel type. Typical values are ``EMG`` for muscle activity,
+        ``REF`` for reference leads, ``TRIG`` for trigger inputs, ``ECG`` or
+        ``EOG`` for physiological monitoring, and ``MISC`` for auxiliary signals.
+    units : str
+        Measurement unit such as ``uV``, ``mV``, or ``V``.
+    **kwargs
+        Optional metadata describing electrode pairing, target muscle, filters,
+        channel grouping, placement scheme, and status information.
+
+    Raises
+    ------
+    FieldEntryNotValidError
+        If ``type`` is not allowed by the EMG extension.
+
+    See Also
+    --------
+    :py:class:`EMGRecording`
+        Recording object that owns channel definitions and sample data.
+    :py:class:`EMGElectrode`
+        Electrode definitions referenced by ``signal_electrode`` or ``reference``.
+
+    Notes
+    -----
+    Use channel metadata to document whether a signal comes from a bipolar pair,
+    monopolar sensor, reference channel, or synchronization input. Placement and
+    muscle annotations help downstream processing pipelines organize channels.
+
+    Examples
+    --------
+    Create a bipolar muscle channel and a trigger channel
+
+    >>> emg = EMGChannel(
+    ...     name="EMG_FCR",
+    ...     type="EMG",
+    ...     units="uV",
+    ...     target_muscle="flexor carpi radialis",
+    ...     signal_electrode="E01",
+    ...     reference="E02",
+    ... )
+    >>> trig = EMGChannel(name="Trigger", type="TRIG", units="V")
+    """
+
     def __init__(
         self,
         name: str,
@@ -147,14 +311,18 @@ class EMGChannel:
         set_attr_from_dict(self, kwargs)
 
     def __repr__(self) -> str:
+        """Return a string representation of the EMGChannel object."""
         return f"<EMGChannel name={self.name}>"
 
     @property
     def type(self) -> str | None:
+        # numpydoc ignore=RT01
+        """Return the validated EMG channel type."""
         return self._type
 
     @type.setter  # noqa: A003
     def type(self, value: str) -> None:
+        # numpydoc ignore=GL08
         if value not in EMG_CHANNEL_TYPE_ALLOWED_FIELD_ENTRIES:
             raise FieldEntryNotValidError(
                 f"Field `Type` must be one of {EMG_CHANNEL_TYPE_ALLOWED_FIELD_ENTRIES}"
@@ -163,6 +331,49 @@ class EMGChannel:
 
 
 class EMGElectrode:
+    """
+    Represent one EMG electrode definition from ``*_electrodes.tsv``.
+
+    Parameters
+    ----------
+    name : str
+        Electrode label used in electrode tables and channel references.
+    x : int | float
+        X coordinate of the electrode center in the associated coordinate system.
+    y : int | float
+        Y coordinate of the electrode center in the associated coordinate system.
+    **kwargs
+        Optional metadata including ``z`` coordinates, electrode type, material,
+        impedance, grouping, and linked :py:class:`EMGCoordinateSystem`.
+
+    See Also
+    --------
+    :py:class:`EMGCoordinateSystem`
+        Coordinate system used for electrode localization.
+    :py:class:`EMGChannel`
+        Channel metadata that can reference the electrode by name.
+
+    Notes
+    -----
+    Use electrodes to document sensor placement on the skin, in a grid, or in a
+    fine-wire configuration. Coordinate and impedance metadata are especially
+    important for reproducible placement descriptions and quality control.
+
+    Examples
+    --------
+    Describe a surface electrode
+
+    >>> electrode = EMGElectrode(
+    ...     name="E01",
+    ...     x=12.5,
+    ...     y=31.0,
+    ...     z=0.0,
+    ...     type="surface",
+    ...     material="Ag/AgCl",
+    ...     impedance=4.2,
+    ... )
+    """
+
     def __init__(
         self,
         name: str,
@@ -184,10 +395,81 @@ class EMGElectrode:
         set_attr_from_dict(self, kwargs)
 
     def __repr__(self) -> str:
+        """Return a string representation of the EMGElectrode object."""
         return f"<EMGElectrode name={self.name}>"
 
 
 class EMGRecording(Recording):
+    """
+    Represent one EMG recording and its associated metadata/data.
+
+    Parameters
+    ----------
+    base_path : os.PathLike | str
+        Directory containing the recording files.
+    recording_id : str
+        BIDS recording label, usually ``recording-<label>``.
+    sampling_frequency : int | float
+        Sampling rate of the recording in hertz.
+    emg_placement_scheme : str
+        Placement scheme identifier, for example ``SENIAM`` or ``Other``.
+    emg_reference : str
+        Description of the reference strategy, such as a dedicated reference
+        electrode, common average, or differential pair.
+    power_line_frequency : int | float | str
+        Mains frequency affecting the recording, typically ``50`` or ``60``.
+    recording_type : str
+        Recording mode, such as continuous or epoched acquisition.
+    software_filters : MutableMapping[str, Filter] | str
+        Software filtering description stored in the EMG sidecar.
+    **kwargs
+        Optional recording metadata, linked hardware or institution objects,
+        channels, electrodes, coordinate systems, and inherited sidecar content.
+
+    Raises
+    ------
+    TypeError
+        If ``_description`` is supplied with the wrong type.
+    FieldMissingError
+        If ``emg_placement_scheme`` is ``Other`` without an accompanying
+        description.
+
+    See Also
+    --------
+    :py:class:`EMGRun`
+        Parent run containing one or more recordings.
+    :py:class:`EMGChannel`
+        Channel metadata used to label data columns.
+    :py:class:`EMGElectrode`
+        Electrode metadata associated with the recording.
+
+    Notes
+    -----
+    :py:class:`EMGRecording` combines setup metadata with lazily loaded sample
+    data. Use it to document electrode placement scheme, referencing, filtering,
+    and recording-specific quality annotations before accessing :py:attr:`data`.
+
+    Examples
+    --------
+    Create a recording with standard setup metadata
+
+    >>> recording = EMGRecording(
+    ...     base_path="sub-01/ses-01/emg",
+    ...     recording_id="recording-rest",
+    ...     sampling_frequency=2000,
+    ...     emg_placement_scheme="SENIAM",
+    ...     emg_reference="Bipolar differential",
+    ...     power_line_frequency=50,
+    ...     recording_type="continuous",
+    ...     software_filters="None",
+    ... )
+
+    Access metadata and sample data together
+
+    >>> muscles = [channel.target_muscle for channel in recording.channels or []]
+    >>> samples = recording.data
+    """
+
     def __init__(
         self,
         base_path: os.PathLike | str,
@@ -270,14 +552,18 @@ class EMGRecording(Recording):
             set_attr_from_dict(self, {**self._description, **emg_description})
 
     def __repr__(self) -> str:
-        return f"<Recording id={self.recording_id}>"
+        """Return a string representation of the EMGRecording entity."""
+        return f"<EMGRecording id={self.recording_id}>"
 
     @property
     def hardware(self) -> EMGHardware | None:
+        # numpydoc ignore=RT01
+        """Return hardware metadata linked to the EMG recording."""
         return self._hardware
 
     @hardware.setter
     def hardware(self, value: Mapping | EMGHardware) -> None:
+        # numpydoc ignore=GL08
         if isinstance(value, Mapping):
             hardware_data = {}
             for k, v in value.items():
@@ -290,10 +576,13 @@ class EMGRecording(Recording):
 
     @property
     def institution(self) -> Institution | None:
+        # numpydoc ignore=RT01
+        """Return institution metadata linked to the EMG recording."""
         return self._institution
 
     @institution.setter
     def institution(self, value: Mapping | Institution) -> None:
+        # numpydoc ignore=GL08
         if isinstance(value, Mapping):
             institution_data = {}
             for k, v in value.items():
@@ -306,10 +595,13 @@ class EMGRecording(Recording):
 
     @property
     def channels(self) -> MutableSequence[EMGChannel] | None:
+        # numpydoc ignore=RT01
+        """Return channel definitions associated with the recording."""
         return self._channels
 
     @channels.setter
     def channels(self, value: MutableSequence[Mapping | EMGChannel]) -> None:
+        # numpydoc ignore=GL08
         if isinstance(value, MutableSequence):
             if all(isinstance(entry, Mapping) for entry in value):
                 self._channels = []
@@ -323,10 +615,13 @@ class EMGRecording(Recording):
 
     @property
     def electrodes(self) -> MutableSequence[EMGElectrode] | None:
+        # numpydoc ignore=RT01
+        """Return electrode definitions associated with the recording."""
         return self._electrodes
 
     @electrodes.setter
     def electrodes(self, value: MutableSequence[Mapping | EMGElectrode]) -> None:
+        # numpydoc ignore=GL08
         if isinstance(value, MutableSequence):
             if all(isinstance(entry, Mapping) for entry in value):
                 self._electrodes = []
@@ -382,6 +677,8 @@ class EMGRecording(Recording):
 
     @property
     def data(self):
+        # numpydoc ignore=RT01
+        """Load or return cached EMG sample data."""
         if self._data is None:
             file_name = f"*{self.run.acquisition.task.task_id}*"
             file_name += (
@@ -407,6 +704,7 @@ class EMGRecording(Recording):
 
     @data.setter
     def data(self, value: pd.DataFrame) -> None:
+        # numpydoc ignore=GL08
         self._data = value
 
     @property
@@ -421,6 +719,7 @@ class EMGRecording(Recording):
         self._events = value
 
     def _update_description(self) -> None:
+        """Update inherited description metadata for the recording."""
         file_name = f"*_{self.recording_id}_"
         _update_description_data(self, file_name)
 
@@ -535,6 +834,50 @@ class EMGRecording(Recording):
 
 
 class EMGRun(Run):
+    """
+    Represent an EMG run containing one or more recordings.
+
+    Parameters
+    ----------
+    base_path : os.PathLike | str
+        Directory containing run-level EMG files.
+    run_id : int
+        Numeric run identifier used to resolve ``run-<index>`` entities.
+    **kwargs : Any
+        Optional acquisition link and inherited description metadata.
+
+    Raises
+    ------
+    TypeError
+        If ``_description`` is not a mutable mapping.
+
+    See Also
+    --------
+    :py:class:`EMGAcquisition`
+        Parent acquisition that groups runs.
+    :py:class:`EMGRecording`
+        Recording objects exposed through :py:attr:`recordings`.
+
+    Notes
+    -----
+    Runs group one or more :py:class:`EMGRecording` objects. Recordings are
+    discovered from filenames, and a default ``recording-00`` object is created
+    when files omit the recording entity.
+
+    Examples
+    --------
+    Access recordings and inspect loaded signals
+
+    >>> run = acquisition.runs[0]
+    >>> first_recording = run.recordings[0]
+    >>> data = first_recording.data
+
+    Iterate over all recording labels discovered in the run
+
+    >>> for recording in run.recordings:
+    ...     print(recording.recording_id, len(recording.channels or []))
+    """
+
     def __init__(
         self,
         base_path: os.PathLike | str,
@@ -562,6 +905,8 @@ class EMGRun(Run):
 
     @property
     def recordings(self) -> dict[str, EMGRecording] | None:
+        # numpydoc ignore=RT01
+        """Get recordings belonging to the run."""
         if not self._recordings:
             # TODO make this more elegant
             assert self.acquisition is not None
@@ -638,6 +983,7 @@ class EMGRun(Run):
 
     @recordings.setter
     def recordings(self, value: MutableSequence[MutableMapping | EMGRecording]) -> None:
+        # numpydoc ignore=GL08
         if isinstance(value, MutableSequence):
             if all(isinstance(entry, MutableMapping) for entry in value):
                 self._recordings = {}
@@ -665,6 +1011,7 @@ class EMGRun(Run):
             )
 
     def _update_description(self) -> None:
+        """Refresh inherited description metadata for the run."""
         file_name = f"*_{self.run_id}_*"
         _update_description_data(self, file_name)
 
@@ -676,6 +1023,48 @@ class EMGRun(Run):
 
 
 class EMGAcquisition(BaseAcquisition):
+    """
+    Represent an EMG acquisition beneath a task.
+
+    Parameters
+    ----------
+    base_path : os.PathLike | str
+        Directory containing acquisition-level EMG files.
+    acquisition_id : str
+        BIDS acquisition label, usually ``acq-<label>``.
+    **kwargs : Any
+        Optional task link, inherited sidecar description metadata, and
+        preconstructed runs.
+
+    Raises
+    ------
+    TypeError
+        If ``_description`` is not a mutable mapping.
+
+    See Also
+    --------
+    :py:class:`EMGTask`
+        Parent task containing the acquisition.
+    :py:class:`EMGRun`
+        Run objects created under the acquisition.
+
+    Notes
+    -----
+    The acquisition acts as the bridge between task-level metadata and run-level
+    recordings. It refreshes inherited description blocks and lazily constructs
+    :py:class:`EMGRun` objects from files in the acquisition directory.
+
+    Examples
+    --------
+    Create or load an acquisition and enumerate runs
+
+    >>> acquisition = EMGAcquisition(
+    ...     base_path="sub-01/ses-01/emg",
+    ...     acquisition_id="acq-grip",
+    ... )
+    >>> run_ids = [run.run_id for run in acquisition.runs]
+    """
+
     def __init__(
         self,
         base_path: os.PathLike | str,
@@ -705,6 +1094,8 @@ class EMGAcquisition(BaseAcquisition):
 
     @property
     def runs(self) -> dict[str, EMGRun]:
+        # numpydoc ignore=RT01
+        """Return runs associated with the acquisition."""
         if not self._runs:
             self._runs = {}
             files = self.root.iterdir()
@@ -749,6 +1140,7 @@ class EMGAcquisition(BaseAcquisition):
 
     @runs.setter
     def runs(self, value: MutableSequence[int | EMGRun] | dict[str, EMGRun]) -> None:
+        # numpydoc ignore=GL08
         if isinstance(value, MutableSequence):
             if all(isinstance(entry, int) for entry in value):
                 self._runs = {}
@@ -777,6 +1169,8 @@ class EMGAcquisition(BaseAcquisition):
 
     @property
     def task(self) -> "EMGTask | None":
+        # numpydoc ignore=RT01
+        """Get the parent :py:class:`EMGTask` linked to the acquisition."""
         if self._task:
             return self._task
 
@@ -788,9 +1182,12 @@ class EMGAcquisition(BaseAcquisition):
 
     @task.setter
     def task(self, value: "EMGTask") -> None:
+        # numpydoc ignore=GL08
         self._task = value
 
     def _update_description(self) -> None:
+        """Refresh inherited description metadata for the acquisition."""
+        file_name = f"*_{self.acquisition_id}_*_"
         if self._virtual_entity:
             assert self.task is not None
             file_name = f"*_{self.task.task_id}_*"
@@ -806,6 +1203,47 @@ class EMGAcquisition(BaseAcquisition):
 
 
 class EMGTask(BaseTask):
+    """
+    Represent a BIDS EMG task composed of acquisitions.
+
+    Parameters
+    ----------
+    base_path : os.PathLike | str
+        Root directory containing task-specific EMG files.
+    task_name : str
+        BIDS task label used to resolve files such as ``task-<label>``.
+    **kwargs : str | Datatype | MutableSequence | MutableMapping
+        Optional task metadata, datatype information, inherited description
+        blocks, and acquisition objects.
+
+    Raises
+    ------
+    TypeError
+        If ``_description`` is not a mutable mapping.
+
+    See Also
+    --------
+    :py:class:`EMGAcquisition`
+        Acquisition objects belonging to the task.
+    :py:meth:`write`
+        Task-level write entry point for future EMG serialization support.
+
+    Notes
+    -----
+    EMG tasks typically describe paradigms such as rest, maximal voluntary
+    contraction, gait, or grasping. The :py:attr:`acquisitions` property scans
+    for acquisition entities and creates :py:class:`EMGAcquisition` objects with
+    inherited metadata for downstream run and recording discovery.
+
+    Examples
+    --------
+    Load an EMG task and inspect its hierarchy::
+
+    >>> task = EMGTask(base_path="sub-01/ses-01/emg", task_name="grip")
+    >>> for acquisition in task.acquisitions:
+    ...     print(acquisition.acquisition_id, len(acquisition.runs))
+    """
+
     def __init__(
         self,
         base_path: os.PathLike | str,
@@ -827,6 +1265,8 @@ class EMGTask(BaseTask):
 
     @property
     def acquisitions(self) -> dict[str, EMGAcquisition]:
+        # numpydoc ignore=RT01
+        """Return acquisitions discovered for the EMG task."""
         if not self._acquisitions:
             self._acquisitions = {}
             files = self.root.iterdir()
@@ -873,6 +1313,7 @@ class EMGTask(BaseTask):
     def acquisitions(
         self, value: MutableSequence[str] | MutableSequence[EMGAcquisition]
     ) -> None:
+        # numpydoc ignore=GL08
         if isinstance(value, MutableSequence):
             if all(isinstance(entry, str) for entry in value):
                 self._acquisitions = {}
@@ -900,12 +1341,40 @@ class EMGTask(BaseTask):
             )
 
     def write(self, output_path: os.PathLike | str) -> None:  # noqa: ARG002 TODO: Remove
+        """
+        Write task-level EMG files.
+
+        Parameters
+        ----------
+        output_path : os.PathLike | str
+            The path where the output files will be written.
+
+        Raises
+        ------
+        NotImplementedError
+            If generic EMG task writing is requested while not-implemented
+            behavior is enforced.
+        """
         write_entities(output_path, self.acquisitions.values())
         # TODO check if right
         # where is json sidecar "*_emg.json" written? (recording)
 
 
 def parse_emg_json_sidecar(sidecar_path: pathlib.Path) -> dict:
+    """
+    Split an EMG JSON sidecar into task, hardware, institution, and EMG blocks.
+
+    Parameters
+    ----------
+    sidecar_path : pathlib.Path
+        Path to an EMG JSON sidecar file.
+
+    Returns
+    -------
+    dict
+        Grouped metadata blocks keyed by ``task``, ``hardware``,
+        ``institution``, and ``emg``.
+    """
     with sidecar_path.open("r", encoding="utf-8") as f:
         data = json.load(f)
         task_description = {}
@@ -936,6 +1405,37 @@ def get_emg_channels(
     tsv_path: pathlib.Path | None,
     json_path: pathlib.Path | None,
 ) -> MutableSequence[EMGChannel]:
+    """
+    Build EMG channel objects from BIDS channel TSV/JSON files.
+
+    Parameters
+    ----------
+    tsv_path : pathlib.Path | None
+        Path to a BIDS ``*_channels.tsv`` file containing EMG channel definitions.
+        If provided, channel data is parsed from the TSV file.
+    json_path : pathlib.Path | None
+        Path to a BIDS ``*_channels.json`` sidecar file containing channel metadata.
+        If provided, column definitions are parsed from the JSON file.
+
+    Returns
+    -------
+    MutableSequence[EMGChannel]
+        List of :py:class:`EMGChannel` objects constructed from the parsed
+        TSV and JSON metadata, with associated column information.
+
+    See Also
+    --------
+    :py:class:`EMGChannel`
+        Dataclass representing a single EMG channel definition.
+    :py:func:`get_emg_electrodes`
+        Similar function for building EMG electrode objects.
+
+    Notes
+    -----
+    If both ``tsv_path`` and ``json_path`` are provided, column metadata from
+    the JSON file is used to enrich the channel definitions from the TSV file.
+    Either or both parameters can be ``None``, resulting in an empty list.
+    """
     emg_channels: list[EMGChannel] = []
     columns = []
 
@@ -964,6 +1464,37 @@ def get_emg_electrodes(
     tsv_path: pathlib.Path | None,
     json_path: pathlib.Path | None,
 ) -> MutableSequence[EMGElectrode]:
+    """
+    Build EMG electrode objects from BIDS electrode TSV/JSON files.
+
+    Parameters
+    ----------
+    tsv_path : pathlib.Path | None
+        Path to a BIDS ``*_electrodes.tsv`` file containing EMG electrode definitions.
+        If provided, electrode data is parsed from the TSV file.
+    json_path : pathlib.Path | None
+        Path to a BIDS ``*_electrodes.json`` sidecar file containing electrode metadata.
+        If provided, column definitions are parsed from the JSON file.
+
+    Returns
+    -------
+    MutableSequence[EMGElectrode]
+        List of :py:class:`EMGElectrode` objects constructed from the parsed
+        TSV and JSON metadata, with associated column information.
+
+    See Also
+    --------
+    :py:class:`EMGElectrode`
+        Dataclass representing a single EMG electrode definition.
+    :py:func:`get_emg_channels`
+        Similar function for building EMG channel objects.
+
+    Notes
+    -----
+    If both ``tsv_path`` and ``json_path`` are provided, column metadata from
+    the JSON file is used to enrich the electrode definitions from the TSV file.
+    Either or both parameters can be ``None``, resulting in an empty list.
+    """
     emg_electrodes: list[EMGElectrode] = []
     columns = []
 
@@ -991,6 +1522,16 @@ def get_emg_electrodes(
 def _update_description_data(
     cls: EMGRecording | EMGRun | EMGAcquisition, file_name: str
 ):
+    """
+    Update inherited EMG metadata from nearby sidecars.
+
+    Parameters
+    ----------
+    cls : EMGRecording or EMGRun or EMGAcquisition
+        Object whose ``_description`` mapping should be updated.
+    file_name : str
+        Filename glob stem used to locate relevant sidecars.
+    """
     _, json_path = get_tsv_json_files(cls.root, file_name + "emg")
 
     if json_path:

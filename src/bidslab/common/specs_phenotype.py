@@ -1,3 +1,10 @@
+"""
+Phenotype and participant-measurement specification classes.
+
+This module models phenotype columns and participant-linked measurement tools
+used for BIDS ``phenotype/`` tables.
+"""
+
 #  Copyright (c) 2025 by Lukas Behammer
 #  University of Augsburg
 #  Department of Computer Science
@@ -18,6 +25,40 @@ if TYPE_CHECKING:
 
 
 class PhenotypeColumn(Column):
+    """
+    Represent a column definition in a BIDS phenotype table.
+
+    Parameters
+    ----------
+    name : str
+        Column name as it appears in the TSV/JSON sidecar.
+    **kwargs
+        Additional :py:class:`~abidskit.common.specs_misc.Column` metadata plus
+        the optional ``derivative`` flag.
+
+    Attributes
+    ----------
+    derivative : bool | None
+        Whether the phenotype column contains derived rather than directly
+        observed data.
+
+    Raises
+    ------
+    ValueError
+        If ``derivative`` is neither boolean, ``None``, nor the strings
+        ``"true"``/``"false"``.
+
+    See Also
+    --------
+    :py:class:`MeasurementTool`
+        Container for phenotype rows that may reference these columns.
+
+    Notes
+    -----
+    BIDS phenotype JSON sidecars may extend regular column metadata with
+    phenotype-specific annotations such as derivative status.
+    """
+
     def __init__(
         self, name: str, **kwargs: bool | str | int | float | Mapping | Iterable
     ) -> None:
@@ -39,6 +80,46 @@ class PhenotypeColumn(Column):
 
 
 class MeasurementTool:
+    """
+    Represent one phenotype measurement row for a participant.
+
+    Parameters
+    ----------
+    name : str
+        Measurement tool name, typically derived from the phenotype filename.
+    **kwargs
+        Additional row values and metadata such as ``description``,
+        ``term_url``, ``columns``, and ``participant``.
+
+    Attributes
+    ----------
+    name : str
+        Measurement tool name.
+    description : str | None
+        Human-readable description of the tool.
+    term_url : str | None
+        URI referencing a controlled vocabulary term for the tool.
+    columns : Sequence[PhenotypeColumn] | None
+        Column metadata for rows emitted by the measurement tool.
+    participant : Participant | None
+        Participant linked through the :py:attr:`participant` property.
+
+    Raises
+    ------
+    ValueError
+        If ``term_url`` is invalid and validation overrides are disabled.
+
+    See Also
+    --------
+    :py:class:`PhenotypeColumn`
+        Column metadata used by phenotype measurement tables.
+
+    Notes
+    -----
+    Instances are often created from rows in ``phenotype/<tool>.tsv`` and then
+    attached to :py:class:`~abidskit.common.specs_summary.Participant` objects.
+    """
+
     def __init__(self, name: str, **kwargs: Any) -> None:
         self.name: str = name
         self.description: str | None = None
@@ -55,10 +136,13 @@ class MeasurementTool:
             check_if_valid_uri(self.term_url)
 
     def __repr__(self) -> str:
+        """Return a string representation of the MeasurementTool object."""
         return f"<MeasurementTool name={self.name}>"
 
     @property
     def participant(self) -> "Participant | None":
+        # numpydoc ignore=RT01
+        """Get the participant linked to this measurement."""
         if self._participant:
             return self._participant
 
@@ -67,4 +151,5 @@ class MeasurementTool:
 
     @participant.setter
     def participant(self, value: "Participant") -> None:
+        # numpydoc ignore=GL08
         self._participant = value

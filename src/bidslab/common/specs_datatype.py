@@ -1,3 +1,12 @@
+"""
+Datatype entities in aBIDSkit.
+
+This module provides the Datatype class for managing BIDS datatype entities,
+which represent different types of data acquisitions (e.g., MEG, EEG, motion)
+within a session. It handles loading, parsing, and organizing tasks associated
+with each datatype.
+"""
+
 #  Copyright (c) 2025 by Lukas Behammer
 #  University of Augsburg
 #  Department of Computer Science
@@ -28,6 +37,7 @@ from bidslab.utils.string_manipulation import to_snakecase
 if TYPE_CHECKING:
     from bidslab.common.specs_summary import Session
 
+# Datatypes that can contain task information in BIDS
 DATATYPES_WITH_TASKS = {
     # "anat",  # needs special implementation
     "meg",
@@ -42,6 +52,42 @@ DATATYPES_WITH_TASKS = {
 
 
 class Datatype:
+    """
+    Represents a datatype entity in a BIDS dataset.
+
+    A Datatype represents a specific type of data acquisition (e.g., MEG, EEG,
+    motion capture) within a session. It manages the tasks and runs associated
+    with that datatype and provides methods to access and manipulate them.
+
+    Parameters
+    ----------
+    base_path : os.PathLike | str
+        The file system path to the datatype directory.
+    datatype_name : str
+        The name of the datatype (e.g., "meg", "eeg", "motion").
+    **kwargs : Session | Iterable
+        Additional keyword arguments to set as attributes, including a Session
+        object if linking to a parent session.
+
+    Attributes
+    ----------
+    datatype_name : str
+        The name of the datatype.
+    root : pathlib.Path
+        The file system path to the datatype directory.
+
+    See Also
+    --------
+    Session : The parent session entity that contains datatypes.
+    Task : Individual task entities within a datatype.
+
+    Notes
+    -----
+    This class automatically discovers and loads tasks from the datatype
+    directory based on the datatype name. Tasks are lazily loaded when accessed
+    through the :py:attr:`tasks` property.
+    """
+
     def __init__(
         self,
         base_path: os.PathLike | str,
@@ -60,10 +106,13 @@ class Datatype:
             set_attr_from_dict(self, kwargs)
 
     def __repr__(self) -> str:
+        """Return a string representation of the Datatype object."""
         return f"<Datatype datatype_name={self.datatype_name}>"
 
     @property
     def session(self) -> "Session | None":
+        # numpydoc ignore=RT01
+        """Get the parent Session object for this Datatype."""
         if self._session:
             return self._session
 
@@ -75,10 +124,13 @@ class Datatype:
 
     @session.setter
     def session(self, value: "Session") -> None:
+        # numpydoc ignore=GL08
         self._session = value
 
     @property
     def tasks(self) -> dict[str, BaseTask]:
+        # numpydoc ignore=RT01
+        """Get the tasks associated with this Datatype."""
         if not self._tasks:
             self._tasks = {}
             if self.datatype_name in DATATYPES_WITH_TASKS:
@@ -166,6 +218,7 @@ class Datatype:
 
     @tasks.setter
     def tasks(self, value: Iterable[Mapping] | Iterable[BaseTask]) -> None:
+        # numpydoc ignore=GL08
         if isinstance(value, Iterable):
             if all(isinstance(entry, Mapping) for entry in value):
                 self._tasks = {}
@@ -188,4 +241,31 @@ class Datatype:
         return self.session.get_top_level_entities()
 
     def write(self, output_path: os.PathLike | str) -> None:
+        """
+        Write the datatype and its tasks to disk.
+
+        Parameters
+        ----------
+        output_path : os.PathLike | str
+            The file system path where the datatype directory should be written.
+
+        Returns
+        -------
+        None
+            Task-level files are written as side effects.
+
+        See Also
+        --------
+        abidskit.utils.helpers.write_entities : Function for writing entities to disk.
+
+        Notes
+        -----
+        The method delegates serialization to
+        :py:func:`abidskit.utils.helpers.write_entities` so each task can emit
+        modality-specific BIDS files beneath ``output_path``.
+
+        Examples
+        --------
+        >>> datatype.write("out/sub-01_ses-01")
+        """
         write_entities(output_path, self.tasks.values())

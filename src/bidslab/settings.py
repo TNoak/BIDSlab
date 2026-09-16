@@ -25,12 +25,24 @@ from typing import Generator
 
 class PackageFetching(StrEnum):
     """
-    Packages for dataset fetching.
+    Enumeration of available packages for dataset fetching.
+
+    This enum defines the available external packages that can be used
+    to fetch or download BIDS datasets.
 
     Attributes
     ----------
     DATALAD : str
-        Use DataLad for dataset fetching.
+        Use DataLad for dataset fetching. Value is "dl".
+
+    See Also
+    --------
+    PackageLoading : Enumeration for data loading packages.
+
+    Notes
+    -----
+    DataLad is a tool for managing data with Git and git-annex, providing
+    efficient handling of large datasets.
     """
 
     DATALAD = ("dl",)
@@ -38,12 +50,26 @@ class PackageFetching(StrEnum):
 
 class PackageLoading(StrEnum):
     """
-    Packages for data loading.
+    Enumeration of available packages for data loading.
+
+    This enum defines the available external packages that can be used
+    to load or read data from BIDS datasets.
 
     Attributes
     ----------
     PANDAS : str
-        Use Pandas for data loading.
+        Use Pandas for data loading. Value is "pd".
+    NUMPY : str
+        Use NumPy for data loading. Value is "np".
+
+    See Also
+    --------
+    PackageFetching : Enumeration for dataset fetching packages.
+
+    Notes
+    -----
+    Pandas is suitable for tabular data (TSV files), while NumPy can be
+    used for array-like data. Pandas is the default choice.
     """
 
     PANDAS = ("pd",)
@@ -56,24 +82,44 @@ PACKAGE_OPTIONS = ["DATASET_FETCHING_PACKAGE", "DATA_LOADING_PACKAGE"]
 @dataclass(frozen=True)
 class Settings:
     """
-    Settings for aBIDSkit.
+    Configuration settings for aBIDSkit.
 
-    A dataclass that holds the settings for aBIDSkit.
+    A frozen dataclass that holds all configuration settings for the aBIDSkit
+    library. Settings control validation behavior, version support, and data
+    handling packages used throughout the application.
 
     Attributes
     ----------
     OVERRIDE_VALIDATION : bool
-        If True, override validation errors and warnings.
+        If True, override validation errors and warnings during data loading
+        and processing. Default is False.
     SUPPORT_OLD_VERSIONS : bool
-        If True, support features from old BIDS versions.
+        If True, support features from older BIDS versions that may not
+        conform to the latest specification. Default is False.
     IGNORE_VERSION : bool
-        If True, ignore BIDS version mismatches.
+        If True, ignore BIDS version mismatches when loading datasets.
+        Default is False.
     IGNORE_NOT_IMPLEMENTED : bool
-        If True, ignore Errors in not implemented features.
+        If True, ignore NotImplementedError exceptions for incomplete features
+        and continue processing. Default is False.
     DATASET_FETCHING_PACKAGE : PackageFetching | None
-        The package to use for dataset fetching.
+        The external package to use for fetching datasets. When None, no
+        external fetching is used. Default is None.
     DATA_LOADING_PACKAGE : PackageLoading
-        The package to use for data loading.
+        The package to use for loading and reading data files.
+        Default is :py:attr:`PackageLoading.PANDAS`.
+
+    See Also
+    --------
+    SETTINGS : The global instance of this class.
+    set_settings_values : Function to permanently change settings.
+    override_settings_values : Context manager for temporary setting overrides.
+
+    Notes
+    -----
+    This class is immutable (frozen=True) for thread safety. To change
+    settings, use :py:func:`set_settings_values` or the
+    :py:func:`override_settings_values` context manager.
     """
 
     OVERRIDE_VALIDATION: bool = False
@@ -99,13 +145,43 @@ def override_settings_values(
     settings: dict[str, bool | str] | os.PathLike,
 ) -> Generator[None, None, None]:
     """
-    Temporarily set the value of a setting within a context.
+    Temporarily override settings within a context block.
+
+    This context manager temporarily replaces the global settings with new
+    values. When exiting the context, the original settings are restored.
+    This is useful for testing or running code with different configurations
+    without permanently changing the application state.
 
     Parameters
     ----------
     settings : dict[str, bool | str] | os.PathLike
-        A dictionary of settings and its values or a path to a JSON file containing the
-        settings to override.
+        Either a dictionary mapping setting names to values, or a path to a
+        JSON file containing setting configurations.
+
+    Yields
+    ------
+    None
+        This is a context manager that yields control.
+
+    See Also
+    --------
+    set_settings_values : Permanently change settings.
+    get_settings_value : Get a single setting value.
+
+    Examples
+    --------
+    Temporarily override settings using a dictionary:
+
+    >>> with override_settings_values({"OVERRIDE_VALIDATION": True}):
+    ...     # Code here runs with OVERRIDE_VALIDATION set to True
+    ...     pass
+    >>> # Original settings restored here
+
+    Load settings from a JSON file:
+
+    >>> with override_settings_values("settings.json"):
+    ...     # Code here runs with settings from the file
+    ...     pass
     """
     global SETTINGS
     original_settings = SETTINGS.__dict__.copy()
@@ -123,13 +199,46 @@ def override_settings_values(
 
 def set_settings_values(settings: dict[str, bool | str] | os.PathLike) -> None:
     """
-    Set the value of a setting.
+    Permanently update global settings.
+
+    This function permanently updates the global settings for the aBIDSkit
+    library. Changes persist until explicitly modified or the application
+    is restarted.
 
     Parameters
     ----------
     settings : dict[str, bool | str] | os.PathLike
-        A dictionary of settings and its values or a path to a JSON file containing the
-        settings to set.
+        Either a dictionary mapping setting names to values, or a path to a
+        JSON file containing setting configurations.
+
+    Raises
+    ------
+    ValueError
+        If an invalid value is provided for a package-related setting
+        (DATASET_FETCHING_PACKAGE or DATA_LOADING_PACKAGE).
+
+    See Also
+    --------
+    override_settings_values : Context manager for temporary overrides.
+    get_settings_value : Get a single setting value.
+    save_settings_values : Save current settings to a file.
+
+    Notes
+    -----
+    String values for package settings are automatically converted to the
+    appropriate enum values (case-insensitive). Valid package values are:
+    - DATASET_FETCHING_PACKAGE: "datalad" or "dl"
+    - DATA_LOADING_PACKAGE: "pandas"/"pd" or "numpy"/"np"
+
+    Examples
+    --------
+    Set settings using a dictionary:
+
+    >>> set_settings_values({"OVERRIDE_VALIDATION": True})
+
+    Load settings from a JSON file:
+
+    >>> set_settings_values("settings.json")
     """
     global SETTINGS
     if isinstance(settings, os.PathLike):
@@ -167,12 +276,29 @@ def get_settings_value(name: str) -> str | bool | None:
     Parameters
     ----------
     name : str
-        The name of the setting to get the value of.
+        The name of the setting to retrieve. Must be an attribute name
+        from the :py:class:`Settings` class.
 
     Returns
     -------
     str | bool | None
-        The current value of the setting.
+        The current value of the setting, or None if the setting is not set.
+
+    Raises
+    ------
+    KeyError
+        If the setting name does not exist in the Settings class.
+
+    See Also
+    --------
+    set_settings_values : Change a setting value.
+    override_settings_values : Temporarily override a setting.
+
+    Examples
+    --------
+    >>> value = get_settings_value("OVERRIDE_VALIDATION")
+    >>> print(value)
+    False
     """
     global SETTINGS
     return SETTINGS.__dict__[name]
@@ -180,12 +306,33 @@ def get_settings_value(name: str) -> str | bool | None:
 
 def save_settings_values(path: os.PathLike) -> None:
     """
-    Save the current settings to a JSON file.
+    Save current settings to a JSON file.
+
+    Exports the current global settings to a JSON file, which can later
+    be loaded using :py:func:`set_settings_values` or
+    :py:func:`override_settings_values`.
 
     Parameters
     ----------
     path : os.PathLike
-        The path to the JSON file to save the settings to.
+        The file system path where the settings JSON file should be saved.
+
+    See Also
+    --------
+    set_settings_values : Load settings from a file.
+    override_settings_values : Load settings temporarily from a file.
+
+    Notes
+    -----
+    The saved JSON file will contain all settings as they are currently
+    configured. Enum values (PackageFetching, PackageLoading) are serialized
+    to their string representation.
+
+    Examples
+    --------
+    >>> save_settings_values("my_settings.json")
+    >>> # Later, load these settings:
+    >>> set_settings_values("my_settings.json")
     """
     global SETTINGS
     with pathlib.Path(path).open("w", encoding="utf-8") as f:

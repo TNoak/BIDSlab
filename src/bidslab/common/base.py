@@ -210,23 +210,8 @@ class BaseTask(Entity, ABC):
 
     @property
     def datatype(self) -> "Datatype | None":
-        """
-        Property to get or set the top-level Datatype object.
-
-        Links to the top-level :py:class:`~abidskit.common.specs_dataype.Datatype`
-        object associated with the Task.
-
-        Returns
-        -------
-        Datatype | None
-            The top-level Datatype object linked to the Task, or None if not linked.
-
-        Warns
-        -----
-        TopLevelEntityNotLinkedWarning
-            If the Task is not linked to a
-            :py:class:`~abidskit.common.specs_dataype.Datatype` object when accessed.
-        """
+        # numpydoc ignore=RT01
+        """Property to get or set the top-level Datatype object."""
         if self._datatype:
             return self._datatype
 
@@ -235,6 +220,7 @@ class BaseTask(Entity, ABC):
 
     @datatype.setter
     def datatype(self, value: "Datatype") -> None:
+        # numpydoc ignore=GL08
         self._datatype = value
 
 
@@ -300,6 +286,7 @@ class BaseAcquisition(Entity, Generic[R], ABC):
     @runs.setter
     @abstractmethod
     def runs(self, value: MutableSequence[int | R] | dict[str, R]) -> None:
+        # numpydoc ignore=GL08
         pass
 
     def write(self, output_path: os.PathLike | str) -> None:  # numpydoc ignore=PR01

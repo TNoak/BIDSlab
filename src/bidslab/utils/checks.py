@@ -33,21 +33,50 @@ if TYPE_CHECKING:
 
 def check_readme(dataset: "Dataset", files: Sequence[pathlib.Path]):
     """
-    Check for README file presence and uniqueness.
+    Validate presence and uniqueness of the dataset README file.
+
+    BIDS datasets are expected to provide a top-level README describing the dataset,
+    usage considerations, or acquisition context. This function locates the first
+    supported README variant and stores its path on the dataset object.
 
     Parameters
     ----------
     dataset : Dataset
-        The BIDS dataset object.
+        Dataset instance to update in place.
     files : Sequence[pathlib.Path]
-        List of files in the dataset root.
+        Paths representing the direct children of the dataset root.
+
+    Raises
+    ------
+    MultipleFilesFoundError
+        Raised when more than one README candidate is present and validation override
+        is disabled.
+    FileMissingError
+        Raised when no README file is found and validation override is disabled.
+
+    Warns
+    -----
+    FieldPresentWarning
+        Emitted when multiple README files are present but validation override allows
+        execution to continue.
+
+    See Also
+    --------
+    :py:func:`check_files`
+        Performs broader root-level dataset discovery.
 
     Notes
     -----
-    This function changes the state of the `dataset` object by setting the
-    :py:attr:`~abidskit.common.specs_dataset.Dataset.readme_path` attribute if a README
-    file is found.
-    Exception raising can be overridden by the global ``OVERRIDE_VALIDATION`` setting.
+    Supported file names are ``README``, ``README.md``, ``README.txt``, and
+    ``README.rst``. Exception raising can be overridden by the global
+    ``OVERRIDE_VALIDATION`` setting.
+    The function updates ``dataset.readme_path`` when a README is found.
+
+    Examples
+    --------
+    >>> check_readme(dataset, list(dataset.root.iterdir()))
+    >>> dataset.readme_path.name.startswith("README")
+    True
     """
     readme_found = False
 
@@ -74,21 +103,50 @@ def check_readme(dataset: "Dataset", files: Sequence[pathlib.Path]):
 
 def check_citation(dataset: "Dataset", files: Sequence[pathlib.Path]):
     """
-    Check for CITATION.cff file presence and validate related fields.
+    Validate a top-level ``CITATION.cff`` file and related metadata fields.
+
+    When a dataset ships a citation file, some fields in ``dataset_description.json``
+    become redundant or should be omitted in favor of the richer ``CITATION.cff``
+    representation. This helper records the citation file path and enforces those
+    relationships.
 
     Parameters
     ----------
     dataset : Dataset
-        The BIDS dataset object.
+        Dataset instance to inspect and update.
     files : Sequence[pathlib.Path]
-        List of files in the dataset root.
+        Paths representing the direct children of the dataset root.
+
+    Raises
+    ------
+    FieldPresentError
+        Raised when ``dataset.authors`` is already populated while ``CITATION.cff`` is
+        present and validation override is disabled.
+
+    Warns
+    -----
+    FieldPresentWarning
+        Emitted when fields such as ``HowToAcknowledge`` or ``License`` are present in
+        ``dataset_description`` even though ``CITATION.cff`` is available.
+
+    See Also
+    --------
+    :py:func:`check_license`
+        Performs related validation for the top-level license file.
+    :py:func:`abidskit.utils.string_manipulation.to_titlecase`
+        Formats dataset field names in warnings.
 
     Notes
     -----
-    This function changes the state of the `dataset` object by setting the
-    :py:attr:`~abidskit.common.specs_dataset.Dataset.citation_path` attribute if a
-    CITATION.cff file is found.
-    Exception raising can be overridden by the global ``OVERRIDE_VALIDATION`` setting.
+    The function currently records the file path only; parsing and value propagation
+    from ``CITATION.cff`` are marked as future work in the implementation.
+    The function updates ``dataset.citation_path`` when a citation file is found.
+
+    Examples
+    --------
+    >>> check_citation(dataset, list(dataset.root.iterdir()))
+    >>> dataset.citation_path.name
+    'CITATION.cff'
     """
     for file in files:
         if re.match(r"^CITATION\.cff$", file.name):
@@ -115,20 +173,38 @@ def check_citation(dataset: "Dataset", files: Sequence[pathlib.Path]):
 
 def check_license(dataset: "Dataset", files: Sequence[pathlib.Path]):
     """
-    Check for LICENSE file presence and validate related fields.
+    Discover a LICENSE file and verify related descriptive metadata.
 
     Parameters
     ----------
     dataset : Dataset
-        The BIDS dataset object.
+        Dataset instance to update in place.
     files : Sequence[pathlib.Path]
-        List of files in the dataset root.
+        Paths representing the direct children of the dataset root.
+
+    Warns
+    -----
+    FieldMissingWarning
+        Emitted when a LICENSE file exists but the dataset description does not define
+        a short ``License`` field and no citation file is present.
+
+    See Also
+    --------
+    :py:func:`check_citation`
+        Related validation for citation metadata that can overlap with licensing.
 
     Notes
     -----
-    This function changes the state of the `dataset` object by setting the
-    :py:attr:`~abidskit.common.specs_dataset.Dataset.license_path` attribute if a
-    LICENSE file is found.
+    Supported file names are ``LICENSE``, ``LICENSE.md``, ``LICENSE.txt``, and
+    ``LICENSE.rst``. The function does not yet compare the short license identifier in
+    ``dataset_description.json`` against the actual file content.
+    The function updates ``dataset.license_path`` when a LICENSE file is found.
+
+    Examples
+    --------
+    >>> check_license(dataset, list(dataset.root.iterdir()))
+    >>> dataset.license_path is not None
+    True
     """
     for file in files:
         if re.match(r"^LICENSE(\.md|\.txt|\.rst)?$", file.name):
@@ -146,18 +222,44 @@ def check_license(dataset: "Dataset", files: Sequence[pathlib.Path]):
 
 def check_version(dataset: "Dataset", version: Any):
     """
-    Check if the BIDS version matches the expected version.
+    Compare a discovered BIDS version against the dataset target version.
 
     Parameters
     ----------
     dataset : Dataset
-        The BIDS dataset object.
+        Dataset instance that stores the expected BIDS version in
+        ``dataset.bids_version``.
     version : Any
-        The BIDS version to check.
+        Version value to validate. The runtime implementation requires a string.
+
+    Raises
+    ------
+    TypeError
+        Raised when ``version`` is not a string.
+    VersionMismatchError
+        Raised when the versions differ and neither ``IGNORE_VERSION`` nor
+        ``OVERRIDE_VALIDATION`` permits continuation.
+
+    Warns
+    -----
+    VersionMismatchWarning
+        Emitted when versions differ and ``IGNORE_VERSION`` is enabled.
+
+    See Also
+    --------
+    :py:class:`abidskit.utils.exceptions.VersionMismatchError`
+        Exception raised for hard version mismatches.
+    :py:class:`abidskit.utils.exceptions.VersionMismatchWarning`
+        Warning emitted for tolerated mismatches.
 
     Notes
     -----
-    Exception raising can be overridden by the global ``OVERRIDE_VALIDATION`` setting.
+    The check is a direct string comparison and does not perform semantic version
+    normalization.
+
+    Examples
+    --------
+    >>> check_version(dataset, "1.10.0")
     """
     if not isinstance(version, str):
         raise TypeError(
@@ -179,16 +281,30 @@ def check_version(dataset: "Dataset", version: Any):
 
 def check_dataset_description_present(dataset: "Dataset"):
     """
-    Check if dataset_description.json file is present.
+    Ensure that ``dataset_description.json`` exists in the dataset root.
 
     Parameters
     ----------
     dataset : Dataset
-        The BIDS dataset object.
+        Dataset whose root directory should contain ``dataset_description.json``.
+
+    Raises
+    ------
+    FileMissingError
+        Raised when the file is absent and validation override is disabled.
+
+    See Also
+    --------
+    :py:func:`check_files`
+        Performs additional root-level discovery after this mandatory check.
 
     Notes
     -----
-    Exception raising can be overridden by the global ``OVERRIDE_VALIDATION`` setting.
+    This check enforces a core BIDS requirement for top-level dataset metadata.
+
+    Examples
+    --------
+    >>> check_dataset_description_present(dataset)
     """
     if not (
         dataset.root / "dataset_description.json"
@@ -198,16 +314,33 @@ def check_dataset_description_present(dataset: "Dataset"):
 
 def check_if_valid_uri(uri: str):
     """
-    Check if the provided string is a valid URI.
+    Validate that a string is a syntactically valid URI.
 
     Parameters
     ----------
     uri : str
-        The URI string to validate.
+        Candidate URI string, such as a DOI resolver URL, RRID link, or project
+        homepage.
+
+    Raises
+    ------
+    InvalidURIError
+        Raised when ``uri`` is not recognized as a valid URI and validation override
+        is disabled.
+
+    See Also
+    --------
+    :py:class:`abidskit.utils.exceptions.InvalidURIError`
+        Exception used for invalid URI values.
 
     Notes
     -----
-    Exception raising can be overridden by the global ``OVERRIDE_VALIDATION`` setting.
+    Validation uses :py:func:`uritools.isuri` and therefore checks syntax only, not
+    network reachability.
+
+    Examples
+    --------
+    >>> check_if_valid_uri("https://bids.neuroimaging.io/")
     """
     if not isuri(uri) and not get_settings_value("OVERRIDE_VALIDATION"):
         raise InvalidURIError(f"Value '{uri}' is not a valid URI.")
@@ -215,24 +348,49 @@ def check_if_valid_uri(uri: str):
 
 def check_files(dataset: "Dataset", files: Sequence[pathlib.Path]):
     """
-    Check for special files and set dataset attributes accordingly.
+    Discover special top-level files and directories in a BIDS dataset.
+
+    This helper coordinates root-level validation and path discovery. In addition to
+    README validation, it records known optional resources such as ``CITATION.cff``,
+    ``LICENSE``, ``CHANGES``, and standard directories like ``code`` or
+    ``derivatives`` on the dataset object.
 
     Parameters
     ----------
     dataset : Dataset
-        The BIDS dataset object.
+        Dataset instance to update in place.
     files : Sequence[pathlib.Path]
-        List of files in the dataset root.
+        Paths representing the direct children of the dataset root.
 
-    Notes
-    -----
-    This function changes the state of the `dataset` object by setting various
-    attributes if corresponding files or directories are found.
-    Exception raising can be overridden by the global ``OVERRIDE_VALIDATION`` setting.
+    Raises
+    ------
+    MultipleFilesFoundError
+        Propagated from :py:func:`check_readme` when multiple README files are found.
+    FileMissingError
+        Propagated from :py:func:`check_readme` when the README is missing and strict
+        validation is active.
+
+    Warnings
+    --------
+    The function mutates ``dataset`` and returns no value.
 
     See Also
     --------
-    check_readme : Check for README file presence
+    :py:func:`check_readme`
+        Validates README presence before other discovery occurs.
+    :py:func:`check_dataset_description_present`
+        Mandatory root-level file check performed by callers before this helper.
+
+    Notes
+    -----
+    :py:func:`check_license` and :py:func:`check_citation` are intentionally disabled
+    in the current implementation because of side effects in the existing test suite.
+
+    Examples
+    --------
+    >>> check_files(dataset, list(dataset.root.iterdir()))
+    >>> dataset.derivatives_path is not None
+    True
     """
     check_readme(dataset, files)
     # TODO: Enable these checks later --> rewriting of tests required due to
