@@ -21,7 +21,7 @@ Examples
 from importlib.metadata import PackageNotFoundError, version
 
 try:
-    __version__ = version("pytermite")
+    __version__ = version("bidslab")
 except PackageNotFoundError:
     # package is not installed
     pass
