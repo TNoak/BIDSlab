@@ -18,7 +18,7 @@ The extension includes support for:
 Module API
 ----------
 
-.. automodule:: abidskit.extensions.motion
+.. automodule:: bidslab.extensions.motion
    :show-inheritance: True
 
 Related Documentation
@@ -27,4 +27,4 @@ Related Documentation
 - :doc:`extensions.emg` - Electromyography extension for synchronized muscle recordings
 - :doc:`io` - Loading and saving datasets with motion modality
 - :doc:`common.specs_misc` - Common entity definitions used by motion and other modalities
-- :doc:`../developer_guide` - Guidelines for extending aBIDSkit with new modalities
+- :doc:`../developer_guide` - Guidelines for extending BIDSlab with new modalities

@@ -40,7 +40,7 @@ Following the BIDS standard, some of those are optional.
 Module API
 ----------
 
-.. automodule:: abidskit.common.specs_dataset
+.. automodule:: bidslab.common.specs_dataset
    :show-inheritance: True
 
 Related Documentation

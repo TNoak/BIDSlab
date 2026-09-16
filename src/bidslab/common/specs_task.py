@@ -49,9 +49,9 @@ class Task(BaseTask):
 
     See Also
     --------
-    :py:class:`abidskit.common.base.BaseTask`
+    :py:class:`bidslab.common.base.BaseTask`
         Abstract base class providing common task behavior.
-    :py:class:`abidskit.common.specs_misc.Acquisition`
+    :py:class:`bidslab.common.specs_misc.Acquisition`
         Acquisition entity loaded beneath a task.
 
     Notes
@@ -178,7 +178,7 @@ class Task(BaseTask):
 
         Notes
         -----
-        Generic task serialization has not yet been implemented in aBIDSkit.
+        Generic task serialization has not yet been implemented in BIDSlab.
         Specialized task subclasses are expected to provide concrete writers.
         """
         # TODO: implement writing of basic Task data

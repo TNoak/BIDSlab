@@ -1,4 +1,4 @@
-"""Public package interface for BIDS extensions in aBIDSkit."""
+"""Public package interface for BIDS extensions in BIDSlab."""
 
 #  Copyright (c) 2025 by Lukas Behammer
 #  University of Augsburg

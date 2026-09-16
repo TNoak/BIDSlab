@@ -1,7 +1,7 @@
 Typing Subpackage
 =================
 
-The Typing subpackage provides type hints and type definitions used throughout aBIDSkit.
+The Typing subpackage provides type hints and type definitions used throughout BIDSlab.
 These types ensure consistency, enable static type checking, and improve IDE support.
 
 Overview
@@ -29,7 +29,7 @@ Type definitions enable:
 Python Type Checking
 ~~~~~~~~~~~~~~~~~~~~
 
-aBIDSkit uses Python's standard type hint system (PEP 484) to
+BIDSlab uses Python's standard type hint system (PEP 484) to
 provide comprehensive type information. All public APIs include type hints.
 
 To check your code with mypy:
@@ -67,7 +67,7 @@ Module API
 Using Type Hints
 ----------------
 
-Best practices for using type hints in aBIDSkit:
+Best practices for using type hints in BIDSlab:
 
 1. **Import types from typing module** - Use `from typing import ...`
 2. **Use modern syntax** - Prefer `list[T]` over `List[T]` (Python 3.9+)

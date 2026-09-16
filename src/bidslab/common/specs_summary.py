@@ -809,7 +809,7 @@ def get_scans_from_files(
     The BIDS inheritance principle is approximated by walking matching subject
     and session subpaths and applying the furthest-down ``*_scans.tsv`` file.
     Scan-column descriptions from JSON sidecars are converted into
-    :py:class:`~abidskit.common.specs_misc.Column` objects and attached to every
+    :py:class:`~bidslab.common.specs_misc.Column` objects and attached to every
     resulting :py:class:`Scan`.
     """
     # For every level before sessions:

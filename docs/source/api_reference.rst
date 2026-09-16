@@ -50,7 +50,7 @@ Primary user-facing functions for IO and configuration:
 Utilities
 ~~~~~~~~~
 
-Utility functions and classes supporting aBIDSkit operations:
+Utility functions and classes supporting BIDSlab operations:
 
 .. toctree::
    :maxdepth: 2
@@ -83,7 +83,7 @@ Usage Patterns
 
 .. code-block:: python
 
-   from abidskit import write_dataset
+   from bidslab import write_dataset
 
    write_dataset(dataset, "/path/to/output")
 
@@ -91,8 +91,8 @@ Usage Patterns
 
 .. code-block:: python
 
-   from abidskit.extensions.motion import MotionTask
-   from abidskit.extensions.emg import EMGAcquisition
+   from bidslab.extensions.motion import MotionTask
+   from bidslab.extensions.emg import EMGAcquisition
 
    # Motion capture data
    for participant in dataset.participants:

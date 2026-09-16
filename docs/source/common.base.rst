@@ -2,7 +2,7 @@ Base Module
 ===========
 
 The Base module provides abstract base classes and mixins that form the foundation for
-all BIDS entity classes in aBIDSkit. These classes define the common interface and
+all BIDS entity classes in BIDSlab. These classes define the common interface and
 behavior expected of BIDS entities.
 
 Overview

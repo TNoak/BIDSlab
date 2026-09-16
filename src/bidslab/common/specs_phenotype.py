@@ -33,7 +33,7 @@ class PhenotypeColumn(Column):
     name : str
         Column name as it appears in the TSV/JSON sidecar.
     **kwargs
-        Additional :py:class:`~abidskit.common.specs_misc.Column` metadata plus
+        Additional :py:class:`~bidslab.common.specs_misc.Column` metadata plus
         the optional ``derivative`` flag.
 
     Attributes
@@ -117,7 +117,7 @@ class MeasurementTool:
     Notes
     -----
     Instances are often created from rows in ``phenotype/<tool>.tsv`` and then
-    attached to :py:class:`~abidskit.common.specs_summary.Participant` objects.
+    attached to :py:class:`~bidslab.common.specs_summary.Participant` objects.
     """
 
     def __init__(self, name: str, **kwargs: Any) -> None:

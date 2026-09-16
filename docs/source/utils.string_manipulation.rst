@@ -2,7 +2,7 @@ String Manipulation Module
 ==========================
 
 The String Manipulation module provides utility functions for formatting and
-manipulating strings throughout the aBIDSkit package, particularly for BIDS entity handling.
+manipulating strings throughout the BIDSlab package, particularly for BIDS entity handling.
 
 Overview
 --------

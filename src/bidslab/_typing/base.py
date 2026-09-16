@@ -2,7 +2,7 @@
 Typing protocols and aliases for base classes.
 
 This module provides type variable definitions and protocol classes for the core
-BIDS entity classes in aBIDSkit. These type definitions enable static type checking,
+BIDS entity classes in BIDSlab. These type definitions enable static type checking,
 enhance IDE support, and ensure type safety when working with polymorphic entities
 throughout the codebase.
 """
@@ -22,16 +22,16 @@ if TYPE_CHECKING:
     from bidslab.common.specs_misc import Run
 
 
-#: TypeVar bound to :py:class:`abidskit.common.base.BaseAcquisition` and its subclasses.
+#: TypeVar bound to :py:class:`bidslab.common.base.BaseAcquisition` and its subclasses.
 A = TypeVar("A", bound="BaseAcquisition")
 
-#: TypeVar bound to :py:class:`abidskit.common.base.Entity` and its subclasses.
+#: TypeVar bound to :py:class:`bidslab.common.base.Entity` and its subclasses.
 E = TypeVar("E", bound="Entity")
 
-#: TypeVar bound to :py:class:`abidskit.common.specs_misc.Run` and its subclasses.
+#: TypeVar bound to :py:class:`bidslab.common.specs_misc.Run` and its subclasses.
 R = TypeVar("R", bound="Run")
 
-#: TypeVar bound to :py:class:`abidskit.common.base.BaseTask` and its subclasses.
+#: TypeVar bound to :py:class:`bidslab.common.base.BaseTask` and its subclasses.
 T = TypeVar("T", bound="BaseTask")
 
 
@@ -45,7 +45,7 @@ class Writable(Protocol):
 
     Notes
     -----
-    This protocol is used throughout aBIDSkit to ensure that entities can be
+    This protocol is used throughout BIDSlab to ensure that entities can be
     written to disk. Any class that implements a :py:meth:`write` method with
     the correct signature automatically satisfies this protocol.
     """
@@ -74,8 +74,8 @@ class PEntity(Writable, Protocol):
     --------
     Writable : Protocol
         Protocol for writable objects.
-    :py:class:`abidskit.common.base.Entity`
-        Base class for all entities in aBIDSkit.
+    :py:class:`bidslab.common.base.Entity`
+        Base class for all entities in BIDSlab.
 
     Notes
     -----

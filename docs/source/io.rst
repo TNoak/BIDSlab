@@ -73,7 +73,7 @@ Different data modalities can be accessed through the datatype hierarchy:
 Module API
 ----------
 
-.. automodule:: abidskit.io
+.. automodule:: bidslab.io
    :show-inheritance: True
 
 BIDS Specification References

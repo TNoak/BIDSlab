@@ -73,7 +73,7 @@ class SourceDataset:
     Raises
     ------
     ValueError
-        Raised by :py:func:`abidskit.utils.checks.check_if_valid_uri` if ``url``
+        Raised by :py:func:`bidslab.utils.checks.check_if_valid_uri` if ``url``
         or ``doi`` is not a valid URI.
 
     See Also
@@ -139,7 +139,7 @@ class Container:
     Raises
     ------
     ValueError
-        Raised by :py:func:`abidskit.utils.checks.check_if_valid_uri` when
+        Raised by :py:func:`bidslab.utils.checks.check_if_valid_uri` when
         ``uri`` is malformed.
 
     See Also
@@ -209,7 +209,7 @@ class GeneratedBy:
     FieldMissingError
         If the required ``name`` field is missing.
     ValueError
-        Raised by :py:func:`abidskit.utils.checks.check_if_valid_uri` if
+        Raised by :py:func:`bidslab.utils.checks.check_if_valid_uri` if
         ``code_url`` is invalid.
     TypeError
         If :attr:`container` is assigned a value that is neither a mapping nor a
@@ -335,7 +335,7 @@ class Dataset:
     Raises
     ------
     ValueError
-        Raised by :py:func:`abidskit.utils.checks.check_if_valid_uri` when
+        Raised by :py:func:`bidslab.utils.checks.check_if_valid_uri` when
         ``dataset_doi`` is provided but invalid.
 
     Warnings
@@ -540,7 +540,7 @@ class Dataset:
         Notes
         -----
         The method also populates convenience path attributes via
-        :py:func:`abidskit.utils.helpers.get_root_files`.
+        :py:func:`bidslab.utils.helpers.get_root_files`.
         """
         get_root_files(self)
 
@@ -616,7 +616,7 @@ class Dataset:
         Returns
         -------
         set[Column]
-            Unique :py:class:`~abidskit.common.specs_misc.Column` objects
+            Unique :py:class:`~bidslab.common.specs_misc.Column` objects
             aggregated from all participants.
 
         Notes
@@ -852,7 +852,7 @@ def get_participants_from_files(
     Returns
     -------
     MutableSequence[Participant]
-        Constructed :py:class:`~abidskit.common.specs_summary.Participant`
+        Constructed :py:class:`~bidslab.common.specs_summary.Participant`
         objects.
 
     Raises
@@ -944,7 +944,7 @@ def get_phenotypes_from_files(
     -------
     Mapping[str, Sequence[MeasurementTool]]
         Mapping from participant identifier to sequences of
-        :py:class:`~abidskit.common.specs_phenotype.MeasurementTool` objects.
+        :py:class:`~bidslab.common.specs_phenotype.MeasurementTool` objects.
 
     Raises
     ------

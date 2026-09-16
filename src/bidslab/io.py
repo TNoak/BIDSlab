@@ -76,7 +76,7 @@ def load_dataset(path: os.PathLike | str, bids_version: str = "1.10.1") -> Datas
 
     Examples
     --------
-    >>> from abidskit import load_dataset
+    >>> from bidslab import load_dataset
     >>> dataset = load_dataset("/path/to/bids/dataset")
     >>> print(f"Dataset: {dataset.name}")
     >>> print(f"Number of subjects: {len(dataset.participants)}")
@@ -107,19 +107,19 @@ def write_dataset(
     """
     Write a Dataset object to disk as a BIDS dataset.
 
-    This function serializes a :py:class:`~abidskit.common.specs_dataset.Dataset` object
+    This function serializes a :py:class:`~bidslab.common.specs_dataset.Dataset` object
     to the file system, creating a valid BIDS-compliant dataset directory structure.
     It handles all metadata files, sidecar JSON files, and data file organization
     according to BIDS standards.
 
     The function provides a convenient high-level interface to the
-    :py:class:`~abidskit.common.specs_dataset.Dataset` class and its
-    :py:meth:`~abidskit.common.specs_dataset.Dataset.write` method.
+    :py:class:`~bidslab.common.specs_dataset.Dataset` class and its
+    :py:meth:`~bidslab.common.specs_dataset.Dataset.write` method.
 
     Parameters
     ----------
     dataset : Dataset
-        The :py:class:`~abidskit.common.specs_dataset.Dataset` object to write to disk.
+        The :py:class:`~bidslab.common.specs_dataset.Dataset` object to write to disk.
         Must be a valid Dataset with at least the required metadata fields.
     output_path : os.PathLike | str
         The file system path where the BIDS dataset should be written.
@@ -158,7 +158,7 @@ def write_dataset(
 
     Examples
     --------
-    >>> from abidskit import load_dataset, write_dataset
+    >>> from bidslab import load_dataset, write_dataset
     >>> dataset = load_dataset("/path/to/original/dataset")
     >>> # Modify dataset...
     >>> write_dataset(dataset, "/path/to/output/dataset")

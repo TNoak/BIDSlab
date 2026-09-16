@@ -146,14 +146,14 @@ Getting Help
 
 **Examples**
    Look for code examples in the docstrings of key functions like
-   :py:func:`abidskit.load_dataset` and :py:func:`abidskit.write_dataset`.
+   :py:func:`bidslab.load_dataset` and :py:func:`bidslab.write_dataset`.
 
 **Development**
    For contributors and developers, see the :doc:`Developer Guide <developer_guide>` for
    guidelines on code style, testing, and documentation.
 
 **Issues and Contributions**
-   Report bugs and contribute improvements on GitHub at https://github.com/cimt-unia/abidskit
+   Report bugs and contribute improvements on GitHub at https://github.com/cimt-unia/bidslab
 
 
 About BIDS
@@ -173,7 +173,7 @@ Learn more about BIDS:
 License
 =======
 
-aBIDSkit is licensed under the BSD-3-Clause License. See the LICENSE file in the repository for details.
+BIDSlab is licensed under the BSD-3-Clause License. See the LICENSE file in the repository for details.
 
 
 Citation

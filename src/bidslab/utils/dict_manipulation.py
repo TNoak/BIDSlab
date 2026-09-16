@@ -64,7 +64,7 @@ def manipulate_dictkeys(
         Dictionary whose keys should be transformed.
     string_manipulation : Callable[[str], str], optional
         Callable applied to each key. The default,
-        :py:func:`abidskit.utils.string_manipulation.to_titlecase`, is suitable for
+        :py:func:`bidslab.utils.string_manipulation.to_titlecase`, is suitable for
         converting internal field names to BIDS-style metadata keys.
 
     Returns
@@ -77,7 +77,7 @@ def manipulate_dictkeys(
     --------
     :py:func:`clean_dict`
         Applies this transformation as one step of broader dictionary cleanup.
-    :py:func:`abidskit.utils.string_manipulation.to_titlecase`
+    :py:func:`bidslab.utils.string_manipulation.to_titlecase`
         Default key-conversion function.
 
     Notes
@@ -139,7 +139,7 @@ def clean_dict(
         recursively. Default is ``False``.
     string_manipulation : Callable[[str], str], optional
         Function used to transform keys when manipulation is enabled. Default is
-        :py:func:`abidskit.utils.string_manipulation.to_titlecase`.
+        :py:func:`bidslab.utils.string_manipulation.to_titlecase`.
 
     Returns
     -------

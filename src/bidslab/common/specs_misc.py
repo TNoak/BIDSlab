@@ -316,7 +316,7 @@ class Column:
     --------
     :py:class:`Level`
         Categorical value definitions attached through :py:attr:`levels`.
-    :py:class:`abidskit.common.specs_phenotype.PhenotypeColumn`
+    :py:class:`bidslab.common.specs_phenotype.PhenotypeColumn`
         Specialized phenotype-table column metadata.
 
     Notes

@@ -1,4 +1,4 @@
-"""Public package interface for aBIDSkit."""
+"""Public package interface for BIDSlab."""
 
 #  Copyright (c) 2025 by Lukas Behammer
 #  University of Augsburg

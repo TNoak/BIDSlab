@@ -103,7 +103,7 @@ class EMGHardware(Hardware):
     -----
     Store electrode-specific vendor information here when the amplifier and the
     electrodes come from different manufacturers. This complements the inherited
-    :py:class:`~abidskit.common.specs_misc.Hardware` fields describing the main
+    :py:class:`~bidslab.common.specs_misc.Hardware` fields describing the main
     recording system.
 
     Examples

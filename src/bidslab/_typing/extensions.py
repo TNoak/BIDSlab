@@ -2,7 +2,7 @@
 Typing protocols and aliases for extensions.
 
 This module provides type variable definitions for BIDS extension-specific classes
-in aBIDSkit. These type definitions enable static type checking, enhance IDE support,
+in BIDSlab. These type definitions enable static type checking, enhance IDE support,
 and ensure type safety when working with extension entities such as Motion and EMG.
 """
 
@@ -19,12 +19,12 @@ if TYPE_CHECKING:
     from bidslab.extensions.emg import EMGChannel, EMGElectrode
     from bidslab.extensions.motion import MotionChannel
 
-#: TypeVar bound to :py:class:`abidskit.extensions.motion.MotionChannel`
+#: TypeVar bound to :py:class:`bidslab.extensions.motion.MotionChannel`
 #: and its subclasses.
 MC = TypeVar("MC", bound="MotionChannel")
 
-#: TypeVar bound to :py:class:`abidskit.extensions.emg.EMGChannel` and its subclasses.
+#: TypeVar bound to :py:class:`bidslab.extensions.emg.EMGChannel` and its subclasses.
 EC = TypeVar("EC", bound="EMGChannel")
 
-#: TypeVar bound to :py:class:`abidskit.extensions.emg.EMGElectrode` and its subclasses.
+#: TypeVar bound to :py:class:`bidslab.extensions.emg.EMGElectrode` and its subclasses.
 EE = TypeVar("EE", bound="EMGElectrode")

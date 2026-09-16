@@ -407,7 +407,7 @@ class VersionMismatchError(Exception):
     """
     Exception raised when expected and observed versions differ.
 
-    In aBIDSkit this is primarily used for BIDS specification version mismatches that
+    In BIDSlab this is primarily used for BIDS specification version mismatches that
     can affect compatibility or validation outcomes.
 
     See Also

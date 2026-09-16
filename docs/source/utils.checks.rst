@@ -14,7 +14,7 @@ READMEs, Citation, and License files.
 Module API
 ----------
 
-.. automodule:: abibidslabdskit.utils.checks
+.. automodule:: bidslab.utils.checks
    :show-inheritance: True
 
 Related Documentation

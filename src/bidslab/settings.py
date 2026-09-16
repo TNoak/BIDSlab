@@ -199,7 +199,7 @@ def set_settings_values(settings: dict[str, bool | str] | os.PathLike) -> None:
     """
     Permanently update global settings.
 
-    This function permanently updates the global settings for the aBIDSkit
+    This function permanently updates the global settings for the BIDSlab
     library. Changes persist until explicitly modified or the application
     is restarted.
 

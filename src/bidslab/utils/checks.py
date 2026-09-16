@@ -133,7 +133,7 @@ def check_citation(dataset: "Dataset", files: Sequence[pathlib.Path]):
     --------
     :py:func:`check_license`
         Performs related validation for the top-level license file.
-    :py:func:`abidskit.utils.string_manipulation.to_titlecase`
+    :py:func:`bidslab.utils.string_manipulation.to_titlecase`
         Formats dataset field names in warnings.
 
     Notes
@@ -247,9 +247,9 @@ def check_version(dataset: "Dataset", version: Any):
 
     See Also
     --------
-    :py:class:`abidskit.utils.exceptions.VersionMismatchError`
+    :py:class:`bidslab.utils.exceptions.VersionMismatchError`
         Exception raised for hard version mismatches.
-    :py:class:`abidskit.utils.exceptions.VersionMismatchWarning`
+    :py:class:`bidslab.utils.exceptions.VersionMismatchWarning`
         Warning emitted for tolerated mismatches.
 
     Notes
@@ -330,7 +330,7 @@ def check_if_valid_uri(uri: str):
 
     See Also
     --------
-    :py:class:`abidskit.utils.exceptions.InvalidURIError`
+    :py:class:`bidslab.utils.exceptions.InvalidURIError`
         Exception used for invalid URI values.
 
     Notes

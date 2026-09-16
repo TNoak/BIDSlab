@@ -1,7 +1,7 @@
 Settings Module
 ===============
 
-The Settings module provides configuration and customization options for the aBIDSkit package.
+The Settings module provides configuration and customization options for the BIDSlab package.
 It allows users and developers to configure package behavior, control default options, and
 manage application-level settings.
 
@@ -35,7 +35,7 @@ Basic Usage
 
 .. code-block:: python
 
-   from abidskit.settings import Settings, get_settings_value, set_settings_values
+   from bidslab.settings import Settings, get_settings_value, set_settings_values
 
    # Get current settings
    settings = Settings()
@@ -48,7 +48,7 @@ Basic Usage
    set_settings_values({"setting_name": "new_value"})
 
    # Override settings temporarily
-   from abidskit.settings import override_settings_values
+   from bidslab.settings import override_settings_values
    with override_settings_values({"setting_name": "temp_value"}):
        # Code here uses temporary settings
        pass
@@ -56,7 +56,7 @@ Basic Usage
 Module API
 ----------
 
-.. automodule:: abidskit.settings
+.. automodule:: bidslab.settings
    :show-inheritance: True
 
 Best Practices

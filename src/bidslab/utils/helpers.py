@@ -73,7 +73,7 @@ def set_attr_from_dict(obj: T, data: dict) -> None:
     Set object attributes from a cleaned dictionary of values.
 
     The input mapping is normalized before assignment so that key names follow the
-    internal snake_case attribute convention used throughout :py:mod:`abidskit`.
+    internal snake_case attribute convention used throughout :py:mod:`bidslab`.
     Nested dictionaries can therefore be sourced from external metadata structures
     that use BIDS-style or title-cased field names.
 
@@ -83,8 +83,8 @@ def set_attr_from_dict(obj: T, data: dict) -> None:
         Object whose existing attributes should be updated in place.
     data : dict
         Mapping of attribute names to values. Keys are sanitized with
-        :py:func:`abidskit.utils.dict_manipulation.clean_dict` and converted to
-        snake_case with :py:func:`abidskit.utils.string_manipulation.to_snakecase`
+        :py:func:`bidslab.utils.dict_manipulation.clean_dict` and converted to
+        snake_case with :py:func:`bidslab.utils.string_manipulation.to_snakecase`
         before assignment.
 
     Returns
@@ -100,15 +100,15 @@ def set_attr_from_dict(obj: T, data: dict) -> None:
 
     See Also
     --------
-    :py:func:`abidskit.utils.dict_manipulation.clean_dict`
+    :py:func:`bidslab.utils.dict_manipulation.clean_dict`
         Normalizes nested dictionaries before assignment.
-    :py:func:`abidskit.utils.string_manipulation.to_snakecase`
+    :py:func:`bidslab.utils.string_manipulation.to_snakecase`
         Converts external field names to attribute-compatible identifiers.
 
     Notes
     -----
     Warnings of type
-    :py:class:`abidskit.utils.exceptions.TopLevelEntityNotLinkedWarning` are silenced
+    :py:class:`bidslab.utils.exceptions.TopLevelEntityNotLinkedWarning` are silenced
     while assignments are performed.
 
     Examples
@@ -253,7 +253,7 @@ def get_root_files(dataset: "Dataset") -> None:
 
     The helper collects direct children of the dataset root, verifies that the
     mandatory ``dataset_description.json`` file is available, and delegates further
-    root-level discovery to :py:func:`abidskit.utils.checks.check_files`.
+    root-level discovery to :py:func:`bidslab.utils.checks.check_files`.
 
     Parameters
     ----------
@@ -276,9 +276,9 @@ def get_root_files(dataset: "Dataset") -> None:
 
     See Also
     --------
-    :py:func:`abidskit.utils.checks.check_dataset_description_present`
+    :py:func:`bidslab.utils.checks.check_dataset_description_present`
         Verifies presence of ``dataset_description.json``.
-    :py:func:`abidskit.utils.checks.check_files`
+    :py:func:`bidslab.utils.checks.check_files`
         Performs additional root-level discovery and validation.
 
     Notes
@@ -385,7 +385,7 @@ def get_entity_from_file(path: pathlib.Path, entity_name: str) -> dict[str, str]
 
     See Also
     --------
-    :py:func:`abidskit.utils.string_manipulation.remove_special_characters`
+    :py:func:`bidslab.utils.string_manipulation.remove_special_characters`
         Normalizes strings that may later be used as entity values.
 
     Notes

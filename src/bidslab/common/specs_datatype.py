@@ -1,5 +1,5 @@
 """
-Datatype entities in aBIDSkit.
+Datatype entities in BIDSlab.
 
 This module provides the Datatype class for managing BIDS datatype entities,
 which represent different types of data acquisitions (e.g., MEG, EEG, motion)
@@ -256,12 +256,12 @@ class Datatype:
 
         See Also
         --------
-        abidskit.utils.helpers.write_entities : Function for writing entities to disk.
+        bidslab.utils.helpers.write_entities : Function for writing entities to disk.
 
         Notes
         -----
         The method delegates serialization to
-        :py:func:`abidskit.utils.helpers.write_entities` so each task can emit
+        :py:func:`bidslab.utils.helpers.write_entities` so each task can emit
         modality-specific BIDS files beneath ``output_path``.
 
         Examples
