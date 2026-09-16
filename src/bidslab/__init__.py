@@ -1,9 +1,14 @@
-# numpydoc ignore=SS02
 """
 BIDSlab is a Python package for working with BIDS datasets.
 
 This tool implements functions for loading and creating BIDS (Brain Imaging Data
 Structure) datasets.
+
+Examples
+--------
+>>> import bidslab
+>>> bidslab.get_version()
+'0.2.0'
 """
 
 #  Copyright (c) 2025 by Lukas Behammer
@@ -13,7 +18,14 @@ Structure) datasets.
 #
 #  SPDX-License-Identifier: BSD-3-Clause
 
-__version__ = "0.2.0"
+from importlib.metadata import PackageNotFoundError, version
+
+try:
+    __version__ = version("pytermite")
+except PackageNotFoundError:
+    # package is not installed
+    pass
+
 __author__ = "Lukas Behammer"
 
 __all__ = [
@@ -31,7 +43,7 @@ from .settings import save_settings_values as save_settings
 from .settings import set_settings_values as update_settings
 
 
-def get_version():
+def get_version() -> str:
     """
     Return the version of the BIDSlab package.
 
@@ -40,4 +52,10 @@ def get_version():
     str
         The version string of the package.
     """
-    return __version__
+    try:
+        return __version__
+    except NameError as e:
+        raise RuntimeError(
+            "Version information is not available."
+            "The package may not be installed properly."
+        ) from e
