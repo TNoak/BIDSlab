@@ -307,6 +307,7 @@ class PhysioRecording(Recording):
         description = self.__dict__.copy()
         description.pop("_data", None)
         description.pop("_events", None)
+        description.pop("recording_id", None)
         description = clean_dict(description)
         write_json(description, output_path_json)
 
@@ -360,7 +361,7 @@ class StimRecording(Recording):
         output_path_json = append_path(output_path, "_stim.json")
         output_path_tsv = append_path(output_path, "_stim.tsv.gz")
 
-        # TODO write tsv.gz
+        # write tsv.gz
         data_tsv = self.data
         if data_tsv is None:  # TODO remove
             data_tsv = pd.DataFrame()
@@ -372,9 +373,10 @@ class StimRecording(Recording):
             compression="gzip",
         )
 
-        # TODO write json sidecar
+        # write json sidecar
         description = self.__dict__.copy()
         description.pop("data", None)
+        description.pop("recording_id", None)
         description = clean_dict(description)
         write_json(description, output_path_json)
 
