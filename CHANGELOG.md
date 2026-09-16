@@ -98,6 +98,7 @@
 - Rename to bidslab in missing places
 - Format to ruff rules
 - Use setuptools-scm versioning
+- Use set instead of list for get_matching_subpaths
 
 ### 📚 Documentation
 
@@ -152,6 +153,7 @@
 - Update tests for version check for 607f907c
 - Add case for TermURL field entry
 - Fix test_dataset fixture
+- Expect sets when testing get_matching_subpaths
 
 ### ⚙️ Miscellaneous Tasks
 
@@ -197,6 +199,10 @@
 - Try upload to test pypi
 - Build and install package when previous steps fail
 - Try pypi release by setting condition to always
+- Ignore ruf rule RUF106
+- Add zizmor to pre-commit config
+- Prepare release to PyPI
+- Disable ruff preview rules to prevent errors from validate pyrpoject precommit hook
 
 ## [0.2.0] - 2025-09-25
 
