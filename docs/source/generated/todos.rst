@@ -5,6 +5,18 @@
 Manually maintained list of TODOs for the project.
 --------------------------------------------------
 
+.. todo:: Update the README
+
+.. todo:: Update the Developer GUIDE
+
+.. todo:: Update the CONTRIBUTING.md
+
+.. todo:: Change dev guide link in CONTRIBUTING.md
+
+.. todo:: Build index page automatically from README
+
+.. todo:: Add a developing section in the docs combining todo list and dev guide
+
 .. todo:: Check if CHANGES according to CPAN
 
 .. todo:: Check if CHANGES, LICENSE and README files are UTF-8 or ASCII encoded
@@ -42,8 +54,3 @@ Manually maintained list of TODOs for the project.
 .. todo:: run\_ids set can have run\_ids from other acquisition in class Acquisition, maybe set self.root to file path not dir path
 
 .. todo:: harmonize base\_bath and root
-
-.. todo:: change dev guide link in CONTRIBUTING.md
-
-.. todo:: update developer guide
-
