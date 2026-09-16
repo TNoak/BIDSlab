@@ -1,4 +1,4 @@
-## [0.3.0] - 2026-09-16
+## [unreleased]
 
 ### 🚀 Features
 
@@ -195,6 +195,7 @@
 - Remove mdformat config
 - Update changelog
 - Try upload to test pypi
+- Build and install package when previous steps fail
 
 ## [0.2.0] - 2025-09-25
 
