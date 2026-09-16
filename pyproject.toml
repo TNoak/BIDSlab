@@ -117,12 +117,8 @@ select = [
 ]
 ignore = [
     "B028",
-    "D100", # TODO: Remove
-    "D101", # TODO: Remove
-    "D102", # TODO: Remove
-    "D103", # TODO: Remove
-    "D105", # TODO: Remove
-    "D104",
+    "D105",
+    "D401", # due to numpydoc SS05 implementing this
     "D206",
     "D300",
     "E111",
@@ -132,8 +128,8 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["ARG002", ]
-"tools/generate_requirements.py" = ["CPY001", ] # TODO: Remove
+"tests/*" = ["ARG002", "D"]
+"tools/generate_requirements.py" = ["CPY001", "D"] # TODO: Remove
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
