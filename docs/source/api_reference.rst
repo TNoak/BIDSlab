@@ -64,7 +64,7 @@ Usage Patterns
 
 .. code-block:: python
 
-   from abidskit import load_dataset
+   from bidslab import load_dataset
 
    dataset = load_dataset("/path/to/bids/dataset")
    print(f"Dataset: {dataset.name}")
@@ -113,11 +113,11 @@ Usage Patterns
 Module Organization
 -------------------
 
-The aBIDSkit package follows a hierarchical organization:
+The BIDSlab package follows a hierarchical organization:
 
 ::
 
-    abidskit/
+    bidlab/
     ├── core/                       # Core BIDS implementation
     │   ├── specs_dataset.py        # Dataset class
     │   ├── specs_datatype.py       # Datatype class

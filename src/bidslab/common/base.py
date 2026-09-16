@@ -220,23 +220,8 @@ class BaseTask(Entity, ABC):
 
     @property
     def datatype(self) -> "Datatype | None":
-        """
-        Property to get or set the top-level Datatype object.
-
-        Links to the top-level :py:class:`~bidslab.common.specs_dataype.Datatype`
-        object associated with the Task.
-
-        Returns
-        -------
-        Datatype | None
-            The top-level Datatype object linked to the Task, or None if not linked.
-
-        Warns
-        -----
-        TopLevelEntityNotLinkedWarning
-            If the Task is not linked to a
-            :py:class:`~bidslab.common.specs_dataype.Datatype` object when accessed.
-        """
+        # numpydoc ignore=RT01
+        """Property to get or set the top-level Datatype object."""
         if self._datatype:
             return self._datatype
 

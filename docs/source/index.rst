@@ -179,5 +179,5 @@ aBIDSkit is licensed under the BSD-3-Clause License. See the LICENSE file in the
 Citation
 ========
 
-If you use aBIDSkit in your research, please cite it appropriately. Citation information
+If you use BIDSlab in your research, please cite it appropriately. Citation information
 will be available once the package is formally released.

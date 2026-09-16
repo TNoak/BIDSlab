@@ -44,7 +44,7 @@ Key Concepts
 Module API
 ----------
 
-.. automodule:: bidslab.common.specs_misc
+.. automodule:: abidskit.common.specs_misc
    :show-inheritance: True
 
 Related Documentation

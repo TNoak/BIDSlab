@@ -2,7 +2,7 @@ Helpers Module
 ==============
 
 The Helpers module provides various utility functions that support data loading, parsing,
-transformation, and manipulation operations throughout the BIDSlab package.
+transformation, and manipulation operations throughout the aBIDSkit package.
 
 Overview
 --------

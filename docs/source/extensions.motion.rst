@@ -18,7 +18,7 @@ The extension includes support for:
 Module API
 ----------
 
-.. automodule:: bidslab.extensions.motion
+.. automodule:: abidskit.extensions.motion
    :show-inheritance: True
 
 Related Documentation

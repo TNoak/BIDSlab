@@ -461,14 +461,8 @@ class Dataset:
 
     @property
     def participants(self) -> dict[str, Participant]:
-        """
-        Property to get or set the sequence of participants.
-
-        Returns
-        -------
-        dict[str, Participant] | None
-            dict of Participant objects by participant_id.
-        """
+        # numpydoc ignore=RT01
+        """Get participants declared in the dataset."""
         if not self._participants:
             tsv_path, json_path = get_tsv_json_files(self.root, "participants")
             self._participants = get_participants_from_files(

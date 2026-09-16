@@ -3,12 +3,12 @@ Internal API Reference
 
 This is the internal API reference for the BIDSlab package. It provides documentation for
 internal classes, base classes, and type definitions used internally. Use this reference if
-you want to write your own extensions or contribute to the development of BIDSlab.
+you want to write your own extensions or contribute to the development of aBIDSkit.
 
 Internal Modules
 ----------------
 
-The following internal modules provide base classes and utilities for extending BIDSlab:
+The following internal modules provide base classes and utilities for extending aBIDSkit:
 
 .. toctree::
    :maxdepth: 2
@@ -29,7 +29,7 @@ Type Definitions
 The ``typing`` module provides generic types and protocol definitions used throughout the codebase.
 These types ensure consistency and enable static type checking with mypy.
 
-Extending BIDSlab
+Extending aBIDSkit
 ------------------
 
 To create custom extensions or modify aBIDSkit behavior:

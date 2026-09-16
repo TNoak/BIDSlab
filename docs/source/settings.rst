@@ -56,7 +56,7 @@ Basic Usage
 Module API
 ----------
 
-.. automodule:: bidslab.settings
+.. automodule:: abidskit.settings
    :show-inheritance: True
 
 Best Practices

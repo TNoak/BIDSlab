@@ -38,7 +38,7 @@ Supported modalities include:
 Module API
 ----------
 
-.. automodule:: bidslab.common.specs_datatype
+.. automodule:: abidskit.common.specs_datatype
    :show-inheritance: True
 
 Related Documentation

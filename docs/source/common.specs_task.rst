@@ -38,7 +38,7 @@ Key Features
 Module API
 ----------
 
-.. automodule:: bidslab.common.specs_task
+.. automodule:: abidskit.common.specs_task
    :show-inheritance: True
 
 Related Documentation
