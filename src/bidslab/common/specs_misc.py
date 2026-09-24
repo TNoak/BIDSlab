@@ -639,6 +639,8 @@ class PhysioRecording(Recording):
 
     @property
     def data(self) -> pd.DataFrame:
+        # numpydoc ignore=RT01
+        """Get the data of the physio recording."""
         if self._data is None:
             # load data
             files = self.root.glob("*physio.tsv.gz")
@@ -654,6 +656,7 @@ class PhysioRecording(Recording):
 
     @data.setter
     def data(self, value: pd.DataFrame) -> None:
+        # numpydoc ignore=GL08
         self._data = value
 
     @property
