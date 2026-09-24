@@ -638,6 +638,25 @@ class PhysioRecording(Recording):
         self._events: Sequence[Event] | None = None
 
     @property
+    def data(self) -> pd.DataFrame:
+        if self._data is None:
+            # load data
+            files = self.root.glob("*physio.tsv.gz")
+            entities = self.get_top_level_entities()
+            for file in files:
+                # test if file is valid
+                if check_entity_mismatch(
+                    file.name.removesuffix("_physio.tsv.gz"), entities
+                ):
+                    self._data = load_tsv_data(path=file)
+                    return self._data
+        return self._data
+
+    @data.setter
+    def data(self, value: pd.DataFrame) -> None:
+        self._data = value
+
+    @property
     def events(self) -> Sequence[Event] | None:
         # numpydoc ignore=RT01
         """Load or return cached physioevents sequence."""
@@ -666,9 +685,7 @@ class PhysioRecording(Recording):
         output_path_tsv = append_path(output_path, "_physio.tsv.gz")
 
         # write data into _physio.tsv.gz
-        data_tsv = self._data
-        if data_tsv is None:  # TODO remove
-            data_tsv = pd.DataFrame()
+        data_tsv = self.data
         data_tsv.to_csv(
             output_path_tsv,
             sep="\t",
@@ -808,15 +825,14 @@ class StimRecording(Recording):
 
         # write tsv.gz
         data_tsv = self.data
-        if data_tsv is None:  # TODO remove
-            data_tsv = pd.DataFrame()
-        data_tsv.to_csv(
-            output_path_tsv,
-            sep="\t",
-            index=False,
-            header=False,
-            compression="gzip",
-        )
+        if data_tsv is not None:
+            data_tsv.to_csv(
+                output_path_tsv,
+                sep="\t",
+                index=False,
+                header=False,
+                compression="gzip",
+            )
 
         # write json sidecar
         description = self.__dict__.copy()
@@ -990,7 +1006,6 @@ class Run(Entity, Generic[A]):
                         recording_id=key,
                         virtual_entity=value,
                         base_path=self.root,
-                        run=self,
                         sampling_frequency=sampling_frequency,
                         start_time=start_time,
                         physio_type=physio_type,
@@ -998,6 +1013,7 @@ class Run(Entity, Generic[A]):
                         columns=columns,
                         **description,
                     )
+                    self._physio[key].run = self
                 else:
                     raise FileNotFoundError
 
@@ -1431,6 +1447,7 @@ def get_stims_from_files(
                     columns=columns,
                     **data,
                 )
+                stims[key].run = cls
             else:
                 raise FileNotFoundError
 
@@ -1495,6 +1512,7 @@ def get_stims_from_files(
                 columns=columns,
                 **data,
             )
+            stims["recording-00"].run = cls
 
     return stims
 
@@ -1539,7 +1557,7 @@ def write_events_to_files(
     data_tsv = pd.DataFrame(event.__dict__ for event in events)
     data_tsv = data_tsv.drop(columns=["columns"], errors="ignore")
 
-    if "stim_file" in data_tsv.columns:  # TODO
+    if "stim_file" in data_tsv.columns:
         # find root of the dataset
         entities = cls.get_top_level_entities()
         output_dataset_root = pathlib.Path(output_path)
