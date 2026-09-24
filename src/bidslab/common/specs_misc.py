@@ -16,7 +16,7 @@ specifications.
 import os
 import pathlib
 from collections.abc import Iterable, Mapping, MutableMapping, MutableSequence, Sequence
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -30,7 +30,11 @@ from bidslab._typing import A
 from bidslab.common.base import BaseAcquisition, Entity, check_entity_mismatch
 from bidslab.settings import get_settings_value
 from bidslab.utils.checks import check_if_valid_uri
-from bidslab.utils.dict_manipulation import clean_dict, manipulate_dictkeys
+from bidslab.utils.dict_manipulation import (
+    ManipulateKeysOption,
+    clean_dict,
+    manipulate_dictkeys,
+)
 from bidslab.utils.exceptions import (
     FieldEntryNotValidError,
     TopLevelEntityNotLinkedWarning,
@@ -290,6 +294,8 @@ class Column:
         :py:const:`FORMAT_ALLOWED_FIELD_ENTRIES`.
     units : str, optional
         The units of measurement for numeric columns.
+    unit : str, optional
+        The unit of measurement for numeric columns.
     delimiter : str, optional
         The delimiter used to separate multiple values in a single cell.
     term_url : str, optional
@@ -337,6 +343,7 @@ class Column:
         self.description: str | None = None
         self._format: str | None = None
         self.units: str | None = None
+        self.unit: str | None = None
         self.delimiter: str | None = None
         self.term_url: str | None = None
         self.hed: str | Mapping[str, str] | None = None
@@ -567,12 +574,12 @@ class PhysioRecording(Recording):
         The start time of the recording relative to some reference point.
     columns : MutableSequence[Column]
         The column specifications for the data in this recording.
+    physio_type : str, optional
+        Defines the specific type of physiological recording.
     hardware : Hardware, optional
         Information about the hardware used for this recording.
     virtual_entity : bool
         Parameter to distinguish virtual and real entities.
-    **kwargs
-        Optional recording metadata.
 
     Attributes
     ----------
@@ -580,6 +587,8 @@ class PhysioRecording(Recording):
         The start time of the recording.
     columns : MutableSequence[Column]
         The column specifications.
+    physio_type : str | None
+        The specific type of physiological recording.
     hardware : Hardware | None
         The hardware information.
 
@@ -609,9 +618,9 @@ class PhysioRecording(Recording):
         sampling_frequency: int,
         start_time: int | float,
         columns: MutableSequence[Column],
+        physio_type: str | None = None,
         hardware: Hardware | None = None,
         virtual_entity: bool = False,
-        **kwargs: Any,
     ):
         super().__init__(
             base_path=base_path,
@@ -622,13 +631,11 @@ class PhysioRecording(Recording):
 
         self.start_time: int | float = start_time
         self.columns: MutableSequence[Column] = columns
+        self.physio_type: str | None = physio_type
         self.hardware: Hardware | None = hardware
 
         self._data: Any | None = None
         self._events: Sequence[Event] | None = None
-
-        for key, value in kwargs.items():
-            setattr(self, key, value)
 
     @property
     def events(self) -> Sequence[Event] | None:
@@ -675,7 +682,28 @@ class PhysioRecording(Recording):
         description.pop("_data", None)
         description.pop("_events", None)
         description.pop("recording_id", None)
+        description.pop("columns", None)
+        description.pop("hardware", None)
+
+        hardware_description = asdict(self.hardware)
+        description.update(hardware_description)
+
         description = clean_dict(description)
+
+        columns = self.columns
+        column_names = []
+        for column in columns:
+            column_dict = column.__dict__.copy()
+            column_names.append(column_dict.pop("column_name"))
+            column_dict = clean_dict(
+                column_dict,
+                skip_keys_to_manipulate=ManipulateKeysOption.NO_MANIPULATION,
+            )
+            if column_dict:
+                description[column.column_name] = column_dict
+
+        if column_names:
+            description["Columns"] = column_names
         write_json(description, output_path_json)
 
         # write physioevents
@@ -794,6 +822,22 @@ class StimRecording(Recording):
         description = self.__dict__.copy()
         description.pop("data", None)
         description.pop("recording_id", None)
+        description.pop("columns", None)
+
+        columns = self.columns
+        column_names = []
+        for column in columns:
+            column_dict = column.__dict__.copy()
+            column_names.append(column_dict.pop("column_name"))
+            column_dict = clean_dict(
+                column_dict,
+                skip_keys_to_manipulate=ManipulateKeysOption.NO_MANIPULATION,
+            )
+            if column_dict:
+                description[column.column_name] = column_dict
+
+        if column_names:
+            description["columns"] = column_names
         description = clean_dict(description)
         write_json(description, output_path_json)
 
@@ -922,11 +966,36 @@ class Run(Entity, Generic[A]):
                 if description:
                     # TODO create hardware and columns as class
                     description = manipulate_dictkeys(description, to_snakecase)
+                    sampling_frequency = description.pop("sampling_frequency", None)
+                    start_time = description.pop("start_time", None)
+                    physio_type = description.pop("physio_type", None)
+                    hardware = Hardware(
+                        manufacturer=description.pop("maunfacturer", None),
+                        manufacturers_model_name=description.pop(
+                            "manufacturers_model_name", None
+                        ),
+                        device_serial_number=description.pop(
+                            "device_serial_number", None
+                        ),
+                        software_versions=description.pop("software_versions", None),
+                    )
+                    column_names = description.pop("columns", None)
+                    columns = []
+                    for column_name in column_names:
+                        columns.append(
+                            Column(column_name, **description.pop(column_name, {}))
+                        )
+
                     self._physio[key] = PhysioRecording(
                         recording_id=key,
                         virtual_entity=value,
                         base_path=self.root,
                         run=self,
+                        sampling_frequency=sampling_frequency,
+                        start_time=start_time,
+                        physio_type=physio_type,
+                        hardware=hardware,
+                        columns=columns,
                         **description,
                     )
                 else:
@@ -1277,8 +1346,8 @@ def get_events_from_files(
                         add_object_to_sequence(
                             entity_list=events,
                             entity_class=Event,
-                            **event,
                             columns=columns,
+                            **event,
                         )
                     break
         else:
@@ -1343,12 +1412,23 @@ def get_stims_from_files(
             # create the entity with the loaded description
             if description:
                 description = manipulate_dictkeys(description, to_snakecase)
+                sampling_frequency = description.pop("sampling_frequency", None)
+                start_time = description.pop("start_time", None)
+                column_names = description.pop("columns", None)
+                columns = []
+                for column_name in column_names:
+                    columns.append(
+                        Column(column_name, **description.pop(column_name, {}))
+                    )
+
                 # TODO create hardware and columns as class
                 stims[key] = StimRecording(
                     virtual_entity=value,
                     recording_id=key,
                     base_path=base_path,
-                    **description,
+                    sampling_frequency=sampling_frequency,
+                    start_time=start_time,
+                    columns=columns,
                     **data,
                 )
             else:
@@ -1399,11 +1479,20 @@ def get_stims_from_files(
                 break
         if exists:
             description = manipulate_dictkeys(description, to_snakecase)
+            sampling_frequency = description.pop("sampling_frequency", None)
+            start_time = description.pop("start_time", None)
+            column_names = description.pop("columns", None)
+            columns = []
+            for column_name in column_names:
+                columns.append(Column(column_name, **description.pop(column_name, {})))
+
             stims["recording-00"] = StimRecording(
                 virtual_entity=True,
                 recording_id="recording-00",
                 base_path=base_path,
-                **description,
+                sampling_frequency=sampling_frequency,
+                start_time=start_time,
+                columns=columns,
                 **data,
             )
 
@@ -1439,7 +1528,14 @@ def write_events_to_files(
     else:
         output_path_tsv = append_path(output_path, f"_{file_ending}.tsv")
 
-    data_json = events[0].columns
+    # write json sidecar
+    columns = events[0].columns
+
+    description = clean_dict(columns)
+    write_json(content=description, output_path=output_path_json)
+
+    # write stimuli and tsv data
+
     data_tsv = pd.DataFrame(event.__dict__ for event in events)
     data_tsv = data_tsv.drop(columns=["columns"], errors="ignore")
 
@@ -1469,8 +1565,6 @@ def write_events_to_files(
                 destination_path=stimuli_path,
             )
 
-    if isinstance(data_json, dict):
-        write_json(content=data_json, output_path=output_path_json)
     if compressed:
         data_tsv.to_csv(
             output_path_tsv, sep="\t", index=False, header=True, compression="gzip"
