@@ -678,7 +678,7 @@ class EMGRecording(Recording):
         self._coordinate_systems = value
 
     @property
-    def data(self):
+    def data(self) -> pd.DataFrame:
         # numpydoc ignore=RT01
         """Load or return cached EMG sample data."""
         if self._data is None:
@@ -728,7 +728,7 @@ class EMGRecording(Recording):
         file_name = f"*_{self.recording_id}_"
         _update_description_data(self, file_name)
 
-    def write(self, output_path):
+    def write(self, output_path: str | os.PathLike) -> None:
         """
         Write recording-level EMG files.
 
@@ -1580,7 +1580,7 @@ def get_emg_electrodes(
 
 def _update_description_data(
     cls: EMGRecording | EMGRun | EMGAcquisition, file_name: str
-):
+) -> None:
     """
     Update inherited EMG metadata from nearby sidecars.
 

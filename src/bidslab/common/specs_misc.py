@@ -294,8 +294,6 @@ class Column:
         :py:const:`FORMAT_ALLOWED_FIELD_ENTRIES`.
     units : str, optional
         The units of measurement for numeric columns.
-    unit : str, optional
-        The unit of measurement for numeric columns.
     delimiter : str, optional
         The delimiter used to separate multiple values in a single cell.
     term_url : str, optional
@@ -343,7 +341,6 @@ class Column:
         self.description: str | None = None
         self._format: str | None = None
         self.units: str | None = None
-        self.unit: str | None = None
         self.delimiter: str | None = None
         self.term_url: str | None = None
         self.hed: str | Mapping[str, str] | None = None
@@ -704,9 +701,9 @@ class PhysioRecording(Recording):
         description.pop("recording_id", None)
         description.pop("columns", None)
         description.pop("hardware", None)
-
-        hardware_description = asdict(self.hardware)
-        description.update(hardware_description)
+        if self.hardware is not None:
+            hardware_description = asdict(self.hardware)
+            description.update(hardware_description)
 
         description = clean_dict(description)
 
@@ -784,7 +781,7 @@ class StimRecording(Recording):
         start_time: int | float,
         columns: MutableSequence[Column],
         virtual_entity: bool = False,
-        **kwargs,
+        **kwargs: Any,
     ):
         super().__init__(
             base_path=base_path,
@@ -818,7 +815,7 @@ class StimRecording(Recording):
             path = path.parent
             folders.append(path)
 
-            files = []
+            files: list[pathlib.Path] = []
             for folder in folders:
                 files = files + list(folder.glob("*_stim.tsv.gz"))
 
@@ -1003,7 +1000,7 @@ class Run(Entity, Generic[A]):
             path = path.parent
             folders.append(path)
 
-            files = []
+            files: list[pathlib.Path] = []
             for folder in folders:
                 files = files + list(folder.glob("*_physio.json"))
 
@@ -1019,6 +1016,7 @@ class Run(Entity, Generic[A]):
                         entitylist,
                     ):
                         description = parse_json_sidecar(file)
+                        break
 
                 # create the entity with the loaded description
                 if description:
@@ -1039,10 +1037,11 @@ class Run(Entity, Generic[A]):
                     )
                     column_names = description.pop("columns", None)
                     columns = []
-                    for column_name in column_names:
-                        columns.append(
-                            Column(column_name, **description.pop(column_name, {}))
-                        )
+
+                    columns = [
+                        Column(column_name, **description.pop(column_name, {}))
+                        for column_name in column_names
+                    ]
 
                     self._physio[key] = PhysioRecording(
                         recording_id=key,
@@ -1108,6 +1107,7 @@ class Run(Entity, Generic[A]):
                         entitylist,
                     ):
                         description = parse_json_sidecar(file)
+                        break
 
                 # create the entity with the loaded description
                 if description:
@@ -1116,10 +1116,11 @@ class Run(Entity, Generic[A]):
                     start_time = description.pop("start_time", None)
                     column_names = description.pop("columns", None)
                     columns = []
-                    for column_name in column_names:
-                        columns.append(
-                            Column(column_name, **description.pop(column_name, {}))
-                        )
+
+                    columns = [
+                        Column(column_name, **description.pop(column_name, {}))
+                        for column_name in column_names
+                    ]
 
                     self._stims[key] = StimRecording(
                         virtual_entity=value,
@@ -1377,7 +1378,7 @@ def get_recordings_from_files(
 
 
 def get_events_from_files(
-    cls: Recording | Run, base_path: os.PathLike | str, file_ending="events"
+    cls: Recording | Run, base_path: os.PathLike | str, file_ending: str = "events"
 ) -> MutableSequence[Event] | None:
     """
     Get Events from files.
@@ -1474,8 +1475,8 @@ def write_events_to_files(
     cls: Recording | Run,
     events: Sequence[Event],
     output_path: os.PathLike | str,
-    file_ending="events",
-    compressed=False,
+    file_ending: str = "events",
+    compressed: bool = False,
 ) -> None:
     """
     Write a sequence of events to disk.
