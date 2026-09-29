@@ -28,6 +28,11 @@ SHORT_FORMS = {
     "vel": "VEL",
     "hed": "HED",
     "emg": "EMG",
+    "eeg": "EEG",
+    "ecg": "ECG",
+    "eog": "EOG",
+    "misc": "MISC",
+    "po": "PO",
 }
 
 

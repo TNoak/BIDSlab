@@ -22,6 +22,7 @@ from warnings import warn
 
 from bidslab.common.base import BaseTask
 from bidslab.common.specs_task import Task
+from bidslab.extensions.eeg import EEGTask, parse_eeg_json_sidecar
 from bidslab.extensions.emg import EMGTask, parse_emg_json_sidecar
 from bidslab.extensions.motion import MotionTask, parse_motion_json_sidecar
 from bidslab.settings import get_settings_value
@@ -184,6 +185,31 @@ class Datatype:
                             self._tasks.update(
                                 {
                                     "task-" + task_id: EMGTask(
+                                        task_id="task-" + task_id,
+                                        task_name=task_name,
+                                        base_path=self.root,
+                                        datatype=self,
+                                        **description,
+                                    )
+                                }
+                            )
+                        elif self.datatype_name == "eeg":
+                            data = parse_eeg_json_sidecar(json_path)
+                            data_desc = clean_dict(
+                                data,
+                                skip_keys_to_manipulate=ManipulateKeysOption.ALL_KEYS_MANIPULATE,
+                                string_manipulation=to_snakecase,
+                            )
+                            # TODO: add electrodes here
+                            task_description = data_desc.pop("task", None)
+                            task_name = task_description.pop("task_name", None)
+                            description = {
+                                "_description": data_desc,
+                                **task_description,
+                            }
+                            self._tasks.update(
+                                {
+                                    "task-" + task_id: EEGTask(
                                         task_id="task-" + task_id,
                                         task_name=task_name,
                                         base_path=self.root,
