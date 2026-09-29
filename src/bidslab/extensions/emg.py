@@ -767,6 +767,17 @@ class EMGRecording(Recording):
         if emg_institution is not None:
             emg_description.update(asdict(self._institution))
 
+        # add task information to eeg_description
+        task_description = self.run.acquisition.task.__dict__.copy()
+        task_description.pop("acquisitions", None)
+        task_description.pop("_description", None)
+        task_description.pop("task_id", None)
+        task_description.pop("root", None)
+        task_description.pop(
+            "_acquisitions", None
+        )  # idk why it is not removed by clean_dict
+        emg_description.update(task_description)
+
         emg_description = clean_dict(emg_description)
         write_json(emg_description, output_path_emg_json)
 
