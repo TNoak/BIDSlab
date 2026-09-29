@@ -30,11 +30,11 @@ import pandas as pd
 from bidslab.common.base import BaseAcquisition, BaseTask, check_entity_mismatch
 from bidslab.common.specs_misc import (
     Column,
+    Entity,
     Event,
     Filter,
     Hardware,
     Institution,
-    Entity,
     Run,
     get_events_from_files,
     write_events_to_files,
@@ -578,6 +578,14 @@ class EEGRun(Run):
         Directory containing run-level EEG files.
     run_id : int
         Numeric run identifier used to resolve ``run-<index>`` entities.
+    eeg_reference : str,
+        General description of the reference scheme.
+    sampling_frequency : int | float,
+        Sampling frequency of all the data in the recording.
+    power_line_frequency : int | float | str,
+        Frequency of the power grid at the geographical location of the instrument.
+    software_filters : MutableMapping[str, Filter] | str,
+        Software filtering description stored in the EEG sidecar.
     virtual_entity : bool
         Parameter to distinguish virtual and real entities.
     **kwargs : Any
@@ -687,8 +695,7 @@ class EEGRun(Run):
             for space_id in space_ids:
                 self._spaces.update(
                     {
-                        "space-"
-                        + space_id: EEGSpace(
+                        "space-" + space_id: EEGSpace(
                             space_id="space-" + space_id,
                             base_path=self.root,
                             run=self,
@@ -834,7 +841,6 @@ class EEGRun(Run):
         output_path : os.PathLike | str
             The path where the output files will be written.
         """
-
         # write eeg json sidecar and eeg data
         output_path_eeg_json = append_path(output_path, "_eeg.json")
         eeg_description = self.__dict__.copy()
@@ -855,7 +861,7 @@ class EEGRun(Run):
         if eeg_institution is not None:
             eeg_description.update(asdict(self._institution))
 
-        # add taks information to eeg_description
+        # add task information to eeg_description
         task_description = self.acquisition.task.__dict__.copy()
         task_description.pop("acquisitions", None)
         task_description.pop("_description", None)
@@ -863,7 +869,7 @@ class EEGRun(Run):
         task_description.pop("root", None)
         task_description.pop(
             "_acquisitions", None
-        )  # idk why it isnt removed by clean_dict
+        )  # idk why it is not removed by clean_dict
         eeg_description.update(task_description)
 
         eeg_description = clean_dict(eeg_description)
@@ -1048,8 +1054,7 @@ class EEGAcquisition(BaseAcquisition):
             for run_id in run_ids:
                 self._runs.update(
                     {
-                        "run-"
-                        + run_id: EEGRun(
+                        "run-" + run_id: EEGRun(
                             run_id=int(run_id),
                             base_path=self.root,
                             acquisition=self,
@@ -1221,8 +1226,7 @@ class EEGTask(BaseTask):
             for acquisition_label in acquisition_labels:
                 self._acquisitions.update(
                     {
-                        "acq-"
-                        + acquisition_label: EEGAcquisition(
+                        "acq-" + acquisition_label: EEGAcquisition(
                             acquisition_id="acq-" + acquisition_label,
                             base_path=self.root,
                             task=self,
