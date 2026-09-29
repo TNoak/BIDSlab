@@ -1532,10 +1532,11 @@ def write_events_to_files(
         # copy files into the stimuli directory
         unique_files = set(data_tsv["stim_file"])
         for file in unique_files:
-            copy_file(
-                source_path=dataset_root / "stimuli" / str(file),
-                destination_path=stimuli_path,
-            )
+            if file != "n/a":
+                copy_file(
+                    source_path=dataset_root / "stimuli" / str(file),
+                    destination_path=stimuli_path,
+                )
 
     if compressed:
         data_tsv.to_csv(
