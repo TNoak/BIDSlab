@@ -1085,6 +1085,7 @@ class EEGAcquisition(BaseAcquisition):
                             acquisition=self,
                             _description=self._description,
                             virtual_entity=True,
+                            **self._description.get("eeg", None),
                         )
                     }
                 )
