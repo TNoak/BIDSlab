@@ -6,7 +6,7 @@ electrode, recording, acquisition, and task models together with helper
 functions for parsing EEG sidecars and tabular metadata.
 """
 
-#  Copyright (c) 2026 by Lukas Behammer
+#  Copyright (c) 2026 by Lukas Behammer, Tobias Noak
 #  University of Augsburg
 #  Department of Computer Science
 #  Chair of Informatics for Medical Technology
@@ -129,7 +129,8 @@ class EEGCoordinateSystem:
     fiducials_description : str | None, optional
         Free-form text description of how the fiducials were placed.
     fiducials_coordinates : Mapping[str, Sequence[float]] | None, optional
-        Key-value pairs of the labels and 3-D digitized position of anatomical landmarks.
+        Key-value pairs of the labels and 3-D digitized
+        position of anatomical landmarks.
     fiducials_coordinate_system : str | None, optional
         Defines the coordinate system for the fiducials.
     fiducials_coordinate_units : str | None, optional
@@ -137,13 +138,15 @@ class EEGCoordinateSystem:
     fiducials_coordinate_system_description : str | None, optional
         Required explanatory text when ``fiducials_coordinate_system`` is ``Other``.
     anatomical_landmark_coordinates : Mapping[str, Sequence[float]] | None, optional
-        Key-value pairs of the labels and 3-D digitized position of anatomical landmarks.
+        Key-value pairs of the labels and 3-D digitized
+        position of anatomical landmarks.
     anatomical_landmark_coordinate_system : str | None, optional
         Defines the coordinate system for the anatomical_landmarks.
     anatomical_landmark_coordinate_units : str | None, optional
         Units in which the coordinates are represented.
     anatomical_landmark_coordinate_system_description : str | None, optional
-        Required explanatory text when ``anatomical_landmark_coordinate_system`` is ``Other``.
+        Required explanatory text when
+        ``anatomical_landmark_coordinate_system`` is ``Other``.
 
     Raises
     ------
@@ -1292,8 +1295,6 @@ class EEGTask(BaseTask):
             The path where the output files will be written.
         """
         write_entities(output_path, self.acquisitions.values())
-        # TODO check if right
-        # where is json sidecar "*_eeg.json" written?
 
 
 def parse_eeg_json_sidecar(sidecar_path: pathlib.Path) -> dict:
