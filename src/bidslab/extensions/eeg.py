@@ -671,8 +671,12 @@ class EEGRun(Run):
         # Update values from self._description
         if self._description:
             eeg_description = self._description.pop("eeg", {})
+            hardware_description = self._description.pop("hardware", {})
+            institution_description = self._description.pop("institution", {})
             _ = self._description.pop("task", None)
-            set_attr_from_dict(self, {**self._description, **eeg_description})
+            set_attr_from_dict(self, {**eeg_description})
+            self.hardware = hardware_description
+            self.institution = institution_description
 
     # def __repr__(self) -> str:
     #     return f"<Run id=run-{self.run_id}>"
@@ -716,6 +720,7 @@ class EEGRun(Run):
                             base_path=self.root,
                             run=self,
                             virtual_entity=True,
+                            electrodes=self._description.get("electrodes", None),
                         )
                     }
                 )
@@ -1085,7 +1090,7 @@ class EEGAcquisition(BaseAcquisition):
                             acquisition=self,
                             _description=self._description,
                             virtual_entity=True,
-                            **self._description.get("eeg", None),
+                            **self._description.get("eeg", {}),
                         )
                     }
                 )
