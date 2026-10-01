@@ -234,7 +234,7 @@ class Datatype:
 
 def create_tasks(cls: Datatype, task_ids: set[str]) -> None:
     """
-    Create the tsks and add them to the cls object.
+    Create the tasks and add them to the cls object.
 
     Parameters
     ----------
