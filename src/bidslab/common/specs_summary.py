@@ -115,7 +115,7 @@ class Scan:
         self, base_path: os.PathLike | str, filename: os.PathLike | str, **kwargs: Any
     ) -> None:
         self.filename: pathlib.Path = pathlib.Path(filename)
-        self.columns: Sequence[str] | None = None
+        self.columns: Sequence[Column] | None = None
 
         self.root: pathlib.Path = pathlib.Path(base_path)
 
@@ -405,9 +405,24 @@ class Session(Entity):
             get_scans_from_exported_files(self, output_path)
 
         # write scans.tsv / scans.json file
-        if self.scans:
-            data_json = self.scans[0].columns
-            data_tsv = pd.DataFrame(scan.__dict__ for scan in self.scans)
+        if self._scans is not None:
+            data_json = {}
+            for scan in self._scans:
+                if scan.columns is None:
+                    continue
+                columns = scan.columns
+                column_names = []
+                for column in columns:
+                    column_dict = column.__dict__.copy()
+                    column_names.append(column_dict.pop("column_name"))
+                    column_dict = clean_dict(
+                        column_dict,
+                        skip_keys_to_manipulate=ManipulateKeysOption.NO_MANIPULATION,
+                    )
+                    if column_dict:
+                        data_json[column.column_name] = column_dict
+
+            data_tsv = pd.DataFrame(scan.__dict__ for scan in self._scans)
             data_tsv = data_tsv.drop(columns=["columns", "root"], errors="ignore")
 
             if isinstance(data_json, dict):
