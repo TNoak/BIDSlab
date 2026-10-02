@@ -24,6 +24,7 @@ from bidslab.common.base import BaseTask
 from bidslab.common.specs_task import Task
 from bidslab.extensions.eeg import EEGTask, parse_eeg_json_sidecar
 from bidslab.extensions.emg import EMGTask, parse_emg_json_sidecar
+from bidslab.extensions.ieeg import IEEGTask, parse_ieeg_json_sidecar
 from bidslab.extensions.motion import MotionTask, parse_motion_json_sidecar
 from bidslab.settings import get_settings_value
 from bidslab.utils.dict_manipulation import ManipulateKeysOption, clean_dict
@@ -275,6 +276,31 @@ def create_tasks(cls: Datatype, task_ids: set[str]) -> None:
                 cls._tasks.update(
                     {
                         "task-" + task_id: EEGTask(
+                            task_id="task-" + task_id,
+                            task_name=task_name,
+                            base_path=cls.root,
+                            datatype=cls,
+                            **description,
+                        )
+                    }
+                )
+            case "ieeg":
+                data = parse_ieeg_json_sidecar(json_path)
+                data_desc = clean_dict(
+                    data,
+                    skip_keys_to_manipulate=ManipulateKeysOption.ALL_KEYS_MANIPULATE,
+                    string_manipulation=to_snakecase,
+                )
+                # TODO: add electrodes here like with emg
+                task_description = data_desc.pop("task", None)
+                task_name = task_description.pop("task_name", None)
+                description = {
+                    "_description": data_desc,
+                    **task_description,
+                }
+                cls._tasks.update(
+                    {
+                        "task-" + task_id: IEEGTask(
                             task_id="task-" + task_id,
                             task_name=task_name,
                             base_path=cls.root,
