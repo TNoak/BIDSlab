@@ -34,6 +34,7 @@ SHORT_FORMS = {
     "po": "PO",
     "ecog": "ECOG",
     "seeg": "SEEG",
+    "ieeg": "iEEG",
 }
 
 

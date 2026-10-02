@@ -146,7 +146,7 @@ class IEEGCoordinateSystem:
     ieeg_coordinate_system: str
     ieeg_coordinate_units: str
     intended_for: str | Sequence[str] | None = None
-    ieeg_coordinate_systemeeg_coordinate_system_description: str | None = None
+    ieeg_coordinate_system_description: str | None = None
     ieeg_coordinate_processing_description: str | None = None
     ieeg_coordinate_processing_reference: str | None = None
 
