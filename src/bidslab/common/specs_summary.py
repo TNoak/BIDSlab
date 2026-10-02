@@ -868,16 +868,13 @@ def get_scans_from_exported_files(cls: Session, output_path: os.PathLike | str) 
                         filename="motion/" + file.name,
                     )
             case "emg":
-                files = list(pathlib.Path(output_path.parent / "emg").glob("*.bdf"))
-                files.extend(
-                    list(pathlib.Path(output_path.parent / "emg").glob("*.edf"))
-                )
-                files.extend(
-                    list(pathlib.Path(output_path.parent / "emg").glob("*.bdf+"))
-                )
-                files.extend(
-                    list(pathlib.Path(output_path.parent / "emg").glob("*.edf+"))
-                )
+                emg_path = output_path.parent / "emg"
+                extensions = ["*.bdf", "*.edf", "*.bdf+", "*.edf+"]
+
+                files = []
+                for extension in extensions:
+                    files.extend(emg_path.glob(extension))
+
                 for file in files:
                     add_object_to_sequence(
                         entity_list=cls._scans,
@@ -886,16 +883,32 @@ def get_scans_from_exported_files(cls: Session, output_path: os.PathLike | str) 
                         filename="emg/" + file.name,
                     )
             case "eeg":
-                files = list(pathlib.Path(output_path.parent / "eeg").glob("*.vhdr"))
-                files.extend(
-                    list(pathlib.Path(output_path.parent / "eeg").glob("*.set"))
-                )
+                eeg_path = output_path.parent / "eeg"
+                extensions = ["*.bdf", "*.edf", "*.bdf+", "*.edf+", "*.vhdr", "*.set"]
+
+                files = []
+                for extension in extensions:
+                    files.extend(eeg_path.glob(extension))
                 for file in files:
                     add_object_to_sequence(
                         entity_list=cls._scans,
                         entity_class=Scan,
                         base_path=cls.root,
                         filename="eeg/" + file.name,
+                    )
+            case "ieeg":
+                ieeg_path = output_path.parent / "ieeg"
+                extensions = ["*.edf", "*.edf+", "*.vhdr", "*.set", "*.nwb", "*.mefd"]
+
+                files = []
+                for extension in extensions:
+                    files.extend(ieeg_path.glob(extension))
+                for file in files:
+                    add_object_to_sequence(
+                        entity_list=cls._scans,
+                        entity_class=Scan,
+                        base_path=cls.root,
+                        filename="ieeg/" + file.name,
                     )
             case _:
                 if not get_settings_value("IGNORE_NOT_IMPLEMENTED"):
