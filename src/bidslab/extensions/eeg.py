@@ -1205,8 +1205,6 @@ class EEGTask(BaseTask):
 
         self.cog_atlas_id: str | None = kwargs.pop("cog_atlas_id", None)
         self.cog_po_id: str | None = kwargs.pop("cog_po_id", None)
-        # TODO fix string manipulation putting two underscores
-        self.cog_po_id: str | None = kwargs.pop("cog_po__id", None)
 
         super().__init__(
             base_path=base_path, task_name=task_name, virtual_entity=False, **kwargs
