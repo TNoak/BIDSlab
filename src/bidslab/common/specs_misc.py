@@ -577,6 +577,8 @@ class PhysioRecording(Recording):
         Information about the hardware used for this recording.
     virtual_entity : bool
         Parameter to distinguish virtual and real entities.
+    **kwargs
+        Optional recording metadata (used for eyetracking).
 
     Attributes
     ----------
@@ -618,6 +620,7 @@ class PhysioRecording(Recording):
         physio_type: str | None = None,
         hardware: Hardware | None = None,
         virtual_entity: bool = False,
+        **kwargs: Any,
     ):
         super().__init__(
             base_path=base_path,
@@ -633,6 +636,9 @@ class PhysioRecording(Recording):
 
         self._data: Any | None = None
         self._events: Sequence[Event] | None = None
+
+        for key, value in kwargs.items():
+            setattr(self, key, value)
 
     @property
     def data(self) -> pd.DataFrame:

@@ -1,5 +1,5 @@
 """
-iEEG extension models for BIDS intracranial electroencephalography datasets.
+IEEG extension models for BIDS intracranial electroencephalography datasets.
 
 This module implements iEEG-specific hardware, coordinate system, channel,
 electrode, recording, acquisition, and task models together with helper
@@ -182,6 +182,10 @@ class IEEGChannel:
         BIDS channel type.
     units : str
         Measurement unit such as ``uV``, ``mV``, or ``V``.
+    low_cutoff : int | float
+        Frequencies used for the high-pass filter applied to the channel.
+    high_cutoff : int | float
+        Frequencies used for the low-pass filter applied to the channel.
     **kwargs
         Optional metadata fields.
 
