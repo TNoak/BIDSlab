@@ -2,6 +2,29 @@
 
 ### 🚀 Features
 
+- Writing of emg json sidecars
+- Emg writing, physio and stim recordings use Hardware and Columns
+
+### 🐛 Bug Fixes
+
+- Change physio and stim recordings to use columns and hardware
+- Data loading of physio events, top level entity links for physio and stim
+- Physio and stims files loaded from higher directories
+- Add missing return types, type annotations, list comprehension
+- Include task information in emg json sidecar
+
+### 📚 Documentation
+
+- Add missing docstrings
+
+### ⚙️ Miscellaneous Tasks
+
+- Add ANN204 to ruff ignore
+
+## [0.3.0] - 2026-09-16
+
+### 🚀 Features
+
 - Add top-level entity task as property for class Acquisition
 - Add class Run
 - Add back-reference for top-level entity acquisition in class Run
