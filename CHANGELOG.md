@@ -1,4 +1,4 @@
-## [0.3.0] - 2026-09-16
+## [unreleased]
 
 ### 🚀 Features
 
@@ -20,6 +20,7 @@
 ### ⚙️ Miscellaneous Tasks
 
 - Add ANN204 to ruff ignore
+- Update changelog
 
 ## [0.3.0] - 2026-09-16
 
