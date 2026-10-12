@@ -59,6 +59,24 @@ ALLOWED_DATATYPES = {
     "emg",
 }
 
+DATATYPE_SCAN_FILEENDINGS = {  # TODO check if these are all correct
+    "anat": [".nii.gz", ".nii"],
+    "func": [".nii.gz", ".nii"],
+    "dwi": [".nii.gz", ".nii"],
+    "perf": [".nii.gz", ".nii"],
+    "fmap": [".nii.gz", ".nii"],
+    "meg": [".fif"],
+    "eeg": [".bdf", ".edf", ".vhdr", ".set"],
+    "ieeg": [".edf", ".vhdr", ".set", ".nwb", ".mefd"],
+    "beh": ["beh.tsv"],
+    "pet": [".nii.gz", "nii.gz"],
+    "micr": [".png", ".tif", ".ome.tif", ".ome.btf", ".ome.zarr"],
+    "nirs": [".snirf"],
+    "motion": ["motion.tsv"],
+    "mrs": [".nii.gz", ".nii"],
+    "emg": [".bdf", ".edf"],
+}
+
 
 class Scan:
     """
@@ -115,7 +133,7 @@ class Scan:
         self, base_path: os.PathLike | str, filename: os.PathLike | str, **kwargs: Any
     ) -> None:
         self.filename: pathlib.Path = pathlib.Path(filename)
-        self.columns: Sequence[str] | None = None
+        self.columns: Sequence[Column] | None = None
 
         self.root: pathlib.Path = pathlib.Path(base_path)
 
@@ -139,10 +157,12 @@ class Scan:
     def session(self) -> "Session | None":
         # numpydoc ignore=RT01
         """Get the session linked to this scan."""
-        if self._session:
+        if self._session is not None:
             return self._session
 
-        warn("Scan is not linked to a Session object.", TopLevelEntityNotLinkedWarning)
+        warn(  # type: ignore[unreachable]
+            "Scan is not linked to a Session object.", TopLevelEntityNotLinkedWarning
+        )
         return self._session
 
     @session.setter
@@ -402,71 +422,27 @@ class Session(Entity):
         # if no scans exist
         # get scans from exported files
         if not self.scans:
-            self._scans = []
-            assert self.datatypes is not None
-            for key in self.datatypes:
-                match key:
-                    case "motion":
-                        # get the motion.tsv filepath
-                        # idk where to get acq_time from
-                        files = list(
-                            pathlib.Path(output_path.parent / "motion").glob(
-                                "*_motion.tsv"
-                            )
-                        )
-                        for file in files:
-                            add_object_to_sequence(
-                                entity_list=self._scans,
-                                entity_class=Scan,
-                                base_path=self.root,
-                                filename="motion/" + file.name,
-                            )
-                    case "emg":
-                        files = list(
-                            pathlib.Path(output_path.parent / "emg").glob("*.bdf")
-                        )
-                        files.extend(
-                            list(pathlib.Path(output_path.parent / "emg").glob("*.edf"))
-                        )
-                        files.extend(
-                            list(
-                                pathlib.Path(output_path.parent / "emg").glob("*.bdf+")
-                            )
-                        )
-                        files.extend(
-                            list(
-                                pathlib.Path(output_path.parent / "emg").glob("*.edf+")
-                            )
-                        )
-                        for file in files:
-                            add_object_to_sequence(
-                                entity_list=self._scans,
-                                entity_class=Scan,
-                                base_path=self.root,
-                                filename="emg/" + file.name,
-                            )
-                    case "eeg":
-                        files = list(
-                            pathlib.Path(output_path.parent / "eeg").glob("*.vhdr")
-                        )
-                        files.extend(
-                            list(pathlib.Path(output_path.parent / "eeg").glob("*.set"))
-                        )
-                        for file in files:
-                            add_object_to_sequence(
-                                entity_list=self._scans,
-                                entity_class=Scan,
-                                base_path=self.root,
-                                filename="eeg/" + file.name,
-                            )
-                    case _:
-                        if not get_settings_value("IGNORE_NOT_IMPLEMENTED"):
-                            raise NotImplementedError
+            get_scans_from_exported_files(self, output_path)
 
         # write scans.tsv / scans.json file
-        if self.scans:
-            data_json = self.scans[0].columns
-            data_tsv = pd.DataFrame(scan.__dict__ for scan in self.scans)
+        if self._scans is not None:
+            data_json = {}
+            for scan in self._scans:
+                if scan.columns is None:
+                    continue
+                columns = scan.columns
+                column_names = []
+                for column in columns:
+                    column_dict = column.__dict__.copy()
+                    column_names.append(column_dict.pop("column_name"))
+                    column_dict = clean_dict(
+                        column_dict,
+                        skip_keys_to_manipulate=ManipulateKeysOption.NO_MANIPULATION,
+                    )
+                    if column_dict:
+                        data_json[column.column_name] = column_dict
+
+            data_tsv = pd.DataFrame(scan.__dict__ for scan in self._scans)
             data_tsv = data_tsv.drop(columns=["columns", "root"], errors="ignore")
 
             if isinstance(data_json, dict):
@@ -873,3 +849,41 @@ def get_scans_from_files(
                 )
 
     return scans
+
+
+def get_scans_from_exported_files(cls: Session, output_path: os.PathLike | str) -> None:
+    """
+    Create the scans and add them to the cls object.
+
+    Parameters
+    ----------
+    cls : Session
+        The session object where the scans should be added to.
+    output_path : os.PathLike | str
+        The output path where the files were exported.
+
+    Returns
+    -------
+    None
+        Scans in the cls object are updated.
+
+    Notes
+    -----
+    Creating the scans in this way means that the acquisition time is not included.
+    """
+    output_path = pathlib.Path(output_path)
+    cls._scans = []
+    assert cls.datatypes is not None
+    for key in cls.datatypes:
+        file_endings = DATATYPE_SCAN_FILEENDINGS.get(key, [])
+        files: list[pathlib.Path] = []
+        for file_ending in file_endings:
+            files.extend(cls.datatypes[key].root.glob(f"*{file_ending}"))
+
+        for file in files:
+            add_object_to_sequence(
+                entity_list=cls._scans,
+                entity_class=Scan,
+                base_path=cls.root,
+                filename=f"{key}/" + file.name,
+            )
