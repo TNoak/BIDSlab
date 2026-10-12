@@ -59,6 +59,24 @@ ALLOWED_DATATYPES = {
     "emg",
 }
 
+DATATYPE_SCAN_FILEENDINGS = {  # TODO check if these are all correct
+    "anat": [".nii.gz", ".nii"],
+    "func": [".nii.gz", ".nii"],
+    "dwi": [".nii.gz", ".nii"],
+    "perf": [".nii.gz", ".nii"],
+    "fmap": [".nii.gz", ".nii"],
+    "meg": [".fif"],
+    "eeg": [".bdf", ".edf", ".vhdr", ".set"],
+    "ieeg": [".edf", ".edf+", ".vhdr", ".set", ".nwb", ".mefd"],
+    "beh": ["beh.tsv"],
+    "pet": [".nii.gz", "nii.gz"],
+    "micr": [".png", ".tif", ".ome.tif", ".ome.btf", ".ome.zarr"],
+    "nirs": [".snirf"],
+    "motion": ["motion.tsv"],
+    "mrs": [".nii.gz", ".nii"],
+    "emg": [".bdf", ".edf"],
+}
+
 
 class Scan:
     """
@@ -139,10 +157,12 @@ class Scan:
     def session(self) -> "Session | None":
         # numpydoc ignore=RT01
         """Get the session linked to this scan."""
-        if self._session:
+        if self._session is not None:
             return self._session
 
-        warn("Scan is not linked to a Session object.", TopLevelEntityNotLinkedWarning)
+        warn(  # type: ignore[unreachable]
+            "Scan is not linked to a Session object.", TopLevelEntityNotLinkedWarning
+        )
         return self._session
 
     @session.setter
@@ -855,61 +875,15 @@ def get_scans_from_exported_files(cls: Session, output_path: os.PathLike | str) 
     cls._scans = []
     assert cls.datatypes is not None
     for key in cls.datatypes:
-        match key:
-            case "motion":
-                files = list(
-                    pathlib.Path(output_path.parent / "motion").glob("*_motion.tsv")
-                )
-                for file in files:
-                    add_object_to_sequence(
-                        entity_list=cls._scans,
-                        entity_class=Scan,
-                        base_path=cls.root,
-                        filename="motion/" + file.name,
-                    )
-            case "emg":
-                emg_path = output_path.parent / "emg"
-                extensions = ["*.bdf", "*.edf", "*.bdf+", "*.edf+"]
+        file_endings = DATATYPE_SCAN_FILEENDINGS.get(key, [])
+        files: list[pathlib.Path] = []
+        for file_ending in file_endings:
+            files.extend(cls.datatypes[key].root.glob(f"*{file_ending}"))
 
-                files = []
-                for extension in extensions:
-                    files.extend(emg_path.glob(extension))
-
-                for file in files:
-                    add_object_to_sequence(
-                        entity_list=cls._scans,
-                        entity_class=Scan,
-                        base_path=cls.root,
-                        filename="emg/" + file.name,
-                    )
-            case "eeg":
-                eeg_path = output_path.parent / "eeg"
-                extensions = ["*.bdf", "*.edf", "*.bdf+", "*.edf+", "*.vhdr", "*.set"]
-
-                files = []
-                for extension in extensions:
-                    files.extend(eeg_path.glob(extension))
-                for file in files:
-                    add_object_to_sequence(
-                        entity_list=cls._scans,
-                        entity_class=Scan,
-                        base_path=cls.root,
-                        filename="eeg/" + file.name,
-                    )
-            case "ieeg":
-                ieeg_path = output_path.parent / "ieeg"
-                extensions = ["*.edf", "*.edf+", "*.vhdr", "*.set", "*.nwb", "*.mefd"]
-
-                files = []
-                for extension in extensions:
-                    files.extend(ieeg_path.glob(extension))
-                for file in files:
-                    add_object_to_sequence(
-                        entity_list=cls._scans,
-                        entity_class=Scan,
-                        base_path=cls.root,
-                        filename="ieeg/" + file.name,
-                    )
-            case _:
-                if not get_settings_value("IGNORE_NOT_IMPLEMENTED"):
-                    raise NotImplementedError
+        for file in files:
+            add_object_to_sequence(
+                entity_list=cls._scans,
+                entity_class=Scan,
+                base_path=cls.root,
+                filename=f"{key}/" + file.name,
+            )
