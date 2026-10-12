@@ -3,7 +3,11 @@
 ### 🚀 Features
 
 - Writing of emg json sidecars
+- Add eeg modality
+- Expand scans to include ieeg
+- Add iEEG modality
 - Emg writing, physio and stim recordings use Hardware and Columns
+- Scans now work with all datatypes
 
 ### 🐛 Bug Fixes
 
@@ -11,11 +15,27 @@
 - Data loading of physio events, top level entity links for physio and stim
 - Physio and stims files loaded from higher directories
 - Add missing return types, type annotations, list comprehension
+- Remove unused method get_entity_with_ending_from_file from helpers
+- Allow stim_files to be "n/a" and therefore not be copied
 - Include task information in emg json sidecar
+- Scans columns and writing
+- Eeg default run creation
+- Eeg electrode loading
+- String_manipulation to_snakecase matching multiple short forms
+- Cog_po_id no longer has multiple underscores in eeg and ieeg
+- Ieeg string manipulation, coordinate system
+- Physio recordings now work with type eyetracking
+- Remove edf+
+
+### 🚜 Refactor
+
+- Simplify datatype task creation
+- Simplify session scans creation
 
 ### 📚 Documentation
 
 - Add missing docstrings
+- Fix EEGRun docstring
 
 ### ⚙️ Miscellaneous Tasks
 
