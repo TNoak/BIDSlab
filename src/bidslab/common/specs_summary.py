@@ -67,7 +67,7 @@ DATATYPE_SCAN_FILEENDINGS = {  # TODO check if these are all correct
     "fmap": [".nii.gz", ".nii"],
     "meg": [".fif"],
     "eeg": [".bdf", ".edf", ".vhdr", ".set"],
-    "ieeg": [".edf", ".edf+", ".vhdr", ".set", ".nwb", ".mefd"],
+    "ieeg": [".edf", ".vhdr", ".set", ".nwb", ".mefd"],
     "beh": ["beh.tsv"],
     "pet": [".nii.gz", "nii.gz"],
     "micr": [".png", ".tif", ".ome.tif", ".ome.btf", ".ome.zarr"],
