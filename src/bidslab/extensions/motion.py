@@ -406,8 +406,9 @@ class MotionRun(Run):
             )
             data_frame = load_tsv_data(path=tsv_path, header=None)
             column_names = {}
-            for channel_number, channel in enumerate(self.channels):
-                column_names[channel_number] = channel.name
+            if self.channels is not None:
+                for channel_number, channel in enumerate(self.channels):
+                    column_names[channel_number] = channel.name
             data_frame.rename(columns=column_names, inplace=True)
 
             self._data = data_frame

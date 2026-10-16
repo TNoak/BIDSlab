@@ -36,6 +36,10 @@ are used internally by the library's functions and classes.
 __all__ = [
     "EC",
     "EE",
+    "EEC",
+    "EEE",
+    "IEEC",
+    "IEEE",
     "MC",
     "A",
     "E",
@@ -46,4 +50,4 @@ __all__ = [
 ]
 
 from .base import A, E, PEntity, R, T, Writable
-from .extensions import EC, EE, MC
+from .extensions import EC, EE, EEC, EEE, IEEC, IEEE, MC

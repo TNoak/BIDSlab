@@ -354,8 +354,8 @@ class Column:
 
         set_attr_from_dict(self, kwargs)
 
-        if self.term_url and not get_settings_value("OVERRIDE_VALIDATION"):
-            check_if_valid_uri(self.term_url)
+        if self.term_url and not get_settings_value("OVERRIDE_VALIDATION"):  # type: ignore[unreachable]
+            check_if_valid_uri(self.term_url)  # type: ignore[unreachable]
 
     def __repr__(self) -> str:
         """Return a string representation of the Column object."""
@@ -398,7 +398,7 @@ class Column:
                     level = Level(level_name=key, description=val)
 
                 self._levels.append(level)
-        elif isinstance(value, Iterable) and all(isinstance(v, Level) for v in value):
+        elif all(isinstance(v, Level) for v in value):
             self._levels = value
         else:
             raise TypeError("Field `Levels` must be a list of Level objects")
@@ -634,14 +634,14 @@ class PhysioRecording(Recording):
         self.physio_type: str | None = physio_type
         self.hardware: Hardware | None = hardware
 
-        self._data: Any | None = None
+        self._data: pd.DataFrame | None = None
         self._events: Sequence[Event] | None = None
 
         for key, value in kwargs.items():
             setattr(self, key, value)
 
     @property
-    def data(self) -> pd.DataFrame:
+    def data(self) -> pd.DataFrame | None:
         # numpydoc ignore=RT01
         """Get the data of the physio recording."""
         if self._data is None:
@@ -692,13 +692,14 @@ class PhysioRecording(Recording):
 
         # write data into _physio.tsv.gz
         data_tsv = self.data
-        data_tsv.to_csv(
-            output_path_tsv,
-            sep="\t",
-            index=False,
-            header=False,
-            compression="gzip",
-        )
+        if data_tsv is not None:
+            data_tsv.to_csv(
+                output_path_tsv,
+                sep="\t",
+                index=False,
+                header=False,
+                compression="gzip",
+            )
 
         # write json sidecar
         description = self.__dict__.copy()
@@ -1097,7 +1098,7 @@ class Run(Entity, Generic[A]):
             path = path.parent
             folders.append(path)
 
-            files = []
+            files: list[pathlib.Path] = []
             for folder in folders:
                 files = files + list(folder.glob("*_stim.json"))
 
@@ -1508,8 +1509,9 @@ def write_events_to_files(
 
     # write json sidecar
     columns = events[0].columns
-
-    description = clean_dict(columns)
+    description = {}
+    if columns is not None:
+        description = clean_dict(columns)
     write_json(content=description, output_path=output_path_json)
 
     # write stimuli and tsv data
