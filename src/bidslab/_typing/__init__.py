@@ -38,9 +38,11 @@ __all__ = [
     "EE",
     "EEC",
     "EEE",
+    "EV",
     "IEEC",
     "IEEE",
     "MC",
+    "SC",
     "A",
     "E",
     "PEntity",
@@ -49,5 +51,5 @@ __all__ = [
     "Writable",
 ]
 
-from .base import A, E, PEntity, R, T, Writable
+from .base import EV, SC, A, E, PEntity, R, T, Writable
 from .extensions import EC, EE, EEC, EEE, IEEC, IEEE, MC

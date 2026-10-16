@@ -236,7 +236,7 @@ class IEEGChannel:
         """Return the validated IEEG channel type."""
         return self._type
 
-    @type.setter
+    @type.setter  # noqa: A003
     def type(self, value: str) -> None:
         # numpydoc ignore=GL08
         if value not in IEEG_CHANNEL_TYPE_ALLOWED_FIELD_ENTRIES:

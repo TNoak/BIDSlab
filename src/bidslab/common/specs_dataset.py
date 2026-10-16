@@ -821,9 +821,13 @@ class Dataset:
                         row = {}
                         if phenotype.participant:
                             row["participant_id"] = phenotype.participant.participant_id
-                        for key, value in phenotype.__dict__.items():
-                            if key not in COLUMNS_TO_REMOVE_FROM_TSV:
-                                row[key] = value
+                        row.update(
+                            {
+                                key: value
+                                for key, value in phenotype.__dict__.items()
+                                if key not in COLUMNS_TO_REMOVE_FROM_TSV
+                            }
+                        )
                         rows.append(row)
 
             phenotype_df = pd.DataFrame(rows)

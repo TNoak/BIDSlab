@@ -367,7 +367,7 @@ class Column:
         """Get the data format of the column values."""
         return self._format
 
-    @format.setter
+    @format.setter  # noqa: A003
     def format(self, value: str) -> None:
         # numpydoc ignore=GL08
         if value not in FORMAT_ALLOWED_FIELD_ENTRIES:
@@ -888,7 +888,7 @@ class StimRecording(Recording):
         write_json(description, output_path_json)
 
 
-class Run(Entity, Generic[A]):
+class Run(Entity, Generic[A]):  # noqa: UP046
     """
     Represents a single experimental run or session.
 
@@ -1384,7 +1384,7 @@ def get_recordings_from_files(
     return labels
 
 
-def get_events_from_files(
+def get_events_from_files(  # noqa: C901
     cls: Recording | Run, base_path: os.PathLike | str, file_ending: str = "events"
 ) -> MutableSequence[Event] | None:
     """

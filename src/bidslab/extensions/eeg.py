@@ -267,7 +267,7 @@ class EEGChannel:
         """Return the validated EEG channel type."""
         return self._type
 
-    @type.setter
+    @type.setter  # noqa: A003
     def type(self, value: str) -> None:
         # numpydoc ignore=GL08
         if value not in EEG_CHANNEL_TYPE_ALLOWED_FIELD_ENTRIES:

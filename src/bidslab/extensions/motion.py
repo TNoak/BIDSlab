@@ -263,7 +263,7 @@ class MotionChannel:
         """Get the BIDS channel type."""
         return self._type
 
-    @type.setter
+    @type.setter  # noqa: A003
     def type(self, value: str) -> None:
         # numpydoc ignore=GL08
         if value not in MOTION_CHANNEL_TYPE_ALLOWED_FIELD_ENTRIES:
