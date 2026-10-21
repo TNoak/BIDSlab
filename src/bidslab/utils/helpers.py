@@ -237,8 +237,7 @@ def parse_descriptive_tsv(tsv_path: pathlib.Path) -> Iterator[dict]:
         headers = lines[0].strip().split("\t")
         for line in lines[1:]:
             entries = line.strip().split("\t")
-            entry_dict = dict(zip(headers, entries, strict=False))
-            yield entry_dict
+            yield dict(zip(headers, entries, strict=False))
 
 
 def get_root_files(dataset: "Dataset") -> None:
