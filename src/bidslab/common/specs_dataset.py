@@ -404,7 +404,7 @@ class Dataset:
             set_attr_from_dict(self, kwargs)
 
         if self.dataset_doi:
-            check_if_valid_uri(self.dataset_doi)  # type: ignore[unreachable]
+            check_if_valid_uri(self.dataset_doi)
 
     def __repr__(self) -> str:
         """Return a string representation of the Dataset object."""
@@ -740,7 +740,7 @@ class Dataset:
                 path.mkdir(parents=True, exist_ok=True)
             participant.write(path)
 
-    def write_phenotype(self, output_path: os.PathLike | str) -> None:  # noqa: C901
+    def write_phenotype(self, output_path: os.PathLike | str) -> None:  # ruff: ignore[C901]
         """
         Write phenotype measurement tables and sidecars.
 

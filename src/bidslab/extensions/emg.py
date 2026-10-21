@@ -283,7 +283,7 @@ class EMGChannel:
     def __init__(
         self,
         name: str,
-        type: str,  # noqa: A002
+        type: str,  # ruff: ignore[A002]
         units: str,
         **kwargs: Any,
     ):
@@ -318,7 +318,7 @@ class EMGChannel:
         """Return the validated EMG channel type."""
         return self._type
 
-    @type.setter  # noqa: A003
+    @type.setter  # ruff: ignore[A003]
     def type(self, value: str) -> None:
         # numpydoc ignore=GL08
         if value not in EMG_CHANNEL_TYPE_ALLOWED_FIELD_ENTRIES:
@@ -735,7 +735,7 @@ class EMGRecording(Recording):
         file_name = f"*_{self.recording_id}_"
         _update_description_data(self, file_name)
 
-    def write(self, output_path: str | os.PathLike) -> None:  # noqa: C901
+    def write(self, output_path: str | os.PathLike) -> None:  # ruff: ignore[C901]
         """
         Write recording-level EMG files.
 

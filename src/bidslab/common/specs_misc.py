@@ -354,8 +354,8 @@ class Column:
 
         set_attr_from_dict(self, kwargs)
 
-        if self.term_url and not get_settings_value("OVERRIDE_VALIDATION"):  # type: ignore[unreachable]
-            check_if_valid_uri(self.term_url)  # type: ignore[unreachable]
+        if self.term_url and not get_settings_value("OVERRIDE_VALIDATION"):
+            check_if_valid_uri(self.term_url)
 
     def __repr__(self) -> str:
         """Return a string representation of the Column object."""
@@ -367,7 +367,7 @@ class Column:
         """Get the data format of the column values."""
         return self._format
 
-    @format.setter  # noqa: A003
+    @format.setter  # ruff: ignore[A003]
     def format(self, value: str) -> None:
         # numpydoc ignore=GL08
         if value not in FORMAT_ALLOWED_FIELD_ENTRIES:
@@ -888,7 +888,7 @@ class StimRecording(Recording):
         write_json(description, output_path_json)
 
 
-class Run(Entity, Generic[A]):  # noqa: UP046
+class Run[A: AcquisitionType](Entity):
     """
     Represents a single experimental run or session.
 
@@ -1384,7 +1384,7 @@ def get_recordings_from_files(
     return labels
 
 
-def get_events_from_files(  # noqa: C901
+def get_events_from_files(  # ruff: ignore[C901]
     cls: Recording | Run, base_path: os.PathLike | str, file_ending: str = "events"
 ) -> MutableSequence[Event] | None:
     """

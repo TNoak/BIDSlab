@@ -203,7 +203,7 @@ class IEEGChannel:
     def __init__(
         self,
         name: str,
-        type: str,  # noqa: A002
+        type: str,  # ruff: ignore[A002]
         units: str,
         low_cutoff: int | float,
         high_cutoff: int | float,
@@ -236,7 +236,7 @@ class IEEGChannel:
         """Return the validated IEEG channel type."""
         return self._type
 
-    @type.setter  # noqa: A003
+    @type.setter  # ruff: ignore[A003]
     def type(self, value: str) -> None:
         # numpydoc ignore=GL08
         if value not in IEEG_CHANNEL_TYPE_ALLOWED_FIELD_ENTRIES:

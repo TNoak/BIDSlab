@@ -238,7 +238,7 @@ class EEGChannel:
     def __init__(
         self,
         name: str,
-        type: str,  # noqa: A002
+        type: str,  # ruff: ignore[A002]
         units: str,
         **kwargs: Any,
     ):
@@ -267,7 +267,7 @@ class EEGChannel:
         """Return the validated EEG channel type."""
         return self._type
 
-    @type.setter  # noqa: A003
+    @type.setter  # ruff: ignore[A003]
     def type(self, value: str) -> None:
         # numpydoc ignore=GL08
         if value not in EEG_CHANNEL_TYPE_ALLOWED_FIELD_ENTRIES:

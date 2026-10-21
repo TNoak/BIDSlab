@@ -60,7 +60,7 @@ REQUIRED_ENTITIES_FOR_WRITING = {
 }
 
 
-def set_attr_from_dict(obj: T, data: dict) -> None:  # noqa: UP047
+def set_attr_from_dict[T](obj: T, data: dict) -> None:
     """
     Set object attributes from a cleaned dictionary of values.
 
@@ -885,7 +885,7 @@ def get_data() -> Any:
                     )
                 else:
                     raise ValueError(
-                        f"Package '{_pkg_str_to_pkg_name(pkg_str)}' is not available."  # type: ignore[arg-type]
+                        f"Package '{_pkg_str_to_pkg_name(pkg_str)}' is not available."
                     )
             return f(*args, **kwargs)
 
