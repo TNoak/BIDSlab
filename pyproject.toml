@@ -243,7 +243,7 @@ ignore_missing_imports = true
 testpaths = [
     "tests",
 ]
-addopts = "-ra --cov --cov-branch --cov-append --cov-report=term-missing --cov-report=xml --import-mode=importlib --random-order --strict-config --strict-markers"
+addopts = "-ra --cov --cov-branch --cov-append --cov-report=term-missing --cov-report=xml --junitxml=junit.xml -o junit_family=legacy --import-mode=importlib --random-order --strict-config --strict-markers"
 minversion = "9"
 xfail_strict = true
 log_level = "INFO"
