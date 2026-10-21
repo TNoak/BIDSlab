@@ -305,6 +305,27 @@ class InvalidURIError(Exception):
     pass
 
 
+class MisusedDecoratorError(Exception):
+    """
+    Exception raised when a decorator is applied incorrectly.
+
+    This exception is intended for internal use in BIDSlab to catch programming errors
+    where decorators are misapplied to functions or methods that do not meet the
+    expected signature or context.
+
+    Examples
+    --------
+    >>> raise MisusedDecoratorError(
+    ...     "Decorator @bids_validator applied to non-callable."
+    ... )
+    Traceback (most recent call last):
+    ...
+    MisusedDecoratorError: Decorator @bids_validator applied to non-callable.
+    """
+
+    pass
+
+
 class MultipleFilesFoundError(Exception):
     """
     Exception raised when more than one mutually exclusive file is present.

@@ -12,10 +12,11 @@ import os
 import pathlib
 import re
 import shutil
-from collections.abc import Iterable, Iterator, MutableSequence, Sequence
+from collections.abc import Callable, Iterable, Iterator, MutableSequence, Sequence
 from functools import wraps
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, TypeVar, Union
+from types import ModuleType
+from typing import TYPE_CHECKING, Any, Union
 from warnings import catch_warnings, simplefilter, warn
 
 import edf_reader
@@ -35,6 +36,7 @@ from bidslab.utils.dict_manipulation import (
 from bidslab.utils.exceptions import (
     FieldNotValidError,
     FileTypeUnsupportedWarning,
+    MisusedDecoratorError,
     MultipleFilesFoundWarning,
     PathsSameWarning,
     TopLevelEntityNotLinkedWarning,
@@ -44,6 +46,8 @@ from bidslab.utils.string_manipulation import to_snakecase
 if TYPE_CHECKING:
     from bidslab.common.specs_dataset import Dataset
 
+dl: ModuleType | None = None
+
 try:
     import datalad.api as dl
 except ImportError:
@@ -51,8 +55,6 @@ except ImportError:
     warn(
         "Datalad is not installed. Some functionalities may be limited.", ImportWarning
     )
-
-T = TypeVar("T")
 
 REQUIRED_ENTITIES_FOR_WRITING = {
     "tracksys",
@@ -860,17 +862,27 @@ def get_data() -> Any:
     ...     return path.exists()
     """
 
-    def decorator(f):  # numpydoc ignore=GL08
+    # TODO: Write extensive tests for this decorator
+    def decorator(f: Callable) -> Callable:  # numpydoc ignore=GL08
         @wraps(f)
-        def wrapper(*args, **kwargs):  # numpydoc ignore=GL08
+        def wrapper(*args: Any, **kwargs: Any) -> Any:  # numpydoc ignore=GL08
             pkg_str = get_settings_value("DATASET_FETCHING_PACKAGE")
-            if pkg_str in PackageFetching:
-                pkg = eval(pkg_str)  # type: ignore[arg-type]
+            if isinstance(pkg_str, str) and pkg_str in PackageFetching:
+                pkg = eval(pkg_str)  # ruff: ignore[S307]
             else:
                 pkg = None
-            path = kwargs.get("path")
-            if not path.exists():  # type: ignore[union-attr]
-                if pkg:
+            if "path" not in kwargs:
+                raise MisusedDecoratorError(
+                    "The @get_data decorator requires a keyword-only 'path' argument."
+                )
+            path = kwargs.get("path", None)
+            if not isinstance(path, (pathlib.Path, str)):
+                raise MisusedDecoratorError(
+                    "The @get_data decorator requires a 'path' argument of type "
+                    "pathlib.Path or str."
+                )
+            if not pathlib.Path(path).exists():
+                if isinstance(pkg, ModuleType):
                     if pkg.__name__ == "datalad.api":
                         pkg.get(path)
                     else:
@@ -880,10 +892,10 @@ def get_data() -> Any:
                         )
                 elif pkg is None:
                     raise ValueError(
-                        f"Path '{path}' does not exist and no supported data fetching "
-                        f"package is configured."
+                        "No supported data fetching package is configured."
                     )
                 else:
+                    assert isinstance(pkg_str, str)
                     raise ValueError(
                         f"Package '{_pkg_str_to_pkg_name(pkg_str)}' is not available."
                     )
