@@ -122,7 +122,7 @@ def to_snakecase(string: str) -> str:
     for value in sorted(SHORT_FORMS.values(), key=len, reverse=True):
         string = re.sub(value, f" {value.lower()} ", string)
     string = re.sub(r"[_ ]", "_", string.strip())
-    string = re.sub(r"__", "_", string)
+    string = string.replace(r"__", "_")
     string = re.sub(r"([a-z])([A-Z])", r"\1_\2", string)
     return string.lower()
 
