@@ -814,12 +814,13 @@ def write_json(content: dict[str, Any], output_path: os.PathLike | str) -> None:
     """
     output_path = pathlib.Path(output_path)
     if content:
-        json.dump(
-            content,
-            output_path.open("w", encoding="utf-8"),
-            indent=4,
-            ensure_ascii=False,
-        )
+        with output_path.open("w", encoding="utf-8") as f:
+            json.dump(
+                content,
+                f,
+                indent=4,
+                ensure_ascii=False,
+            )
 
 
 def get_data() -> Any:
