@@ -5,6 +5,7 @@
 #
 #  SPDX-License-Identifier: BSD-3-Clause
 
+import json
 import pathlib
 from warnings import warn
 
@@ -22,7 +23,12 @@ from mimesis.random import Random
 
 import bidslab as abk
 from bidslab.utils.exceptions import FieldNotValidError, TopLevelEntityNotLinkedWarning
-from tests.conftest import FixtureParameterNotSupportedError, _permutate_dict
+from tests.conftest import (
+    FixtureParameterNotSupportedError,
+    _permutate_dict,
+    delete_files,
+    make_files,
+)
 
 SYSTEMS = ["linux", "darwin", "win64"]
 PATH_TYPES = ["pathlib", "str"]
@@ -220,6 +226,49 @@ class TestCopyFile:
         with pytest.warns(abk.utils.helpers.PathsSameWarning):
             abk.utils.helpers.copy_file(source, destination)
         assert not destination.exists()
+
+
+class TestWriteJson:
+    def test_write_json(self, tmp_root):
+        # Setup
+        file_path = tmp_root / "data.json"
+        data = {"level1": "data1", "level2": "data2"}
+
+        # Test
+        abk.utils.helpers.write_json(data, file_path)
+
+        assert file_path.exists()
+        with file_path.open("r", encoding="utf-8") as f:
+            assert json.load(f) == data
+
+        # Teardown
+        delete_files(tmp_root, [file_path])
+
+    def test_write_json_file_exists(self, tmp_root):
+        # Setup
+        file_path = tmp_root / "data.json"
+        data = {"level1": "data1", "level2": "data2"}
+        make_files(tmp_root, ["data.json"])
+
+        # Test
+        abk.utils.helpers.write_json(data, file_path)
+
+        assert file_path.exists()
+        with file_path.open("r", encoding="utf-8") as f:
+            assert json.load(f) == data
+
+        # Teardown
+        delete_files(tmp_root, [file_path])
+
+    def test_write_json_empty_content(self, tmp_root):
+        # Setup
+        file_path = tmp_root / "data.json"
+        data = {}
+
+        # Test
+        abk.utils.helpers.write_json(data, file_path)
+
+        assert not file_path.exists()
 
 
 class TestWriteEntities:
