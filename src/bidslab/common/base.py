@@ -19,10 +19,10 @@ import pathlib
 from abc import ABC, abstractmethod
 from collections.abc import MutableSequence, Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Generic
+from typing import TYPE_CHECKING, Any
 from warnings import warn
 
-from bidslab._typing import R
+from bidslab._typing import RunType
 from bidslab.utils.exceptions import (
     FieldMissingError,
     TopLevelEntityNotLinkedWarning,
@@ -237,7 +237,7 @@ class BaseTask(Entity, ABC):
         self._datatype = value
 
 
-class BaseAcquisition(Entity, Generic[R], ABC):  # noqa: UP046
+class BaseAcquisition[R: RunType](Entity, ABC):
     """
     Abstract base class for Acquisition entities in BIDSlab.
 
@@ -260,7 +260,7 @@ class BaseAcquisition(Entity, Generic[R], ABC):  # noqa: UP046
         The unique identifier for the acquisition.
     root : pathlib.Path
         The root path of the acquisition data.
-    runs : MutableSequence[R] | None
+    runs : MutableSequence[RunType] | None
         The top-level Run objects associated with the Acquisition.
     """
 

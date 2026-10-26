@@ -23,7 +23,19 @@ import edf_reader
 import numpy as np
 import pandas as pd
 
-from bidslab._typing import EC, EE, EEC, EEE, EV, IEEC, IEEE, MC, SC, E, PEntity
+from bidslab._typing import (
+    EEGChannelType,
+    EEGElectrodeType,
+    EMGChannelType,
+    EMGElectrodeType,
+    EntityType,
+    EventType,
+    IEEGChannelType,
+    IEEGElectrodeType,
+    MotionChannelType,
+    PEntity,
+    ScanType,
+)
 from bidslab.settings import PackageFetching, PackageLoading, get_settings_value
 from bidslab.utils.checks import (
     check_dataset_description_present,
@@ -583,16 +595,16 @@ def get_edf_json_files(
 def add_object_to_sequence(
     entity_list: MutableSequence,
     entity_class: (
-        type[E]
-        | type[EC]
-        | type[EE]
-        | type[EEC]
-        | type[EEE]
-        | type[IEEC]
-        | type[IEEE]
-        | type[MC]
-        | type[SC]
-        | type[EV]
+        type[EEGChannelType]
+        | type[EEGElectrodeType]
+        | type[EMGChannelType]
+        | type[EMGElectrodeType]
+        | type[EntityType]
+        | type[EventType]
+        | type[IEEGChannelType]
+        | type[IEEGElectrodeType]
+        | type[MotionChannelType]
+        | type[ScanType]
     ),
     **kwargs: Any,
 ) -> None:
@@ -606,7 +618,7 @@ def add_object_to_sequence(
     ----------
     entity_list : MutableSequence
         Mutable sequence that will receive the created object.
-    entity_class : type[E] | type[EC] | type[EE] | type[MC] | type[Scan] | type[Event]
+    entity_class : type[EEGChannelType] | type[EEGElectrodeType] | type[EMGChannelType] | type[EMGElectrodeType] | type[EntityType] | type[EventType] | type[IEEGChannelType] | type[IEEGElectrodeType] | type[MotionChannelType] | type[ScanType]
         Concrete class to instantiate.
     **kwargs : Any
         Keyword arguments forwarded unchanged to ``entity_class``.

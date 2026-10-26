@@ -20,13 +20,12 @@ from dataclasses import asdict, dataclass
 from typing import (
     TYPE_CHECKING,
     Any,
-    Generic,
 )
 from warnings import warn
 
 import pandas as pd
 
-from bidslab._typing import A
+from bidslab._typing import AcquisitionType
 from bidslab.common.base import BaseAcquisition, Entity, check_entity_mismatch
 from bidslab.settings import get_settings_value
 from bidslab.utils.checks import check_if_valid_uri

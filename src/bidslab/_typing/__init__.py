@@ -34,22 +34,39 @@ are used internally by the library's functions and classes.
 #  SPDX-License-Identifier: BSD-3-Clause
 
 __all__ = [
-    "EC",
-    "EE",
-    "EEC",
-    "EEE",
-    "EV",
-    "IEEC",
-    "IEEE",
-    "MC",
-    "SC",
-    "A",
-    "E",
+    "AcquisitionType",
+    "EEGChannelType",
+    "EEGElectrodeType",
+    "EMGChannelType",
+    "EMGElectrodeType",
+    "EntityType",
+    "EventType",
+    "IEEGChannelType",
+    "IEEGElectrodeType",
+    "MotionChannelType",
     "PEntity",
-    "R",
-    "T",
+    "RunType",
+    "ScanType",
+    "TaskType",
     "Writable",
 ]
 
-from .base import EV, SC, A, E, PEntity, R, T, Writable
-from .extensions import EC, EE, EEC, EEE, IEEC, IEEE, MC
+from .base import (
+    AcquisitionType,
+    EntityType,
+    EventType,
+    PEntity,
+    RunType,
+    ScanType,
+    TaskType,
+    Writable,
+)
+from .extensions import (
+    EEGChannelType,
+    EEGElectrodeType,
+    EMGChannelType,
+    EMGElectrodeType,
+    IEEGChannelType,
+    IEEGElectrodeType,
+    MotionChannelType,
+)
