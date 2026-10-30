@@ -652,6 +652,7 @@ class PhysioRecording(Recording):
                 if check_entity_mismatch(
                     file.name.removesuffix("_physio.tsv.gz"), entities
                 ):
+                    # !TODO: handle numpy data type here
                     self._data = load_tsv_data(path=file)
                     return self._data
         return self._data
