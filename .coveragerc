@@ -1,6 +1,6 @@
 [run]
 source = src/bidslab
-omit = ".venv/*", "docs/*", "data/*", "requirements/*", "branding/*", "templates/*", "tools/*", "build/*", "dist/*", "tests/*", ".tox/*", "temp/*"
+omit = ".venv/*", "docs/*", "data/*", "requirements/*", "branding/*", "templates/*", "tools/*", "build/*", "dist/*", "tests/*", ".tox/*", "temp/*", "src/bidslab/_typing/"
 branch = true
 
 [report]
