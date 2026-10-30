@@ -1,6 +1,8 @@
 Manually maintained list of TODOs for the project.
 --------------------------------------------------
 
+TODO: Fix Sphinx errors (multiple cross-references for "type" in helpers.add_object_to_sequence; list assignment index out of range for warning.warn)
+TODO: Check list_channels and list_electrodes for reusability
 TODO: Update the README
 TODO: Update the Developer GUIDE
 TODO: Update the CONTRIBUTING.md
