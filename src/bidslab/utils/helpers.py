@@ -618,7 +618,9 @@ def add_object_to_sequence(
     ----------
     entity_list : MutableSequence
         Mutable sequence that will receive the created object.
-    entity_class : type[EEGChannelType] | type[EEGElectrodeType] | type[EMGChannelType] | type[EMGElectrodeType] | type[EntityType] | type[EventType] | type[IEEGChannelType] | type[IEEGElectrodeType] | type[MotionChannelType] | type[ScanType]
+    entity_class : EEGChannelType | EEGElectrodeType | EMGChannelType | \
+EMGElectrodeType | EntityType | EventType | IEEGChannelType | \
+IEEGElectrodeType | MotionChannelType | ScanType
         Concrete class to instantiate.
     **kwargs : Any
         Keyword arguments forwarded unchanged to ``entity_class``.
