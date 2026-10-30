@@ -61,7 +61,7 @@ if TYPE_CHECKING:
 dl: ModuleType | None = None
 
 try:
-    import datalad.api as dl
+    import datalad.api as dl  # type: ignore[no-redef]
 except ImportError:
     dl = None
     warn(
