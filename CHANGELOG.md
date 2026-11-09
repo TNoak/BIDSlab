@@ -85,6 +85,7 @@
 - Add pandas-stubs to typing dependencies
 - Update TODO list with additional tasks and notes
 - Use self-repository syntax for reusable workflows
+- Add support for maintaining Python package dependencies via uv in dependabot config
 - Add dependency review action workflow
 
 ## [0.3.0] - 2026-09-16
