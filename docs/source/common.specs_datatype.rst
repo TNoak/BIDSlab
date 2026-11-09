@@ -40,6 +40,7 @@ Module API
 
 .. automodule:: bidslab.common.specs_datatype
    :show-inheritance: True
+   :exclude-members: session, tasks
 
 Related Documentation
 ---------------------

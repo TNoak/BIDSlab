@@ -33,6 +33,7 @@ Module API
 
 .. automodule:: bidslab.common.specs_phenotype
    :show-inheritance: True
+   :exclude-members: participant, format, levels
 
 Related Documentation
 ---------------------

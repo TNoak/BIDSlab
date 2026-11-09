@@ -5,6 +5,24 @@
 Manually maintained list of TODOs for the project.
 --------------------------------------------------
 
+.. todo:: check type (e.g. reject function) for setattr
+
+.. todo:: make additional column loading saver by first checking .json and only add those as attributes
+
+.. todo:: discuss if electrode hardware should be an attribute in the hardware class or in a different class like it is done in the spec documentation
+
+.. todo:: add test case to check why '\_acquisitions' is not removed from a dict by clean\_dict
+
+.. todo:: add handling of deprecated entries via SUPPORT\_OLD\_VERSIONS and/or OVERRIDE\_VALIDATION settings
+
+.. todo:: Modality specific metadata should not be saved in the run object but the acquisition object
+
+.. todo:: Virtual entity should be hidden
+
+.. todo:: Fix Sphinx errors (multiple cross-references for "type" in helpers.add\_object\_to\_sequence; list assignment index out of range for warning.warn)
+
+.. todo:: Check list\_channels and list\_electrodes for reusability
+
 .. todo:: Update the README
 
 .. todo:: Update the Developer GUIDE

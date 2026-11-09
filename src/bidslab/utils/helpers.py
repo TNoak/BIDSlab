@@ -12,17 +12,30 @@ import os
 import pathlib
 import re
 import shutil
-from collections.abc import Iterable, Iterator, MutableSequence, Sequence
+from collections.abc import Callable, Iterable, Iterator, MutableSequence, Sequence
 from functools import wraps
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, TypeVar, Union
+from types import ModuleType
+from typing import TYPE_CHECKING, Any, Union
 from warnings import catch_warnings, simplefilter, warn
 
 import edf_reader
 import numpy as np
 import pandas as pd
 
-from bidslab._typing import EC, EE, MC, E, PEntity
+from bidslab._typing import (
+    EEGChannelType,
+    EEGElectrodeType,
+    EMGChannelType,
+    EMGElectrodeType,
+    EntityType,
+    EventType,
+    IEEGChannelType,
+    IEEGElectrodeType,
+    MotionChannelType,
+    PEntity,
+    ScanType,
+)
 from bidslab.settings import PackageFetching, PackageLoading, get_settings_value
 from bidslab.utils.checks import (
     check_dataset_description_present,
@@ -35,6 +48,7 @@ from bidslab.utils.dict_manipulation import (
 from bidslab.utils.exceptions import (
     FieldNotValidError,
     FileTypeUnsupportedWarning,
+    MisusedDecoratorError,
     MultipleFilesFoundWarning,
     PathsSameWarning,
     TopLevelEntityNotLinkedWarning,
@@ -43,18 +57,16 @@ from bidslab.utils.string_manipulation import to_snakecase
 
 if TYPE_CHECKING:
     from bidslab.common.specs_dataset import Dataset
-    from bidslab.common.specs_misc import Event
-    from bidslab.common.specs_summary import Scan
+
+dl: ModuleType | None = None
 
 try:
-    import datalad.api as dl
+    import datalad.api as dl  # type: ignore[no-redef]
 except ImportError:
     dl = None
     warn(
         "Datalad is not installed. Some functionalities may be limited.", ImportWarning
     )
-
-T = TypeVar("T")
 
 REQUIRED_ENTITIES_FOR_WRITING = {
     "tracksys",
@@ -62,7 +74,7 @@ REQUIRED_ENTITIES_FOR_WRITING = {
 }
 
 
-def set_attr_from_dict(obj: T, data: dict) -> None:
+def set_attr_from_dict[T](obj: T, data: dict) -> None:
     """
     Set object attributes from a cleaned dictionary of values.
 
@@ -237,8 +249,7 @@ def parse_descriptive_tsv(tsv_path: pathlib.Path) -> Iterator[dict]:
         headers = lines[0].strip().split("\t")
         for line in lines[1:]:
             entries = line.strip().split("\t")
-            entry_dict = dict(zip(headers, entries, strict=False))
-            yield entry_dict
+            yield dict(zip(headers, entries, strict=False))
 
 
 def get_root_files(dataset: "Dataset") -> None:
@@ -344,14 +355,14 @@ def get_matching_subpaths(
     {PosixPath('dataset/sub-01'), PosixPath('dataset/sub-01/ses-01/func')}
     """
     # Get matching subpaths in the root directory
-    paths = list(path.relative_to(root).parents) + [path]
+    paths = [*list(path.relative_to(root).parents), path]
     matching_subpaths = [
         root / dir_level
         for dir_level in paths
         for match in matches
         if dir_level.match(match)
     ]
-    return set(matching_subpaths[::-1])
+    return set(matching_subpaths)
 
 
 def get_entity_from_file(path: pathlib.Path, entity_name: str) -> dict[str, str]:
@@ -583,7 +594,18 @@ def get_edf_json_files(
 
 def add_object_to_sequence(
     entity_list: MutableSequence,
-    entity_class: "type[E] | type[EC] | type[EE] | type[MC] | type[Scan] | type[Event]",
+    entity_class: (
+        type[EEGChannelType]
+        | type[EEGElectrodeType]
+        | type[EMGChannelType]
+        | type[EMGElectrodeType]
+        | type[EntityType]
+        | type[EventType]
+        | type[IEEGChannelType]
+        | type[IEEGElectrodeType]
+        | type[MotionChannelType]
+        | type[ScanType]
+    ),
     **kwargs: Any,
 ) -> None:
     """
@@ -596,7 +618,9 @@ def add_object_to_sequence(
     ----------
     entity_list : MutableSequence
         Mutable sequence that will receive the created object.
-    entity_class : type[E] | type[EC] | type[EE] | type[MC] | type[Scan]
+    entity_class : EEGChannelType | EEGElectrodeType | EMGChannelType | \
+EMGElectrodeType | EntityType | EventType | IEEGChannelType | \
+IEEGElectrodeType | MotionChannelType | ScanType
         Concrete class to instantiate.
     **kwargs : Any
         Keyword arguments forwarded unchanged to ``entity_class``.
@@ -804,12 +828,13 @@ def write_json(content: dict[str, Any], output_path: os.PathLike | str) -> None:
     """
     output_path = pathlib.Path(output_path)
     if content:
-        json.dump(
-            content,
-            output_path.open("w", encoding="utf-8"),
-            indent=4,
-            ensure_ascii=False,
-        )
+        with output_path.open("w", encoding="utf-8") as f:
+            json.dump(
+                content,
+                f,
+                indent=4,
+                ensure_ascii=False,
+            )
 
 
 def get_data() -> Any:
@@ -851,17 +876,27 @@ def get_data() -> Any:
     ...     return path.exists()
     """
 
-    def decorator(f):  # numpydoc ignore=GL08
+    # TODO: Write extensive tests for this decorator
+    def decorator(f: Callable) -> Callable:  # numpydoc ignore=GL08
         @wraps(f)
-        def wrapper(*args, **kwargs):  # numpydoc ignore=GL08
+        def wrapper(*args: Any, **kwargs: Any) -> Any:  # numpydoc ignore=GL08
             pkg_str = get_settings_value("DATASET_FETCHING_PACKAGE")
-            if pkg_str in PackageFetching:
-                pkg = eval(pkg_str)
+            if isinstance(pkg_str, str) and pkg_str in PackageFetching:
+                pkg = eval(pkg_str)  # ruff: ignore[S307]
             else:
                 pkg = None
-            path = kwargs.get("path")
-            if not path.exists():
-                if pkg:
+            if "path" not in kwargs:
+                raise MisusedDecoratorError(
+                    "The @get_data decorator requires a keyword-only 'path' argument."
+                )
+            path = kwargs.get("path", None)
+            if not isinstance(path, (pathlib.Path, str)):
+                raise MisusedDecoratorError(
+                    "The @get_data decorator requires a 'path' argument of type "
+                    "pathlib.Path or str."
+                )
+            if not pathlib.Path(path).exists():
+                if isinstance(pkg, ModuleType):
                     if pkg.__name__ == "datalad.api":
                         pkg.get(path)
                     else:
@@ -871,10 +906,10 @@ def get_data() -> Any:
                         )
                 elif pkg is None:
                     raise ValueError(
-                        f"Path '{path}' does not exist and no supported data fetching "
-                        f"package is configured."
+                        "No supported data fetching package is configured."
                     )
                 else:
+                    assert isinstance(pkg_str, str)
                     raise ValueError(
                         f"Package '{_pkg_str_to_pkg_name(pkg_str)}' is not available."
                     )

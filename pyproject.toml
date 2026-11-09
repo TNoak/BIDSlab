@@ -27,6 +27,7 @@ license-files = ["LICENSE.txt"]
 dependencies = [
     "uritools",
     "pandas",
+    "numpy",
     "edf_reader",
 ]
 
@@ -78,6 +79,7 @@ lint = [
 ]
 typing = [
     "mypy",
+    "pandas-stubs",
 ]
 build = [
     "build",
@@ -87,7 +89,7 @@ build = [
 release = [
     {include-group = "build"},
     "twine",
-    "git-cliff"
+    "git-cliff",
 ]
 tox = [
     "tox>=4.49.0",
@@ -112,10 +114,10 @@ extend-exclude = [
     "build",
     "dist",
 ]
-#output-prefer-rule-codes = true  #! Breaks validate pyproject.toml
+output-prefer-rule-codes = true
 
 [tool.ruff.lint]
-preview = false  #! Breaks validate pyproject.toml
+preview = true
 select = [
     "A",
     "ANN",
@@ -155,13 +157,14 @@ ignore = [
     "D401", # due to numpydoc SS05 implementing this
     "D206",
     "D300",
-#    "D421",  # TODO: Remove  #! Breaks validate pyproject.toml
+    "D421",  # TODO: Remove
     "E111",
     "E114",
     "E117",
-#    "RUF105",  #! Breaks validate pyproject.toml
-#    "RUF106",  #! Breaks validate pyproject.toml
-#    "RUF201",  #! Breaks validate pyproject.toml
+#    "RUF105",
+    "RUF067",
+    "RUF106",
+    "RUF201",
     "S101",  # TODO: Remove
     "SLF001",
     "W191",
@@ -242,7 +245,7 @@ ignore_missing_imports = true
 testpaths = [
     "tests",
 ]
-addopts = "-ra --cov --cov-branch --cov-append --cov-report=term-missing --cov-report=xml --import-mode=importlib --random-order --strict-config --strict-markers"
+addopts = "-ra --cov --cov-branch --cov-append --cov-report=term-missing --cov-report=xml --junitxml=junit.xml -o junit_family=legacy --import-mode=importlib --random-order --strict-config --strict-markers"
 minversion = "9"
 xfail_strict = true
 log_level = "INFO"
@@ -253,8 +256,7 @@ filterwarnings = [
 #######################################################################
 # Vulture
 [tool.vulture]
-make_whitelist = true
-min_confidence = 80
+min_confidence = 100
 paths = ["src"]
 sort_by_size = true
 verbose = false

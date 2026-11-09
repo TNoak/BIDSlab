@@ -49,7 +49,7 @@ def sample_dict():
         ],
         "another_key": "another_value",
         "_private_key2": "private_value2",
-        "root": pathlib.Path("/tmp/root"),
+        "root": pathlib.Path("/a/root/path"),
     }
 
 

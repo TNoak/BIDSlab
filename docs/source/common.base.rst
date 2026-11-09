@@ -15,6 +15,7 @@ Module API
 
 .. automodule:: bidslab.common.base
    :show-inheritance: True
+   :exclude-members: runs, datatype
 
 Related Documentation
 ---------------------

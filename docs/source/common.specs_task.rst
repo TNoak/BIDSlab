@@ -40,6 +40,7 @@ Module API
 
 .. automodule:: bidslab.common.specs_task
    :show-inheritance: True
+   :exclude-members: acquisitions, datatype
 
 Related Documentation
 ---------------------

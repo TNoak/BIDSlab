@@ -1,6 +1,15 @@
 Manually maintained list of TODOs for the project.
 --------------------------------------------------
 
+TODO: check type (e.g. reject function) for setattr
+TODO: make additional column loading saver by first checking .json and only add those as attributes
+TODO: discuss if electrode hardware should be an attribute in the hardware class or in a different class like it is done in the spec documentation
+TODO: add test case to check why '_acquisitions' is not removed from a dict by clean_dict
+TODO: add handling of deprecated entries via SUPPORT_OLD_VERSIONS and/or OVERRIDE_VALIDATION settings
+TODO: Modality specific metadata should not be saved in the run object but the acquisition object
+TODO: Virtual entity should be hidden
+TODO: Fix Sphinx errors (multiple cross-references for "type" in helpers.add_object_to_sequence; list assignment index out of range for warning.warn)
+TODO: Check list_channels and list_electrodes for reusability
 TODO: Update the README
 TODO: Update the Developer GUIDE
 TODO: Update the CONTRIBUTING.md

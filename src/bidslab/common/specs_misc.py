@@ -20,13 +20,12 @@ from dataclasses import asdict, dataclass
 from typing import (
     TYPE_CHECKING,
     Any,
-    Generic,
 )
 from warnings import warn
 
 import pandas as pd
 
-from bidslab._typing import A
+from bidslab._typing import AcquisitionType
 from bidslab.common.base import BaseAcquisition, Entity, check_entity_mismatch
 from bidslab.settings import get_settings_value
 from bidslab.utils.checks import check_if_valid_uri
@@ -354,8 +353,8 @@ class Column:
 
         set_attr_from_dict(self, kwargs)
 
-        if self.term_url and not get_settings_value("OVERRIDE_VALIDATION"):
-            check_if_valid_uri(self.term_url)
+        if self.term_url and not get_settings_value("OVERRIDE_VALIDATION"):  # type: ignore[unreachable]
+            check_if_valid_uri(self.term_url)  # type: ignore[unreachable]
 
     def __repr__(self) -> str:
         """Return a string representation of the Column object."""
@@ -367,7 +366,7 @@ class Column:
         """Get the data format of the column values."""
         return self._format
 
-    @format.setter
+    @format.setter  # ruff: ignore[A003]
     def format(self, value: str) -> None:
         # numpydoc ignore=GL08
         if value not in FORMAT_ALLOWED_FIELD_ENTRIES:
@@ -398,7 +397,7 @@ class Column:
                     level = Level(level_name=key, description=val)
 
                 self._levels.append(level)
-        elif isinstance(value, Iterable) and all(isinstance(v, Level) for v in value):
+        elif all(isinstance(v, Level) for v in value):
             self._levels = value
         else:
             raise TypeError("Field `Levels` must be a list of Level objects")
@@ -634,14 +633,14 @@ class PhysioRecording(Recording):
         self.physio_type: str | None = physio_type
         self.hardware: Hardware | None = hardware
 
-        self._data: Any | None = None
+        self._data: pd.DataFrame | None = None
         self._events: Sequence[Event] | None = None
 
         for key, value in kwargs.items():
             setattr(self, key, value)
 
     @property
-    def data(self) -> pd.DataFrame:
+    def data(self) -> pd.DataFrame | None:
         # numpydoc ignore=RT01
         """Get the data of the physio recording."""
         if self._data is None:
@@ -653,6 +652,7 @@ class PhysioRecording(Recording):
                 if check_entity_mismatch(
                     file.name.removesuffix("_physio.tsv.gz"), entities
                 ):
+                    # !TODO: handle numpy data type here
                     self._data = load_tsv_data(path=file)
                     return self._data
         return self._data
@@ -692,13 +692,14 @@ class PhysioRecording(Recording):
 
         # write data into _physio.tsv.gz
         data_tsv = self.data
-        data_tsv.to_csv(
-            output_path_tsv,
-            sep="\t",
-            index=False,
-            header=False,
-            compression="gzip",
-        )
+        if data_tsv is not None:
+            data_tsv.to_csv(
+                output_path_tsv,
+                sep="\t",
+                index=False,
+                header=False,
+                compression="gzip",
+            )
 
         # write json sidecar
         description = self.__dict__.copy()
@@ -887,7 +888,7 @@ class StimRecording(Recording):
         write_json(description, output_path_json)
 
 
-class Run(Entity, Generic[A]):
+class Run[A: AcquisitionType](Entity):
     """
     Represents a single experimental run or session.
 
@@ -1097,7 +1098,7 @@ class Run(Entity, Generic[A]):
             path = path.parent
             folders.append(path)
 
-            files = []
+            files: list[pathlib.Path] = []
             for folder in folders:
                 files = files + list(folder.glob("*_stim.json"))
 
@@ -1383,7 +1384,7 @@ def get_recordings_from_files(
     return labels
 
 
-def get_events_from_files(
+def get_events_from_files(  # ruff: ignore[C901]
     cls: Recording | Run, base_path: os.PathLike | str, file_ending: str = "events"
 ) -> MutableSequence[Event] | None:
     """
@@ -1508,8 +1509,9 @@ def write_events_to_files(
 
     # write json sidecar
     columns = events[0].columns
-
-    description = clean_dict(columns)
+    description = {}
+    if columns is not None:
+        description = clean_dict(columns)
     write_json(content=description, output_path=output_path_json)
 
     # write stimuli and tsv data

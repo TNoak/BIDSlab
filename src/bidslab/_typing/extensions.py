@@ -13,18 +13,19 @@ and ensure type safety when working with extension entities such as Motion and E
 #
 #  SPDX-License-Identifier: BSD-3-Clause
 
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from bidslab.extensions.eeg import EEGChannel, EEGElectrode
     from bidslab.extensions.emg import EMGChannel, EMGElectrode
+    from bidslab.extensions.ieeg import IEEGChannel, IEEGElectrode
     from bidslab.extensions.motion import MotionChannel
 
-#: TypeVar bound to :py:class:`bidslab.extensions.motion.MotionChannel`
-#: and its subclasses.
-MC = TypeVar("MC", bound="MotionChannel")
 
-#: TypeVar bound to :py:class:`bidslab.extensions.emg.EMGChannel` and its subclasses.
-EC = TypeVar("EC", bound="EMGChannel")
-
-#: TypeVar bound to :py:class:`bidslab.extensions.emg.EMGElectrode` and its subclasses.
-EE = TypeVar("EE", bound="EMGElectrode")
+type EEGChannelType = "EEGChannel"
+type EEGElectrodeType = "EEGElectrode"
+type EMGChannelType = "EMGChannel"
+type EMGElectrodeType = "EMGElectrode"
+type IEEGChannelType = "IEEGChannel"
+type IEEGElectrodeType = "IEEGElectrode"
+type MotionChannelType = "MotionChannel"

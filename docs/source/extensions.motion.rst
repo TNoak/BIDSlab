@@ -20,6 +20,7 @@ Module API
 
 .. automodule:: bidslab.extensions.motion
    :show-inheritance: True
+   :exclude-members: acquisition
 
 Related Documentation
 ---------------------
