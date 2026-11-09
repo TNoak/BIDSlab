@@ -8,6 +8,8 @@
 - Add iEEG modality
 - Emg writing, physio and stim recordings use Hardware and Columns
 - Scans now work with all datatypes
+- Add bug report and feature request templates
+- Add ieeg_electrode_groups attribute
 
 ### 🐛 Bug Fixes
 
@@ -26,21 +28,62 @@
 - Ieeg string manipulation, coordinate system
 - Physio recordings now work with type eyetracking
 - Remove edf+
+- Mypy cleanup
+- Ruff checks
+- Update codecov.yml to enable informational coverage status for project and patch
+- Update root path in test_dict_manipulation.py to prevent ruff errors due to tmp file path
+- Update vulture min_confidence to 100 for stricter code analysis
+- Add numpy to dependencies in pyproject.toml and default.txt
+- Update pytest addopts in pyproject.toml to include junit output configuration
+- Enable preview mode and adjust ruff linting rules in pyproject.toml
+- Add junit.xml to .gitignore to prevent tracking of test output files
+- Optimize string replacement for double underscores in string_manipulation.py
+- Update noqa comments to ruff ignore directives in multiple files
+- Remove unnecessary type ignore comments for URI validation
+- Write json explicitly close the written file
 
 ### 🚜 Refactor
 
 - Simplify datatype task creation
 - Simplify session scans creation
+- Improve get_data decorator
+- Simplify entry dictionary creation in helpers.py
+- Modernize generic type definitions
+- Remove named arguments cog_atlas_id and cog_po_id
+- Replace setattr calls with set_attr_from_dict for cleaner attribute assignment
+- Remove task attribute
+- Remove named arguments cog_atlas_id and cog_po_id in IEEGTask
 
 ### 📚 Documentation
 
 - Add missing docstrings
 - Fix EEGRun docstring
+- Exclude duplicate members from automodule documentation
+- Format type annotation of entity_class parameter in add_object_to_sequence docstring for docs rendering
+- Fix docstring for runs property
+
+### 🎨 Styling
+
+- Add missing trailing comma in release dependencies
+- Add type ignore comments for unreachable code in validation checks
 
 ### ⚙️ Miscellaneous Tasks
 
 - Add ANN204 to ruff ignore
 - Update changelog
+- Update pre-commit hooks to latest versions
+- Update CI/CD workflows to enhance permissions and streamline processes
+- Update pre-commit hook versions
+- Exclude \_typing directory from coverage report
+- Add commitlint configuration for conventional commits
+- Add TODO for handling numpy data type in data loading
+- Enhance Napoleon configuration with additional options and update type aliases
+- Add type ignore for datalad.api import to prevent redefinition warning
+- Add todos
+- Add TODO comments to investigate clean_dict behavior and add test cases
+- Add inline comments as reminder
+- Add pandas-stubs to typing dependencies
+- Update TODO list with additional tasks and notes
 
 ## [0.3.0] - 2026-09-16
 
