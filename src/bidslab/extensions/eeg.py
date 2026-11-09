@@ -882,7 +882,7 @@ class EEGRun(Run):
             task_description.pop("root", None)
             task_description.pop(
                 "_acquisitions", None
-            )  # idk why it is not removed by clean_dict
+            )  # TODO: idk why it is not removed by clean_dict --> add a test case
             eeg_description.update(task_description)
 
         eeg_description = clean_dict(eeg_description)
