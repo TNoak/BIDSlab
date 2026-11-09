@@ -1166,10 +1166,6 @@ class IEEGTask(BaseTask):
         Root directory containing task-specific EEG files.
     task_name : str
         BIDS task label used to resolve files such as ``task-<label>``.
-    cog_atlas_id : str | None, optional
-        CogAtlasID of the corresponding Cognitive Atlas Task term.
-    cog_po_id : str | None, optional
-        CogPOID of the corresponding CogPO term.
     **kwargs : str | Datatype | MutableSequence | MutableMapping
         Optional task metadata, datatype information, inherited description
         blocks, and acquisition objects.
@@ -1199,8 +1195,6 @@ class IEEGTask(BaseTask):
         self,
         base_path: os.PathLike | str,
         task_name: str,
-        cog_atlas_id: str | None = None,
-        cog_po_id: str | None = None,
         **kwargs: "str | Datatype | MutableSequence | MutableMapping",
     ) -> None:
         description = kwargs.pop("_description", {})
@@ -1210,14 +1204,16 @@ class IEEGTask(BaseTask):
             )
         self._description: MutableMapping = description
 
-        self.cog_atlas_id: str | None = cog_atlas_id
-        self.cog_po_id: str | None = cog_po_id
-
         super().__init__(
             base_path=base_path, task_name=task_name, virtual_entity=False, **kwargs
         )
 
+        self.cog_atlas_id: str | None = None
+        self.cog_po_id: str | None = None
+
         self._acquisitions: dict[str, IEEGAcquisition] | None = None
+
+        set_attr_from_dict(self, kwargs)
 
     @property
     def acquisitions(self) -> dict[str, IEEGAcquisition]:
