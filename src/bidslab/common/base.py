@@ -261,7 +261,7 @@ class BaseAcquisition[R: RunType](Entity, ABC):
     root : pathlib.Path
         The root path of the acquisition data.
     runs : MutableSequence[RunType] | None
-        The top-level Run objects associated with the Acquisition.
+        The Run objects associated with the Acquisition.
     """
 
     @abstractmethod
@@ -290,10 +290,10 @@ class BaseAcquisition[R: RunType](Entity, ABC):
     @abstractmethod
     def runs(self) -> dict[str, R]:
         """
-        Abstract Property to get or set the top-level Run object.
+        Abstract Property to get or set the Run objects.
 
         This property must be implemented by all subclasses of BaseAcquisition to
-        manage the top-level :py:class:`~bidslab.specs_misc.Run` or its inherited
+        manage the :py:class:`~bidslab.common.specs_misc.Run` or its inherited
         objects associated with the Acquisition.
         """
         pass
