@@ -612,7 +612,7 @@ class IEEGRun(Run):
         self.power_line_frequency: int | float | str = power_line_frequency
         self.software_filters: MutableMapping[str, Filter] | str = software_filters
 
-        self.dc_offset_correction: str | None = None
+        self.dc_offset_correction: str | None = None  # ! Deprecated
         self.hardware_filters: MutableMapping[str, Filter] | str | None = None
         self.ecog_channel_count: int | None = None
         self.seeg_channel_count: int | None = None
@@ -628,7 +628,7 @@ class IEEGRun(Run):
         self.epoch_length: float | None = None
 
         self.ieeg_ground: str | None = None
-        self.ieeg_placement_scheme: str | Sequence[str] | None = None
+        self.ieeg_placement_scheme: str | Sequence[str] | None = None  # ! Sequence?
         self.ieeg_electrode_groups: str | None = None
         self.subject_artefact_description: str | None = None
 
