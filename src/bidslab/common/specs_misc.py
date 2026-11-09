@@ -353,8 +353,8 @@ class Column:
 
         set_attr_from_dict(self, kwargs)
 
-        if self.term_url and not get_settings_value("OVERRIDE_VALIDATION"):
-            check_if_valid_uri(self.term_url)
+        if self.term_url and not get_settings_value("OVERRIDE_VALIDATION"):  # type: ignore[unreachable]
+            check_if_valid_uri(self.term_url)  # type: ignore[unreachable]
 
     def __repr__(self) -> str:
         """Return a string representation of the Column object."""

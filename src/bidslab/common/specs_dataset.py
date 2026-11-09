@@ -404,7 +404,7 @@ class Dataset:
             set_attr_from_dict(self, kwargs)
 
         if self.dataset_doi:
-            check_if_valid_uri(self.dataset_doi)
+            check_if_valid_uri(self.dataset_doi)  # type: ignore[unreachable]
 
     def __repr__(self) -> str:
         """Return a string representation of the Dataset object."""
