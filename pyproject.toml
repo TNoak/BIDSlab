@@ -79,6 +79,7 @@ lint = [
 ]
 typing = [
     "mypy",
+    "pandas-stubs",
 ]
 build = [
     "build",
