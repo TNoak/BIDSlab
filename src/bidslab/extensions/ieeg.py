@@ -963,8 +963,6 @@ class IEEGAcquisition(BaseAcquisition):
         Directory containing acquisition-level EEG files.
     acquisition_id : str
         BIDS acquisition label, usually ``acq-<label>``.
-    task : IEEGTask
-        Top level task entity.
     virtual_entity : bool
         Parameter to distinguish virtual and real entities.
     **kwargs : Any
@@ -1004,7 +1002,6 @@ class IEEGAcquisition(BaseAcquisition):
         self,
         base_path: os.PathLike | str,
         acquisition_id: str,
-        task: "IEEGTask",
         virtual_entity: bool = False,
         **kwargs: Any,
     ):
@@ -1021,7 +1018,7 @@ class IEEGAcquisition(BaseAcquisition):
             virtual_entity=virtual_entity,
         )
 
-        self._task: IEEGTask | None = task
+        self._task: IEEGTask | None = None
 
         self._update_description()
 
