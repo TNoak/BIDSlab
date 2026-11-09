@@ -629,6 +629,7 @@ class IEEGRun(Run):
 
         self.ieeg_ground: str | None = None
         self.ieeg_placement_scheme: str | Sequence[str] | None = None
+        self.ieeg_electrode_groups: str | None = None
         self.subject_artefact_description: str | None = None
 
         self.electrical_stimulation: bool | None = None
