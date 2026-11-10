@@ -288,9 +288,9 @@ class TestWriteEntities:
         # Setup
         entities = [
             SampleEntity(_entity_id="0", _entity_name="task", _virtual_entity=False),
-            SampleEntity(_entity_id="1", _entity_name="task", _virtual_entity=False),
+            SampleEntity(_entity_id="1", _entity_name="ses", _virtual_entity=False),
         ]
-        expected_files = ["task-0_test.tsv", "task-1_test.tsv"]
+        expected_files = ["task-0_test.tsv", "ses-1_test.tsv"]
 
         # Test
         abk.utils.helpers.write_entities(tmp_root / "", entities)
