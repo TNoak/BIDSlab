@@ -1,0 +1,36 @@
+---
+name: Feature Request
+description: Suggest a new idea
+title: "[Feature]: "
+labels: ["enhancement", "feature", "triage"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of your idea.
+      placeholder: Describe the feature you would like to see.
+    validations:
+      required: true
+  - type: textarea
+    id: use-cases
+    attributes:
+      label: Use cases
+      description: List some reasons this would be useful.
+      placeholder: Explain why this feature would be useful and how you would use it.
+    validations:
+      required: true
+  - type: textarea
+    id: possible-implementation
+    attributes:
+      label: Possible implementation
+      description: Describe any ideas you have for how this could work.
+    validations:
+      required: false
+  - type: textarea
+    id: alternative-solutions
+    attributes:
+      label: Alternative solutions
+      description: Describe any alternative solutions or features you've considered.
+    validations:
+      required: false

@@ -1,0 +1,85 @@
+---
+name: Bug Report
+description: Something isn't working as expected
+title: "[Bug]: "
+labels: ["enhancement", "bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Your issue may already be reported!
+        Please search on the [issue tracker](https://github.com/cimt-unia/BIDSlab/issues) before creating one.
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior
+      description: If you're describing a bug, tell us what should happen.
+      placeholder: Tell us what you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: current-behavior
+    attributes:
+      label: Current Behavior
+      description: If describing a bug, tell us what happens instead of the expected behavior.
+      placeholder: Tell us what actually happened.
+    validations:
+      required: true
+  - type: textarea
+    id: possible-solution
+    attributes:
+      label: Possible Solution
+      description: |
+        Not obligatory, but suggest a fix/reason for the bug, or ideas how to implement the addition or change.
+    validations:
+      required: false
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: |
+        Provide a link to a live example, or an unambiguous set of steps to reproduce this bug.
+        Include code to reproduce, if relevant.
+      placeholder: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: |
+        How has this issue affected you? What are you trying to accomplish?
+        Providing context helps us come up with a solution that is most useful in the real world.
+    validations:
+      required: false
+  - type: input
+    id: package-version
+    attributes:
+      label: Package Version used
+      placeholder: e.g. 0.5.0
+    validations:
+      required: true
+  - type: input
+    id: bids-version
+    attributes:
+      label: BIDS Version used
+      placeholder: e.g. 1.10.0
+    validations:
+      required: true
+  - type: input
+    id: operating-system
+    attributes:
+      label: Operating System and version
+      placeholder: e.g. Ubuntu 24.04
+    validations:
+      required: true
+  - type: input
+    id: project-link
+    attributes:
+      label: Link to your project
+      placeholder: https://...
+    validations:
+      required: false
