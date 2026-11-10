@@ -171,8 +171,20 @@ repos:
     hooks:
       - id: generate_requirements
         name: Generate requirements
-        entry: python tools/generate_requirements.py
+        entry: >-
+          sh -c 'uv pip compile -q --no-deps -o requirements/default.txt pyproject.toml &&
+          uv pip compile -q --no-deps --all-extras -o requirements/extra.txt pyproject.toml &&
+          uv pip compile -q --no-deps -o requirements/test.txt --group test pyproject.toml &&
+          uv pip compile -q --no-deps -o requirements/docs.txt --group docs pyproject.toml &&
+          uv pip compile -q --no-deps -o requirements/lint.txt --group lint pyproject.toml &&
+          uv pip compile -q --no-deps -o requirements/typing.txt --group typing pyproject.toml &&
+          uv pip compile -q --no-deps -o requirements/build.txt --group build pyproject.toml &&
+          uv pip compile -q --no-deps -o requirements/release.txt --group release pyproject.toml &&
+          uv pip compile -q --no-deps -o requirements/tox.txt --group tox pyproject.toml &&
+          uv pip compile -q --no-deps -o requirements/dev.txt --group dev pyproject.toml'
         language: system
+        files: ^(pyproject\.toml)$
+        pass_filenames: false
         stages: [pre-commit]
 
       - id: generate_todos
