@@ -2,109 +2,11 @@
 
 ### 🚀 Features
 
-- Writing of emg json sidecars
-- Add eeg modality
-- Expand scans to include ieeg
-- Add iEEG modality
-- Emg writing, physio and stim recordings use Hardware and Columns
-- Scans now work with all datatypes
-- Add bug report and feature request templates
-- Add ieeg_electrode_groups attribute
-
-### 🐛 Bug Fixes
-
-- Change physio and stim recordings to use columns and hardware
-- Data loading of physio events, top level entity links for physio and stim
-- Physio and stims files loaded from higher directories
-- Add missing return types, type annotations, list comprehension
-- Remove unused method get_entity_with_ending_from_file from helpers
-- Allow stim_files to be "n/a" and therefore not be copied
-- Include task information in emg json sidecar
-- Scans columns and writing
-- Eeg default run creation
-- Eeg electrode loading
-- String_manipulation to_snakecase matching multiple short forms
-- Cog_po_id no longer has multiple underscores in eeg and ieeg
-- Ieeg string manipulation, coordinate system
-- Physio recordings now work with type eyetracking
-- Remove edf+
-- Mypy cleanup
-- Ruff checks
-- Update codecov.yml to enable informational coverage status for project and patch
-- Update root path in test_dict_manipulation.py to prevent ruff errors due to tmp file path
-- Update vulture min_confidence to 100 for stricter code analysis
-- Add numpy to dependencies in pyproject.toml and default.txt
-- Update pytest addopts in pyproject.toml to include junit output configuration
-- Enable preview mode and adjust ruff linting rules in pyproject.toml
-- Add junit.xml to .gitignore to prevent tracking of test output files
-- Optimize string replacement for double underscores in string_manipulation.py
-- Update noqa comments to ruff ignore directives in multiple files
-- Remove unnecessary type ignore comments for URI validation
-- Write json explicitly close the written file
-
-### 🚜 Refactor
-
-- Simplify datatype task creation
-- Simplify session scans creation
-- Improve get_data decorator
-- Simplify entry dictionary creation in helpers.py
-- Modernize generic type definitions
-- Remove named arguments cog_atlas_id and cog_po_id
-- Replace setattr calls with set_attr_from_dict for cleaner attribute assignment
-- Remove task attribute
-- Remove named arguments cog_atlas_id and cog_po_id in IEEGTask
-
-### 📚 Documentation
-
-- Add missing docstrings
-- Fix EEGRun docstring
-- Exclude duplicate members from automodule documentation
-- Format type annotation of entity_class parameter in add_object_to_sequence docstring for docs rendering
-- Fix docstring for runs property
-- Update requirements/README.md to clarify requirements file generation and usage
-- Update TODO list to include actionlint ignore removal note
-
-### 🎨 Styling
-
-- Add missing trailing comma in release dependencies
-- Add type ignore comments for unreachable code in validation checks
-- Remove unnecessary blank line in tox.ini
-
-### ⚙️ Miscellaneous Tasks
-
-- Add ANN204 to ruff ignore
-- Update changelog
-- Update pre-commit hooks to latest versions
-- Update CI/CD workflows to enhance permissions and streamline processes
-- Update pre-commit hook versions
-- Exclude \_typing directory from coverage report
-- Add commitlint configuration for conventional commits
-- Add TODO for handling numpy data type in data loading
-- Enhance Napoleon configuration with additional options and update type aliases
-- Add type ignore for datalad.api import to prevent redefinition warning
-- Add todos
-- Add TODO comments to investigate clean_dict behavior and add test cases
-- Add inline comments as reminder
-- Add pandas-stubs to typing dependencies
-- Update TODO list with additional tasks and notes
-- Use self-repository syntax for reusable workflows
-- Add support for maintaining Python package dependencies via uv in dependabot config
-- Add dependency review action workflow
-- Replace markdown issue templates with YAML configurations for bug and feature requests
-- Add check-python-versions hook to pre-commit configuration
-- Update dependency review action configuration and permissions
-- Update classifiers for Python version support in pyproject.toml
-- Add Python 3.14 to the testing matrix in GitHub Actions
-- Add uv.lock file
-- Add additional environments for developer tasks in tox
-- Regenerate requirements files and remove obsolete ones
-- Update generate_requirements hook to compile multiple requirement files with uv
-- Update generate_todos entry to use uv for execution
-
-## [0.3.0] - 2026-09-16
-
-### 🚀 Features
-
+- Add functionality to load bids datasets
+- Add MotionTasks
+- Add Acquisitions
+- Add automatic building of task_id
+- Add add_entity_to_list helper to prepare for refactoring
 - Add top-level entity task as property for class Acquisition
 - Add class Run
 - Add back-reference for top-level entity acquisition in class Run
@@ -149,9 +51,18 @@
 - Loading of events and stims files from higher directory levels
 - First working draft of physio recordings, stim recordings
 - Physioevents first working draft
+- Writing of emg json sidecars
+- Add eeg modality
+- Expand scans to include ieeg
+- Add iEEG modality
+- Emg writing, physio and stim recordings use Hardware and Columns
+- Scans now work with all datatypes
+- Add bug report and feature request templates
+- Add ieeg_electrode_groups attribute
 
 ### 🐛 Bug Fixes
 
+- Rewrite top-level entity linking
 - Add base_path argument during task instancing in method task.setter of class datatype
 - Convert base_path argument of class TrackSys to pathlib.Path during initialization
 - Set attribute tracking_system_name in class TrackSys correctly
@@ -179,9 +90,46 @@
 - Tests
 - Use correct package name for version detection
 - Do not add a new line at end of file when creating todos
+- Change physio and stim recordings to use columns and hardware
+- Data loading of physio events, top level entity links for physio and stim
+- Physio and stims files loaded from higher directories
+- Add missing return types, type annotations, list comprehension
+- Remove unused method get_entity_with_ending_from_file from helpers
+- Allow stim_files to be "n/a" and therefore not be copied
+- Include task information in emg json sidecar
+- Scans columns and writing
+- Eeg default run creation
+- Eeg electrode loading
+- String_manipulation to_snakecase matching multiple short forms
+- Cog_po_id no longer has multiple underscores in eeg and ieeg
+- Ieeg string manipulation, coordinate system
+- Physio recordings now work with type eyetracking
+- Remove edf+
+- Ruff checks
+- Update codecov.yml to enable informational coverage status for project and patch
+- Update root path in test_dict_manipulation.py to prevent ruff errors due to tmp file path
+- Update vulture min_confidence to 100 for stricter code analysis
+- Add numpy to dependencies in pyproject.toml and default.txt
+- Update pytest addopts in pyproject.toml to include junit output configuration
+- Enable preview mode and adjust ruff linting rules in pyproject.toml
+- Add junit.xml to .gitignore to prevent tracking of test output files
+- Optimize string replacement for double underscores in string_manipulation.py
+- Update noqa comments to ruff ignore directives in multiple files
+- Remove unnecessary type ignore comments for URI validation
+- Write json explicitly close the written file
+
+### 💼 Other
+
+- Fix dynamic versioning for setuptools in pyproject.toml
 
 ### 🚜 Refactor
 
+- Move class Task to its own file
+- Remove second SPDX-License-Identifier in utils/helpers
+- Move Task definition to an abstract base class BaseTask and subclass Task and MotionTask
+- Refactor warnings import
+- Refactor tests for set_attr_from_dict
+- Move functionality to get low-level entities from files to their own functions
 - Adjust skipping of titlecase conversion in function clean_dict
 - Add name argument to function get_settings_values
 - Use dicts instead of Sequences for downstream entities
@@ -202,6 +150,15 @@
 - Format to ruff rules
 - Use setuptools-scm versioning
 - Use set instead of list for get_matching_subpaths
+- Simplify datatype task creation
+- Simplify session scans creation
+- Improve get_data decorator
+- Simplify entry dictionary creation in helpers.py
+- Modernize generic type definitions
+- Remove named arguments cog_atlas_id and cog_po_id
+- Replace setattr calls with set_attr_from_dict for cleaner attribute assignment
+- Remove task attribute
+- Remove named arguments cog_atlas_id and cog_po_id in IEEGTask
 
 ### 📚 Documentation
 
@@ -236,9 +193,19 @@
 - Add codespell ignore
 - Add missing docstrings
 - Add that BIDSlab is not affiliated with BIDS organization
+- Fix EEGRun docstring
+- Exclude duplicate members from automodule documentation
+- Format type annotation of entity_class parameter in add_object_to_sequence docstring for docs rendering
+- Fix docstring for runs property
+- Update requirements/README.md to clarify requirements file generation and usage
+- Update TODO list to include actionlint ignore removal note
 
 ### 🎨 Styling
 
+- Remove extra whitespace in brackets of .pre-commit-config.yaml
+- Add static typing for functions in helpers.py
+- Add type hints for dataset paths
+- Add 'str' as type hint for path argument in load_dataset
 - Add type hints for static typing to class TrackSys
 - Add type hints for static typing to function parse_motion_json_sidecar
 - Add return type hint for tracking_systems getter in class MotionTask
@@ -248,9 +215,16 @@
 - Format code with ruff
 - Add missing blank line
 - Fix typo and remove second SPDX-Identifier
+- Add missing trailing comma in release dependencies
+- Add type ignore comments for unreachable code in validation checks
+- Remove unnecessary blank line in tox.ini
 
 ### 🧪 Testing
 
+- Add test for c536e109
+- Refactor sample classes to accept parameters in init method
+- Add tests for 3a6097c1
+- Change test_description_missing
 - Fix final assertion for test_tsv_json_files_multiple_json
 - Change pytest fixture scope for tmp_root creation to 'module' to enable parallel tox runs
 - Update tests for version check for 607f907c
@@ -260,6 +234,12 @@
 
 ### ⚙️ Miscellaneous Tasks
 
+- Initial commit
+- Update .gitignore and pyproject.toml
+- *(release)* 0.1.0 (Automatically generated by python-semantic-release)
+- Fix changelog and version for 66b68782
+- Fix License-Identifier in init file and readme
+- *(release)* 0.2.0 (Automatically generated by python-semantic-release)
 - Add pandas-stubs dependency to mypy hook in .pre-commit-config.yaml
 - Update .pre-commit-config.yaml
 - Add script to generate todo list
@@ -306,66 +286,30 @@
 - Add zizmor to pre-commit config
 - Prepare release to PyPI
 - Disable ruff preview rules to prevent errors from validate pyrpoject precommit hook
-
-## [0.2.0] - 2025-09-25
-
-### 🚀 Features
-
-- Add MotionTasks
-- Add Acquisitions
-- Add automatic building of task_id
-- Add add_entity_to_list helper to prepare for refactoring
-
-### 🐛 Bug Fixes
-
-- Rewrite top-level entity linking
-
-### 💼 Other
-
-- Fix dynamic versioning for setuptools in pyproject.toml
-
-### 🚜 Refactor
-
-- Move class Task to its own file
-- Remove second SPDX-License-Identifier in utils/helpers
-- Move Task definition to an abstract base class BaseTask and subclass Task and MotionTask
-- Refactor warnings import
-- Refactor tests for set_attr_from_dict
-- Move functionality to get low-level entities from files to their own functions
-
-### 🎨 Styling
-
-- Remove extra whitespace in brackets of .pre-commit-config.yaml
-- Add static typing for functions in helpers.py
-- Add type hints for dataset paths
-- Add 'str' as type hint for path argument in load_dataset
-
-### 🧪 Testing
-
-- Add test for c536e109
-- Refactor sample classes to accept parameters in init method
-- Add tests for 3a6097c1
-- Change test_description_missing
-
-### ⚙️ Miscellaneous Tasks
-
-- *(release)* 0.2.0 (Automatically generated by python-semantic-release)
-
-## [0.1.0.post1] - 2025-09-22
-
-### ⚙️ Miscellaneous Tasks
-
-- Fix changelog and version for 66b68782
-- Fix License-Identifier in init file and readme
-
-## [0.1.0] - 2025-09-22
-
-### 🚀 Features
-
-- Add functionality to load bids datasets
-
-### ⚙️ Miscellaneous Tasks
-
-- Initial commit
-- Update .gitignore and pyproject.toml
-- *(release)* 0.1.0 (Automatically generated by python-semantic-release)
+- Add ANN204 to ruff ignore
+- Update pre-commit hooks to latest versions
+- Update CI/CD workflows to enhance permissions and streamline processes
+- Update pre-commit hook versions
+- Exclude \_typing directory from coverage report
+- Add commitlint configuration for conventional commits
+- Add TODO for handling numpy data type in data loading
+- Enhance Napoleon configuration with additional options and update type aliases
+- Add type ignore for datalad.api import to prevent redefinition warning
+- Add todos
+- Add TODO comments to investigate clean_dict behavior and add test cases
+- Add inline comments as reminder
+- Add pandas-stubs to typing dependencies
+- Update TODO list with additional tasks and notes
+- Use self-repository syntax for reusable workflows
+- Add support for maintaining Python package dependencies via uv in dependabot config
+- Add dependency review action workflow
+- Replace markdown issue templates with YAML configurations for bug and feature requests
+- Add check-python-versions hook to pre-commit configuration
+- Update dependency review action configuration and permissions
+- Update classifiers for Python version support in pyproject.toml
+- Add Python 3.14 to the testing matrix in GitHub Actions
+- Add uv.lock file
+- Add additional environments for developer tasks in tox
+- Regenerate requirements files and remove obsolete ones
+- Update generate_requirements hook to compile multiple requirement files with uv
+- Update generate_todos entry to use uv for execution
