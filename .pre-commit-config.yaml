@@ -189,6 +189,6 @@ repos:
 
       - id: generate_todos
         name: Generate ToDos
-        entry: python tools/generate_todos.py
+        entry: sh -c 'uv run tools/generate_todos.py'
         language: system
         stages: [pre-commit]
