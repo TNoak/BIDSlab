@@ -5,6 +5,8 @@
 Manually maintained list of TODOs for the project.
 --------------------------------------------------
 
+.. todo:: remove the actionlint ignore for the $/ action call once actionlint supports it
+
 .. todo:: check type (e.g. reject function) for setattr
 
 .. todo:: make additional column loading saver by first checking .json and only add those as attributes
