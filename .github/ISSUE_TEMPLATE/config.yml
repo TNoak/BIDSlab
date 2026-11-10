@@ -1,0 +1,9 @@
+---
+blank_issues_enabled: true
+contact_links:
+  - name: Search existing issues
+    url: https://github.com/cimt-unia/BIDSlab/issues
+    about: Please search the issue tracker before opening a new issue.
+  - name: Documentation
+    url: https://bidslab.readthedocs.io/
+    about: Check the BIDSlab documentation for usage help and examples.

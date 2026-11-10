@@ -46,6 +46,7 @@ Module API
 
 .. automodule:: bidslab.common.specs_misc
    :show-inheritance: True
+   :exclude-members: runs, task, format, levels, name, parameters, device_serial_number, manufacturer, manufacturers_model_name, software_versions, institution_address, institution_name, institutional_department_name, description, level_name, term_url, data, events, run, acquisition, physio, stims
 
 Related Documentation
 ---------------------

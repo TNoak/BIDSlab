@@ -16,6 +16,7 @@ Module API
 
 .. automodule:: bidslab.common.specs_summary
    :show-inheritance: True
+   :exclude-members: dataset, phenotype, sessions, filepath, session, datatypes, participant, scans
 
 Related Documentation
 ---------------------

@@ -20,13 +20,12 @@ from dataclasses import asdict, dataclass
 from typing import (
     TYPE_CHECKING,
     Any,
-    Generic,
 )
 from warnings import warn
 
 import pandas as pd
 
-from bidslab._typing import A
+from bidslab._typing import AcquisitionType
 from bidslab.common.base import BaseAcquisition, Entity, check_entity_mismatch
 from bidslab.settings import get_settings_value
 from bidslab.utils.checks import check_if_valid_uri
@@ -354,8 +353,8 @@ class Column:
 
         set_attr_from_dict(self, kwargs)
 
-        if self.term_url and not get_settings_value("OVERRIDE_VALIDATION"):
-            check_if_valid_uri(self.term_url)
+        if self.term_url and not get_settings_value("OVERRIDE_VALIDATION"):  # type: ignore[unreachable]
+            check_if_valid_uri(self.term_url)  # type: ignore[unreachable]
 
     def __repr__(self) -> str:
         """Return a string representation of the Column object."""
@@ -653,6 +652,7 @@ class PhysioRecording(Recording):
                 if check_entity_mismatch(
                     file.name.removesuffix("_physio.tsv.gz"), entities
                 ):
+                    # !TODO: handle numpy data type here
                     self._data = load_tsv_data(path=file)
                     return self._data
         return self._data

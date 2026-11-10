@@ -128,12 +128,16 @@ autodoc_default_options = {
 # -- Options for Napoleon -----------------------------------------------------
 napoleon_google_docstring = False
 napoleon_use_admonition_for_notes = True
+napoleon_use_admonition_for_references = True
 napoleon_use_rtype = False
 napoleon_preprocess_types = True
+napoleon_custom_sections = [("Attributes", "params_style")]
 napoleon_type_aliases = {
     "A": "bidslab.common.base.BaseAcquisition",
     "E": "bidslab.common.base.Entity",
+    "EV": "bidslab.common.specs_misc.Event",
     "R": "bidslab.common.specs_misc.Run",
+    "SC": "bidslab.common.specs_summary.Scan",
     "T": "bidslab.common.base.BaseTask",
 }
 

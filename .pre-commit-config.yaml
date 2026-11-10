@@ -29,7 +29,7 @@ repos:
       - id: rst-inline-touching-normal
 
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.38.0
+    rev: 0.39.0
     hooks:
       - id: check-dependabot
       - id: check-github-workflows
@@ -38,17 +38,23 @@ repos:
       - id: check-github-issue-forms
       - id: check-readthedocs
       - id: check-codecov
+      # - id: check-citation-file-format
 
   - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
-    rev: v9.24.0
+    rev: v9.27.0
     hooks:
       - id: commitlint
         stages: [commit-msg]
         additional_dependencies: ["@commitlint/config-conventional"]
 
+  - repo: https://github.com/mgedmin/check-python-versions
+    rev: 0.25.0
+    hooks:
+      - id: check-python-versions
+
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff version.
-    rev: v0.16.4
+    rev: v0.17.4
     hooks:
       # Run the linter.
       - id: ruff-check
@@ -68,14 +74,14 @@ repos:
       - id: sp-repo-review
 
   - repo: https://github.com/abravalheri/validate-pyproject
-    rev: '0.26'
+    rev: 'v0.27'
     hooks:
       - id: validate-pyproject
         name: Validate pyproject.toml
         additional_dependencies: ["validate-pyproject-schema-store[all]"]
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.19.1
+    rev: v3.22.0
     hooks:
       - id: pyupgrade
 
@@ -92,7 +98,7 @@ repos:
           - sphinx>=1.8.1
 
   - repo: https://github.com/numpy/numpydoc
-    rev: v1.10.0
+    rev: v1.11.0
     hooks:
       - id: numpydoc-validation
 
@@ -126,7 +132,7 @@ repos:
           - ruff
 
   - repo: https://github.com/tox-dev/tox-ini-fmt
-    rev: 1.9.0
+    rev: 1.10.2
     hooks:
       - id: tox-ini-fmt
 
@@ -142,12 +148,12 @@ repos:
           )
 
   - repo: https://github.com/zizmorcore/zizmor-pre-commit
-    rev: v1.26.1
+    rev: v1.32.0
     hooks:
       - id: zizmor
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v2.3.1
+    rev: v2.4.1
     hooks:
       - id: mypy
         additional_dependencies: [uritools, pandas-stubs]
@@ -165,12 +171,24 @@ repos:
     hooks:
       - id: generate_requirements
         name: Generate requirements
-        entry: python tools/generate_requirements.py
+        entry: >-
+          sh -c 'uv pip compile -q --no-deps -o requirements/default.txt pyproject.toml &&
+          uv pip compile -q --no-deps --all-extras -o requirements/extra.txt pyproject.toml &&
+          uv pip compile -q --no-deps -o requirements/test.txt --group test pyproject.toml &&
+          uv pip compile -q --no-deps -o requirements/docs.txt --group docs pyproject.toml &&
+          uv pip compile -q --no-deps -o requirements/lint.txt --group lint pyproject.toml &&
+          uv pip compile -q --no-deps -o requirements/typing.txt --group typing pyproject.toml &&
+          uv pip compile -q --no-deps -o requirements/build.txt --group build pyproject.toml &&
+          uv pip compile -q --no-deps -o requirements/release.txt --group release pyproject.toml &&
+          uv pip compile -q --no-deps -o requirements/tox.txt --group tox pyproject.toml &&
+          uv pip compile -q --no-deps -o requirements/dev.txt --group dev pyproject.toml'
         language: system
+        files: ^(pyproject\.toml)$
+        pass_filenames: false
         stages: [pre-commit]
 
       - id: generate_todos
         name: Generate ToDos
-        entry: python tools/generate_todos.py
+        entry: sh -c 'uv run tools/generate_todos.py'
         language: system
         stages: [pre-commit]
