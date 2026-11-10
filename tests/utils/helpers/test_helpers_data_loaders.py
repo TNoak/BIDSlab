@@ -7,15 +7,13 @@
 
 import pathlib
 
+import datalad as dl
+import numpy as np
+import pandas as pd
 import pytest
 from mimesis.enums import (
     FileType,
 )
-from mimesis.random import Random
-
-import numpy as np
-import pandas as pd
-import datalad as dl
 
 import bidslab as abk
 from tests.conftest import (
