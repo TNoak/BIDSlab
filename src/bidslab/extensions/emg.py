@@ -783,7 +783,7 @@ class EMGRecording(Recording):
             task_description.pop("root", None)
             task_description.pop(
                 "_acquisitions", None
-            )  # idk why it is not removed by clean_dict
+            )  # TODO: idk why it is not removed by clean_dict --> add test case
             emg_description.update(task_description)
 
         emg_description = clean_dict(emg_description)

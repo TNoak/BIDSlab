@@ -20,6 +20,7 @@ from bidslab.common.specs_misc import Column
 from bidslab.settings import get_settings_value
 from bidslab.utils.checks import check_if_valid_uri
 from bidslab.utils.exceptions import TopLevelEntityNotLinkedWarning
+from bidslab.utils.helpers import set_attr_from_dict
 
 if TYPE_CHECKING:
     from bidslab.common.specs_summary import Participant
@@ -130,11 +131,10 @@ class MeasurementTool:
 
         self.columns: Sequence[PhenotypeColumn] | None = None
 
-        for key, value in kwargs.items():
-            setattr(self, key, value)
+        set_attr_from_dict(self, kwargs)
 
-        if self.term_url and not get_settings_value("OVERRIDE_VALIDATION"):
-            check_if_valid_uri(self.term_url)
+        if self.term_url and not get_settings_value("OVERRIDE_VALIDATION"):  # type: ignore[unreachable]
+            check_if_valid_uri(self.term_url)  # type: ignore[unreachable]
 
     def __repr__(self) -> str:
         """Return a string representation of the MeasurementTool object."""

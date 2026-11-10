@@ -42,6 +42,7 @@ Module API
 
 .. automodule:: bidslab.common.specs_dataset
    :show-inheritance: True
+   :exclude-members: tag, type, uri, format, generated_by, participants, source_datasets, container, doi, url, version
 
 Related Documentation
 ---------------------

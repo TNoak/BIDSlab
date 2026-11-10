@@ -612,7 +612,7 @@ class IEEGRun(Run):
         self.power_line_frequency: int | float | str = power_line_frequency
         self.software_filters: MutableMapping[str, Filter] | str = software_filters
 
-        self.dc_offset_correction: str | None = None
+        self.dc_offset_correction: str | None = None  # ! Deprecated
         self.hardware_filters: MutableMapping[str, Filter] | str | None = None
         self.ecog_channel_count: int | None = None
         self.seeg_channel_count: int | None = None
@@ -628,7 +628,8 @@ class IEEGRun(Run):
         self.epoch_length: float | None = None
 
         self.ieeg_ground: str | None = None
-        self.ieeg_placement_scheme: str | Sequence[str] | None = None
+        self.ieeg_placement_scheme: str | Sequence[str] | None = None  # ! Sequence?
+        self.ieeg_electrode_groups: str | None = None
         self.subject_artefact_description: str | None = None
 
         self.electrical_stimulation: bool | None = None
@@ -962,8 +963,6 @@ class IEEGAcquisition(BaseAcquisition):
         Directory containing acquisition-level EEG files.
     acquisition_id : str
         BIDS acquisition label, usually ``acq-<label>``.
-    task : IEEGTask
-        Top level task entity.
     virtual_entity : bool
         Parameter to distinguish virtual and real entities.
     **kwargs : Any
@@ -1003,7 +1002,6 @@ class IEEGAcquisition(BaseAcquisition):
         self,
         base_path: os.PathLike | str,
         acquisition_id: str,
-        task: "IEEGTask",
         virtual_entity: bool = False,
         **kwargs: Any,
     ):
@@ -1020,7 +1018,7 @@ class IEEGAcquisition(BaseAcquisition):
             virtual_entity=virtual_entity,
         )
 
-        self._task: IEEGTask | None = task
+        self._task: IEEGTask | None = None
 
         self._update_description()
 
@@ -1168,10 +1166,6 @@ class IEEGTask(BaseTask):
         Root directory containing task-specific EEG files.
     task_name : str
         BIDS task label used to resolve files such as ``task-<label>``.
-    cog_atlas_id : str | None, optional
-        CogAtlasID of the corresponding Cognitive Atlas Task term.
-    cog_po_id : str | None, optional
-        CogPOID of the corresponding CogPO term.
     **kwargs : str | Datatype | MutableSequence | MutableMapping
         Optional task metadata, datatype information, inherited description
         blocks, and acquisition objects.
@@ -1201,8 +1195,6 @@ class IEEGTask(BaseTask):
         self,
         base_path: os.PathLike | str,
         task_name: str,
-        cog_atlas_id: str | None = None,
-        cog_po_id: str | None = None,
         **kwargs: "str | Datatype | MutableSequence | MutableMapping",
     ) -> None:
         description = kwargs.pop("_description", {})
@@ -1212,14 +1204,16 @@ class IEEGTask(BaseTask):
             )
         self._description: MutableMapping = description
 
-        self.cog_atlas_id: str | None = cog_atlas_id
-        self.cog_po_id: str | None = cog_po_id
-
         super().__init__(
             base_path=base_path, task_name=task_name, virtual_entity=False, **kwargs
         )
 
+        self.cog_atlas_id: str | None = None
+        self.cog_po_id: str | None = None
+
         self._acquisitions: dict[str, IEEGAcquisition] | None = None
+
+        set_attr_from_dict(self, kwargs)
 
     @property
     def acquisitions(self) -> dict[str, IEEGAcquisition]:
