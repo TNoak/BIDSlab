@@ -997,16 +997,8 @@ class Run[A: AcquisitionType](Entity):
                 return None
             self._physio = {}
 
-            # make files a list and append all possible
-            # files in higher directories
-            folders = [self.root]
-            path = self.root
-            target = self.get_top_level_entities()[0]
-            while path.name != target:
-                path = path.parent
-                folders.append(path)
-            path = path.parent
-            folders.append(path)
+            # get directories
+            folders = get_higher_directories(self.root)
 
             files: list[pathlib.Path] = []
             for folder in folders:
@@ -1088,16 +1080,8 @@ class Run[A: AcquisitionType](Entity):
                 return None
             self._stims = {}
 
-            # make files a list and append all possible
-            # files in higher directories
-            folders = [self.root]
-            path = self.root
-            target = self.get_top_level_entities()[0]
-            while path.name != target:
-                path = path.parent
-                folders.append(path)
-            path = path.parent
-            folders.append(path)
+            # get directories
+            folders = get_higher_directories(self.root)
 
             files: list[pathlib.Path] = []
             for folder in folders:
