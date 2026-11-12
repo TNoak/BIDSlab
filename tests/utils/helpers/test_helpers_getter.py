@@ -295,3 +295,28 @@ def test_get_entity_from_file(entity):
     # Test
     result = abk.utils.helpers.get_entity_from_file(file_path, entity[0])
     assert result == entity[1]
+
+
+class TestGetHigherDirectories:
+    def test_get_higher_directories_good_structure(self, tmp_root):
+        # Setup
+        path = tmp_root / "sub-0/ses-0/anat"
+
+        expected_result = [
+            tmp_root / "sub-0" / "ses-0" / "anat",
+            tmp_root / "sub-0" / "ses-0",
+            tmp_root / "sub-0",
+            tmp_root,
+        ]
+
+        # Test
+        directories = abk.utils.helpers.get_higher_directories(path)
+        assert directories == expected_result
+
+    def test_get_higher_directories_bad_structure(self, tmp_root):
+        # Setup
+        path = tmp_root / "sub-0/some-other-directory-name/ses-0/anat"
+
+        # Test
+        with pytest.raises(abk.utils.exceptions.BadDirectoryStructureError):
+            abk.utils.helpers.get_higher_directories(path)
