@@ -44,6 +44,7 @@ from bidslab.utils.helpers import (
     copy_file,
     get_entity_from_file,
     get_higher_directories,
+    get_tsv_json_files,
     load_tsv_data,
     parse_descriptive_tsv,
     parse_json_sidecar,
@@ -645,17 +646,15 @@ class PhysioRecording(Recording):
         # numpydoc ignore=RT01
         """Get the data of the physio recording."""
         if self._data is None:
-            # load data
-            files = self.root.glob("*physio.tsv.gz")
-            entities = self.get_top_level_entities()
-            for file in files:
-                # test if file is valid
-                if check_entity_mismatch(
-                    file.name.removesuffix("_physio.tsv.gz"), entities
-                ):
-                    # !TODO: handle numpy data type here
-                    self._data = load_tsv_data(path=file)
-                    return self._data
+            # folders = get_higher_directories(self.root)
+            # TODO check where the data file could be located
+
+            tsv_file, _ = get_tsv_json_files(
+                self.root, "*_stim", self.get_top_level_entities()
+            )
+            if tsv_file:
+                self._data = load_tsv_data(path=tsv_file)
+                return self._data
         return self._data
 
     @data.setter
@@ -813,28 +812,14 @@ class StimRecording(Recording):
         # numpydoc ignore=RT01
         """Get the data of the stim recording."""
         if self._data is None:
-            # load data
-            folders = [self.root]
-            path = self.root
-            target = self.get_top_level_entities()[0]
-            while path.name != target:
-                path = path.parent
-                folders.append(path)
-            path = path.parent
-            folders.append(path)
+            folders = get_higher_directories(self.root)
 
-            files: list[pathlib.Path] = []
-            for folder in folders:
-                files = files + list(folder.glob("*_stim.tsv.gz"))
-
-            entities = self.get_top_level_entities()
-            for file in files:
-                # test if file is valid
-                if check_entity_mismatch(
-                    file.name.removesuffix("_stim.tsv.gz"), entities
-                ):
-                    self._data = load_tsv_data(path=file)
-                    return self._data
+            tsv_file, _ = get_tsv_json_files(
+                folders, "*_stim", self.get_top_level_entities()
+            )
+            if tsv_file:
+                self._data = load_tsv_data(path=tsv_file)
+                return self._data
         return self._data
 
     @data.setter
@@ -1000,23 +985,16 @@ class Run[A: AcquisitionType](Entity):
             # get directories
             folders = get_higher_directories(self.root)
 
-            files: list[pathlib.Path] = []
-            for folder in folders:
-                files = files + list(folder.glob("*_physio.json"))
-
             for key, value in recording_labels.items():
                 # get description (load json sidecar)
                 entitylist = self.get_top_level_entities()
                 entitylist.append(key)
 
+                _, json_file = get_tsv_json_files(folders, "*_physio", entitylist)
+
                 description = {}
-                for file in files:
-                    if check_entity_mismatch(
-                        file.stem.removesuffix("_physio"),
-                        entitylist,
-                    ):
-                        description = parse_json_sidecar(file)
-                        break
+                if json_file:
+                    description = parse_json_sidecar(json_file)
 
                 # create the entity with the loaded description
                 if description:
@@ -1083,23 +1061,16 @@ class Run[A: AcquisitionType](Entity):
             # get directories
             folders = get_higher_directories(self.root)
 
-            files: list[pathlib.Path] = []
-            for folder in folders:
-                files = files + list(folder.glob("*_stim.json"))
-
             for key, value in recording_labels.items():
                 # get description (load json sidecar)
                 entitylist = self.get_top_level_entities()
                 entitylist.append(key)
 
+                _, json_file = get_tsv_json_files(folders, "*_stim", entitylist)
+
                 description = {}
-                for file in files:
-                    if check_entity_mismatch(
-                        file.stem.removesuffix("_stim"),
-                        entitylist,
-                    ):
-                        description = parse_json_sidecar(file)
-                        break
+                if json_file:
+                    description = parse_json_sidecar(json_file)
 
                 # create the entity with the loaded description
                 if description:
@@ -1369,7 +1340,7 @@ def get_recordings_from_files(
     return labels
 
 
-def get_events_from_files(  # ruff: ignore[C901]
+def get_events_from_files(
     cls: Recording | Run, base_path: os.PathLike | str, file_ending: str = "events"
 ) -> MutableSequence[Event] | None:
     """
@@ -1394,64 +1365,28 @@ def get_events_from_files(  # ruff: ignore[C901]
     events: MutableSequence[Event] = []
     columns: MutableMapping[Any, Any] = {}
 
-    # get list of top level entities
-    entities = cls.get_top_level_entities()
-
     # sequence of all possible folders
-    # in the correct input order (deepest to dataset_root)
-
     folders_json = get_higher_directories(base_path)
     folders_tsv = [folders_json[-2], folders_json[-1]]
 
-    for folder in folders_json:
-        if columns == {}:
-            # get all possible files with _events.json
-            files_json = list(folder.glob(f"*_{file_ending}.json"))
-            filenames_json = [f.name for f in files_json]
-            file_entities_json = [
-                f.removesuffix(f"_{file_ending}.json") for f in filenames_json
-            ]
+    _, json_file = get_tsv_json_files(
+        folders_json, f"*_{file_ending}", cls.get_top_level_entities()
+    )
+    tsv_file, _ = get_tsv_json_files(
+        folders_tsv, f"*_{file_ending}", cls.get_top_level_entities()
+    )
 
-            # check for entity mismatches and use first one working
-            for file in file_entities_json:
-                if check_entity_mismatch(file, entities):
-                    # load .json file and save it
-                    columns = parse_json_sidecar(
-                        folder / (file + f"_{file_ending}.json")
-                    )
-                    break
-        else:
-            break
-
-    for folder in folders_tsv:
-        if events == []:
-            # get all possible files with _events.tsv
-            files_tsv = list(folder.glob(f"*_{file_ending}.tsv"))
-            files_tsv.extend(list(folder.glob(f"*_{file_ending}.tsv.gz")))
-            filenames_tsv = [f.stem.removesuffix(f"_{file_ending}") for f in files_tsv]
-
-            # check for entity mismatches and use first one working
-            for file in filenames_tsv:
-                if check_entity_mismatch(file, entities):
-                    # load .tsv file and save it
-                    try:
-                        data = parse_descriptive_tsv(
-                            tsv_path=folder / (file + f"_{file_ending}.tsv")
-                        )
-                    except FileNotFoundError:
-                        data = parse_descriptive_tsv(
-                            tsv_path=folder / (file + f"_{file_ending}.tsv.gz")
-                        )
-                    for event in data:
-                        add_object_to_sequence(
-                            entity_list=events,
-                            entity_class=Event,
-                            columns=columns,
-                            **event,
-                        )
-                    break
-        else:
-            break
+    if json_file:
+        columns = parse_json_sidecar(json_file)
+    if tsv_file:
+        data = parse_descriptive_tsv(tsv_path=tsv_file)
+        for event in data:
+            add_object_to_sequence(
+                entity_list=events,
+                entity_class=Event,
+                columns=columns,
+                **event,
+            )
 
     return events
 
