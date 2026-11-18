@@ -415,24 +415,31 @@ def get_entity_from_file(path: pathlib.Path, entity_name: str) -> dict[str, str]
     return entities
 
 
-def get_tsv_json_files(
-    path: pathlib.Path, file_name: str
+def get_tsv_json_files(  # ruff: ignore[C901]
+    path: pathlib.Path | Sequence[pathlib.Path],
+    file_name: str,
+    entity_chain: Sequence[str] | None = None,
 ) -> tuple[pathlib.Path | None, pathlib.Path | None]:
     """
-    Locate TSV and JSON companions for a shared base name.
+    Locate TSV and JSON companions for a shared base name or list of entity ids.
 
     Many BIDS tabular resources are stored as ``.tsv`` or ``.tsv.gz`` files with an
     optional sidecar JSON file that describes columns, units, or acquisition
-    metadata. This helper scans one directory and returns the first supported file of
-    each type while warning about duplicates or unsupported extensions.
+    metadata. This helper scans one or multiple directories and returns the lowest
+    level supported file of each type while warning about duplicates or
+    unsupported extensions.
 
     Parameters
     ----------
-    path : pathlib.Path
-        Directory in which the companion files should be searched.
+    path : pathlib.Path | Sequence[pathlib.Path]
+        Directories in which the companion files should be searched.
     file_name : str
         Shared file name stem without extension, for example ``"participants"`` or
-        ``"sub-01_task-rest_physio"``.
+        ``"sub-01_task-rest_physio"``. If an entity chain is also given this field
+        must only include the suffix and no entities (e.g. ``"participants"``).
+    entity_chain : Sequence[str] | None
+        Sequence containing all entity ids that the searched file
+        may contain, including virtual entities.
 
     Returns
     -------
@@ -468,44 +475,68 @@ def get_tsv_json_files(
     >>> tsv_path.suffix in {".tsv", ".gz"}
     True
     """
-    files = path.glob(f"{file_name}.*")
+    # if only a single path/directory -> construct a list regardless
+    if isinstance(path, pathlib.Path):
+        directories = [path]
+    else:
+        directories = list(path)
+
     tsv_path = None
     json_path = None
-    for file in files:
-        match file.suffix:
-            case ".tsv" | ".gz":
-                if file.suffix == ".gz" and not file.stem.endswith(".tsv"):
+
+    for directory in directories:
+        files = directory.glob(f"{file_name}.*")
+        matching_files = []
+        if entity_chain is not None:
+            for file in files:
+                file_entities = file.name.split(".")[0].split("_")[:-1]
+                if set(file_entities).issubset(entity_chain):
+                    matching_files.append(file)
+        else:
+            matching_files = list(files)
+
+        for file in matching_files:
+            match file.suffix:
+                case ".tsv" | ".gz":
+                    if file.suffix == ".gz" and not file.stem.endswith(".tsv"):
+                        warn(
+                            f"File {file} has an unsupported extension. "
+                            f"Only .tsv[.gz] and .json are supported.",
+                            FileTypeUnsupportedWarning,
+                        )
+                        continue
+                    if not tsv_path:
+                        tsv_path = file
+                    else:
+                        warn(
+                            f"Multiple TSV files found for {file_name}. "
+                            f"Using the first one found: {tsv_path.name}",
+                            MultipleFilesFoundWarning,
+                        )
+                        continue
+
+                case ".json":
+                    if not json_path:
+                        json_path = file
+                    else:
+                        warn(
+                            f"Multiple JSON files found for {file_name}. Using "
+                            f"the first one found: {json_path.name}",
+                            MultipleFilesFoundWarning,
+                        )
+                    continue
+                case _:
                     warn(
-                        f"File {file} has an unsupported extension. Only .tsv[.gz] and "
-                        f".json are supported.",
+                        f"File {file} has an unsupported extension. "
+                        f"Only .tsv and .json are supported.",
                         FileTypeUnsupportedWarning,
                     )
-                    continue
-                if not tsv_path:
-                    tsv_path = file
-                else:
-                    warn(
-                        f"Multiple TSV files found for {file_name}. Using the first "
-                        f"one found: {tsv_path.name}",
-                        MultipleFilesFoundWarning,
-                    )
-                continue
-            case ".json":
-                if not json_path:
-                    json_path = file
-                else:
-                    warn(
-                        f"Multiple JSON files found for {file_name}. Using the first "
-                        f"one found: {json_path.name}",
-                        MultipleFilesFoundWarning,
-                    )
-                continue
-            case _:
-                warn(
-                    f"File {file} has an unsupported extension. Only .tsv and .json "
-                    f"are supported.",
-                    FileTypeUnsupportedWarning,
-                )
+
+            # this would skip higher directories but also
+            # warnings about multiple files would not be given
+
+            # if tsv_path is not None and json_path is not None:
+            #    return tsv_path, json_path
     return tsv_path, json_path
 
 

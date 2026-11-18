@@ -150,6 +150,22 @@ class TestGetTsvJsonFiles:
         # Teardown
         delete_files(tmp_root, files)
 
+    def test_tsv_json_files_filetype_unsupported_compressed(self, tmp_root):
+        # Setup
+        files = ["example_scans.csv.gz"]
+        make_files(tmp_root, files)
+
+        # Test
+        with pytest.warns(FileTypeUnsupportedWarning):
+            tsv_path, json_path = abk.utils.helpers.get_tsv_json_files(
+                tmp_root, "*_scans"
+            )
+        assert tsv_path is None
+        assert json_path is None
+
+        # Teardown
+        delete_files(tmp_root, files)
+
     def test_tsv_json_files_multiple_tsv(self, tmp_root):
         # Setup
         files = ["example_scans.tsv", "second_scans.tsv"]
@@ -183,6 +199,61 @@ class TestGetTsvJsonFiles:
             json_path == tmp_root / "example_scans.json"
             or tmp_root / "second_scans.json"
         )
+
+        # Teardown
+        delete_files(tmp_root, files)
+
+    def test_tsv_json_files_multiple_driectories(self, tmp_root):
+        # Setup
+        files = ["directory1/example_scans.json", "directory2/example_scans.tsv"]
+        make_files(tmp_root, files)
+
+        # Test
+        tsv_path, json_path = abk.utils.helpers.get_tsv_json_files(
+            [tmp_root / "directory1", tmp_root / "directory2"], "*_scans"
+        )
+        assert json_path == tmp_root / "directory1/example_scans.json"
+        assert tsv_path == tmp_root / "directory2/example_scans.tsv"
+
+        # Teardown
+        delete_files(tmp_root, files)
+
+    def test_tsv_json_files_entity_chain(self, tmp_root):
+        # Setup
+        files = [
+            "sub-0_ses-0_task-someTask_scans.json",
+            "sub-0_ses-0_task-someTask_scans.tsv",
+            "sub-1_ses-0_task-someTask_scans.json",
+            "sub-1_ses-0_task-someTask_scans.tsv",
+        ]
+        make_files(tmp_root, files)
+
+        # Test
+        tsv_path, json_path = abk.utils.helpers.get_tsv_json_files(
+            tmp_root, "*_scans", ["sub-0", "ses-0", "task-someTask", "run-1"]
+        )
+        assert json_path == tmp_root / "sub-0_ses-0_task-someTask_scans.json"
+        assert tsv_path == tmp_root / "sub-0_ses-0_task-someTask_scans.tsv"
+
+        # Teardown
+        delete_files(tmp_root, files)
+
+    def test_tsv_json_files_entity_chain_no_suitable_files(self, tmp_root):
+        # Setup
+        files = [
+            "sub-0_ses-1_task-someTask_scans.json",
+            "sub-0_ses-1_task-someTask_scans.tsv",
+            "sub-1_ses-0_task-someTask_scans.json",
+            "sub-1_ses-0_task-someTask_scans.tsv",
+        ]
+        make_files(tmp_root, files)
+
+        # Test
+        tsv_path, json_path = abk.utils.helpers.get_tsv_json_files(
+            tmp_root, "*_scans", ["sub-0", "ses-0", "task-someTask", "run-1"]
+        )
+        assert json_path is None
+        assert tsv_path is None
 
         # Teardown
         delete_files(tmp_root, files)
