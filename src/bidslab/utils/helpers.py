@@ -393,6 +393,8 @@ def get_entity_from_file(path: pathlib.Path, entity_name: str) -> dict[str, str]
     --------
     :py:func:`bidslab.utils.string_manipulation.remove_special_characters`
         Normalizes strings that may later be used as entity values.
+    :py:func:`get_next_entity_ids`
+        Get the entity ids for an entity name within the files of a directory.
 
     Notes
     -----
@@ -413,6 +415,69 @@ def get_entity_from_file(path: pathlib.Path, entity_name: str) -> dict[str, str]
         entities[match.group("entity")] = match.group("value")
 
     return entities
+
+
+def get_next_entity_ids(
+    directory: pathlib.Path,
+    entity_name: str,
+    entity_chain: Sequence[str],
+    filename_ending: str | None = None,
+) -> dict[str, bool]:
+    """
+    Get the entity ids for an entity name within the files of a directory.
+
+    BIDS file names encode metadata as ``entity-value`` pairs such as ``sub-01`` or
+    ``task-rest``. This helper searches a directory for a specific entity label and
+    returns either every label that also matches with the given entity chain or a
+    dummy label for use in a virtual entity.
+
+    Parameters
+    ----------
+    directory : pathlib.Path
+        Directory in which the labels should be searched.
+    entity_name : str
+        Entity name to extract, for example ``"sub"`` or ``"task"``. Embedded spaces
+        are removed before matching.
+    entity_chain : Sequence[str]
+        Sequence containing all entity ids that the searched file
+        may contain, including virtual entities.
+    filename_ending : str | None
+        Optional additional string that must be contained at the end
+        of the file (eg. ``"physio"`` for ``"..._physio.json"``).
+        Must be without the file extension.
+
+    Returns
+    -------
+    dict[str, bool]
+        Dictionary containing all found labels and
+        whether they are real or virtual ones.
+
+    See Also
+    --------
+    :py:func:`get_entity_from_file`
+        Extract one BIDS entity and its values from a file stem.
+    """
+    output_dict = {}
+
+    if filename_ending is None:
+        files = directory.glob(f"*{entity_name}-*")
+    else:
+        files = directory.glob(f"*{entity_name}-*{filename_ending}.*")
+
+    for file in files:
+        if file.name.startswith(entity_name) or entity_chain == []:
+            entity = get_entity_from_file(file, entity_name)
+            output_dict.update({f"{entity_name}-{entity[entity_name]}": False})
+        else:
+            file_entities = file.name.split(f"_{entity_name}")[0].split("_")
+            if set(file_entities).issubset(entity_chain):
+                entity = get_entity_from_file(file, entity_name)
+                output_dict.update({f"{entity_name}-{entity[entity_name]}": False})
+
+    if output_dict == {}:
+        output_dict.update({f"{entity_name}-0": True})
+
+    return output_dict
 
 
 def get_tsv_json_files(  # ruff: ignore[C901]
