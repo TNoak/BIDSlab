@@ -475,8 +475,12 @@ def get_next_entity_ids(
                 output_dict.update({f"{entity_name}-{entity[entity_name]}": False})
 
     if output_dict == {}:
-        output_dict.update({f"{entity_name}-0": True})
+        if filename_ending is not None:
+            files_with_ending = list(directory.glob(f"*{filename_ending}.*"))
+            if not files_with_ending:
+                return output_dict
 
+        output_dict.update({f"{entity_name}-0": True})
     return output_dict
 
 

@@ -464,6 +464,24 @@ class TestGetNextEntityIDs:
         # Teardown
         delete_files(tmp_root, files)
 
+    def test_get_next_entity_ids_fileending_no_files(self, tmp_root):
+        # Setup
+        files = [
+            "sub-1_ses-test_run-1_stim.json",
+            "sub-1_ses-test_run-2_stim.json",
+            "sub-1_ses-test_run-3_stim.json",
+        ]
+        make_files(tmp_root, files)
+
+        # Test
+        entities = abk.utils.helpers.get_next_entity_ids(
+            tmp_root, "run", ["sub-1", "ses-test"], filename_ending="physio"
+        )
+        assert entities == {}
+
+        # Teardown
+        delete_files(tmp_root, files)
+
 
 class TestGetHigherDirectories:
     def test_get_higher_directories_good_structure(self, tmp_root):
