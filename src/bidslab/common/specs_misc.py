@@ -26,7 +26,7 @@ from warnings import warn
 import pandas as pd
 
 from bidslab._typing import AcquisitionType
-from bidslab.common.base import BaseAcquisition, Entity, check_entity_mismatch
+from bidslab.common.base import BaseAcquisition, Entity
 from bidslab.settings import get_settings_value
 from bidslab.utils.checks import check_if_valid_uri
 from bidslab.utils.dict_manipulation import (
@@ -42,8 +42,8 @@ from bidslab.utils.helpers import (
     add_object_to_sequence,
     append_path,
     copy_file,
-    get_entity_from_file,
     get_higher_directories,
+    get_next_entity_ids,
     get_tsv_json_files,
     load_tsv_data,
     parse_descriptive_tsv,
@@ -650,7 +650,7 @@ class PhysioRecording(Recording):
             # TODO check where the data file could be located
 
             tsv_file, _ = get_tsv_json_files(
-                self.root, "*_stim", self.get_top_level_entities()
+                self.root, "*_physio", self.get_top_level_entities()
             )
             if tsv_file:
                 self._data = load_tsv_data(path=tsv_file)
@@ -975,8 +975,8 @@ class Run[A: AcquisitionType](Entity):
         # numpydoc ignore=RT01
         """Get physiological recordings associated with this Run."""
         if self._physio is None:
-            recording_labels = get_recordings_from_files(
-                self, self.root, "physio.tsv.gz"
+            recording_labels = get_next_entity_ids(
+                self.root, "recording", self.get_top_level_entities(), "physio"
             )
             if not recording_labels:
                 return None
@@ -1000,9 +1000,6 @@ class Run[A: AcquisitionType](Entity):
                 if description:
                     # TODO create hardware and columns as class
                     description = manipulate_dictkeys(description, to_snakecase)
-                    sampling_frequency = description.pop("sampling_frequency", None)
-                    start_time = description.pop("start_time", None)
-                    physio_type = description.pop("physio_type", None)
                     hardware = Hardware(
                         manufacturer=description.pop("maunfacturer", None),
                         manufacturers_model_name=description.pop(
@@ -1025,9 +1022,6 @@ class Run[A: AcquisitionType](Entity):
                         recording_id=key,
                         virtual_entity=value,
                         base_path=self.root,
-                        sampling_frequency=sampling_frequency,
-                        start_time=start_time,
-                        physio_type=physio_type,
                         hardware=hardware,
                         columns=columns,
                         **description,
@@ -1053,7 +1047,9 @@ class Run[A: AcquisitionType](Entity):
         # numpydoc ignore=RT01
         """Return stim recordings associated with the run."""
         if self._stims is None:
-            recording_labels = get_recordings_from_files(self, self.root, "stim.tsv.gz")
+            recording_labels = get_next_entity_ids(
+                self.root, "recording", self.get_top_level_entities(), "stim"
+            )
             if not recording_labels:
                 return None
             self._stims = {}
@@ -1075,8 +1071,6 @@ class Run[A: AcquisitionType](Entity):
                 # create the entity with the loaded description
                 if description:
                     description = manipulate_dictkeys(description, to_snakecase)
-                    sampling_frequency = description.pop("sampling_frequency", None)
-                    start_time = description.pop("start_time", None)
                     column_names = description.pop("columns", None)
                     columns = []
 
@@ -1089,9 +1083,8 @@ class Run[A: AcquisitionType](Entity):
                         virtual_entity=value,
                         recording_id=key,
                         base_path=self.root,
-                        sampling_frequency=sampling_frequency,
-                        start_time=start_time,
                         columns=columns,
+                        **description,
                     )
                     self._stims[key].run = self
                 else:
@@ -1196,36 +1189,17 @@ class Acquisition(BaseAcquisition):
         """Get the runs associated with this Acquisition."""
         if not self._runs:
             self._runs = {}
-            files = self.root.iterdir()
-            run_ids = set()
-            for file in files:
-                try:
-                    run_ids.add(
-                        get_entity_from_file(
-                            file,
-                            "run",
-                        )["run"]
-                    )
-                except KeyError:
-                    continue
-            for run_id in run_ids:
-                run_id_int = int(run_id.split("-")[1])
+            run_entities = get_next_entity_ids(
+                self.root, "run", self.get_top_level_entities()
+            )
+
+            for key, value in run_entities.items():
                 self._runs.update(
                     {
-                        f"run-{run_id_int}": Run(
-                            run_id=run_id_int,
+                        key: Run(
                             base_path=self.root,
-                            acquisition=self,
-                        )
-                    }
-                )
-            # If no runs are found, add a default one
-            if not self._runs:
-                self._runs.update(
-                    {
-                        "run-0": Run(
-                            run_id=0,
-                            base_path=self.root,
+                            run_id=int(key.removeprefix("run-")),
+                            virtual_entity=value,
                             acquisition=self,
                         )
                     }
@@ -1288,56 +1262,6 @@ class Acquisition(BaseAcquisition):
         entities = self.task.get_top_level_entities()
         entities.append(self.acquisition_id)
         return entities
-
-
-def get_recordings_from_files(
-    run: Run, base_path: os.PathLike | str, file_ending: str
-) -> dict[str, bool]:
-    """
-    Get recording ids from file names.
-
-    Parameters
-    ----------
-    run : Run
-        The run object associated with the recordings.
-    base_path : os.Pathike | str
-        The initial path to find the files.
-    file_ending : str
-        The ending of the files including the extension.
-
-    Returns
-    -------
-    dict[str, bool]
-        A dict containing the recording_ids and if they are virtual_entities.
-    """
-    labels = {}
-
-    base_path = pathlib.Path(base_path)
-    files = base_path.glob(f"*_{file_ending}")
-    for file in files:
-        try:
-            label = get_entity_from_file(file, "recording")["recording"]
-            entities = run.get_top_level_entities()
-            entities.append(f"recording-{label}")
-            if check_entity_mismatch(
-                file.name.removesuffix(f"_{file_ending}"), entities
-            ):
-                labels[f"recording-{label}"] = False
-
-        except KeyError:
-            continue
-
-    if not labels:
-        files = base_path.glob(f"*_{file_ending}")
-        for file in files:
-            # check if a file matches
-            if check_entity_mismatch(
-                file.name.removesuffix(f"_{file_ending}"), run.get_top_level_entities()
-            ):
-                labels["recording-00"] = True
-                break
-
-    return labels
 
 
 def get_events_from_files(
