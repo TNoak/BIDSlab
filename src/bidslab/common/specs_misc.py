@@ -1291,7 +1291,7 @@ def get_events_from_files(
 
     # sequence of all possible folders
     folders_json = get_higher_directories(base_path)
-    folders_tsv = [folders_json[-2], folders_json[-1]]
+    folders_tsv = [folders_json[0], folders_json[1]]
 
     _, json_file = get_tsv_json_files(
         folders_json, f"*_{file_ending}", cls.get_top_level_entities()
@@ -1359,8 +1359,8 @@ def write_events_to_files(
 
     if "stim_file" in data_tsv.columns:
         # find root of the dataset
-        output_dataset_root = get_higher_directories(output_path)[0]
-        dataset_root = get_higher_directories(cls.root)[0]
+        output_dataset_root = get_higher_directories(output_path.parent)[-1]
+        dataset_root = get_higher_directories(cls.root)[-1]
 
         # create stimuli directory
         stimuli_path = pathlib.Path(output_dataset_root / "stimuli")
