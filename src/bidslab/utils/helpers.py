@@ -144,26 +144,38 @@ def set_attr_from_dict[T](obj: T, data: dict) -> None:
                 ) from None
 
 
-def parse_json_sidecar(sidecar_path: pathlib.Path) -> dict:
+def parse_json_sidecar(
+    sidecar_path: pathlib.Path,
+    schemas: dict[str, set[str]] | None = None,
+    string_manipulation: Callable[[str], str] | None = None,
+) -> dict:
     """
-    Parse a BIDS JSON sidecar file into a dictionary.
+    Parse a BIDS JSON sidecar file into one or multiple dictionaries.
 
     JSON sidecars in BIDS datasets typically store acquisition metadata,
     coordinate-system descriptions, channel annotations, or other structured
     descriptors that accompany imaging or physiological data files. This helper
-    provides a thin UTF-8-aware wrapper around :py:func:`json.load`.
+    provides a thin UTF-8-aware wrapper around :py:func:`json.load`. It can also
+    sort the output into multiple dictionaries described by input schemas, intended
+    to parse a json sidecar into izs various components, like task, hardware or
+    institution information.
 
     Parameters
     ----------
     sidecar_path : pathlib.Path
         Path to the JSON sidecar file. The path is expected to point to a readable
         UTF-8 encoded ``.json`` file.
+    schemas : dict[str, set[str]] | None
+        Dictionary of keywords and their respective schema.
+    string_manipulation : Callable[[str], str] | None, optional
+        Callable applied to each key.
 
     Returns
     -------
     dict
-        Parsed JSON content as a Python dictionary. Typical return values include
-        metadata such as ``{"SamplingFrequency": 1000, "StartTime": 0.0}``.
+        Parsed JSON content as a Python dictionary, when schemas is None, or
+        nested dictionaries following the given schemas with the remaining keys
+        not used in the schemas in ``rest``.
 
     Raises
     ------
@@ -194,7 +206,25 @@ def parse_json_sidecar(sidecar_path: pathlib.Path) -> dict:
     1000
     """
     with sidecar_path.open("r", encoding="utf-8") as f:
-        return json.load(f)
+        input_dict = json.load(f)
+    if string_manipulation is not None:
+        manipulated_dict = {
+            string_manipulation(key): value for key, value in input_dict.items()
+        }
+    else:
+        manipulated_dict = input_dict
+    if schemas is None:
+        return manipulated_dict
+
+    output_dicts = {}
+    # fill each schema, None if key does not exist
+    for key, schema in schemas.items():
+        output_dicts[key] = {k: manipulated_dict.pop(k, None) for k in schema}
+
+    # add the rest
+    output_dicts["rest"] = manipulated_dict
+
+    return output_dicts
 
 
 def parse_descriptive_tsv(tsv_path: pathlib.Path) -> Iterator[dict]:
