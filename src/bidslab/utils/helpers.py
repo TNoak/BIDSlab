@@ -514,6 +514,74 @@ def get_next_entity_ids(
     return output_dict
 
 
+def get_any_json_file(
+    path: pathlib.Path | Sequence[pathlib.Path],
+    file_name: str,
+    entity_chain: Sequence[str],
+) -> pathlib.Path | None:
+    """
+    Locate JSON companion for a non complete list of entity ids.
+
+    Many BIDS tabular resources are stored as ``.tsv`` or ``.tsv.gz`` files with an
+    optional sidecar JSON file that describes columns, units, or acquisition
+    metadata. This helper scans one or multiple directories and returns a file, where
+    all the entities that appear both within the filename and entity chain must match.
+    This helper should be used when looking up files containing common fields that
+    are not affected by lower entities, like Task information.
+
+    Parameters
+    ----------
+    path : pathlib.Path | Sequence[pathlib.Path]
+        Directories in which the companion files should be searched.
+    file_name : str
+        Shared file name stem without extension, for example ``"motion"``.
+    entity_chain : Sequence[str]
+        Sequence containing all entity ids that the searched file
+        must not mismatch, including virtual entities.
+
+    Returns
+    -------
+    pathlib.Path | None
+        Path to a fitting JSON file, or None if no suitable file is found.
+
+    See Also
+    --------
+    :py:func:`parse_json_sidecar`
+        Parses the returned JSON sidecar.
+    :py:func:`get_tsv_json_files`
+        Function to retrieve TSV and JSON filenames where all entities
+        within the filename must appear in the entity chain.
+
+    Notes
+    -----
+    Returns the first file that matches, no warnings for multiple files are given.
+    """
+    # if only a single path/directory -> construct a list regardless
+    if isinstance(path, pathlib.Path):
+        directories = [path]
+    else:
+        directories = list(path)
+
+    entity_dict = dict(e.split("-", 1) for e in entity_chain)
+
+    for directory in directories:
+        files = directory.glob(f"*_{file_name}.json")
+
+        for file in files:
+            file_entities = dict(
+                e.split("-", 1)
+                for e in file.name.removesuffix(f"_{file_name}.json").split("_")
+            )
+
+            if all(
+                file_entities[key] == entity_dict[key]
+                for key in file_entities.keys() & entity_dict.keys()
+            ):
+                return file
+
+    return None
+
+
 def get_tsv_json_files(  # ruff: ignore[C901]
     path: pathlib.Path | Sequence[pathlib.Path],
     file_name: str,

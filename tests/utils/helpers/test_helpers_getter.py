@@ -105,6 +105,51 @@ class TestGetRootFiles:
             abk.utils.helpers.get_root_files(test_dataset)
 
 
+class TestGetAnyJsonFile:
+    def test_any_json_file(self, tmp_root):
+        # Setup
+        files = [
+            "sub-0_ses-0_task-some_run-1_scans.json",
+            "sub-0_ses-1_task-some_run-1_scans.json",
+            "sub-1_ses-0_task-some_run-1_scans.json",
+            "sub-1_ses-0_task-some_run-2_scans.json",
+            "sub-0_ses-1_task-some_run-2_scans.json",
+        ]
+        make_files(tmp_root, files)
+
+        # Test
+        json_path = abk.utils.helpers.get_any_json_file(
+            tmp_root, "scans", ["sub-1", "ses-0", "task-some"]
+        )
+        assert (
+            json_path == tmp_root / "sub-1_ses-0_task-some_run-1_scans.json"
+            or tmp_root / "sub-1_ses-0_task-some_run-2_scans.json"
+        )
+
+        # Teardown
+        delete_files(tmp_root, files)
+
+    def test_any_json_file_no_fitting_file(self, tmp_root):
+        # Setup
+        files = [
+            "sub-0_ses-0_task-some_run-1_scans.json",
+            "sub-0_ses-1_task-some_run-1_scans.json",
+            "sub-1_ses-0_task-some_run-1_scans.json",
+            "sub-1_ses-0_task-some_run-2_scans.json",
+            "sub-0_ses-1_task-some_run-2_scans.json",
+        ]
+        make_files(tmp_root, files)
+
+        # Test
+        json_path = abk.utils.helpers.get_any_json_file(
+            [tmp_root], "scans", ["sub-10", "ses-0", "task-some"]
+        )
+        assert json_path is None
+
+        # Teardown
+        delete_files(tmp_root, files)
+
+
 class TestGetTsvJsonFiles:
     def test_tsv_json_files(self, tmp_root):
         # Setup
