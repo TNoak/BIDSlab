@@ -13,10 +13,8 @@ functions for parsing EMG sidecars and tabular metadata.
 #
 #  SPDX-License-Identifier: BSD-3-Clause
 
-import json
 import os
 import pathlib
-import re
 from collections.abc import Mapping, MutableMapping, MutableSequence, Sequence
 from dataclasses import asdict, dataclass
 from typing import (
@@ -27,7 +25,7 @@ from warnings import warn
 
 import pandas as pd
 
-from bidslab.common.base import BaseAcquisition, BaseTask, check_entity_mismatch
+from bidslab.common.base import BaseAcquisition, BaseTask
 from bidslab.common.specs_misc import (
     Column,
     Event,
@@ -43,15 +41,15 @@ from bidslab.utils.dict_manipulation import ManipulateKeysOption, clean_dict
 from bidslab.utils.exceptions import (
     FieldEntryNotValidError,
     FieldMissingError,
-    FileNotFoundWarning,
     TopLevelEntityNotLinkedWarning,
 )
 from bidslab.utils.helpers import (
     add_object_to_sequence,
     append_path,
     copy_file,
+    get_any_json_file,
     get_edf_json_files,
-    get_entity_from_file,
+    get_next_entity_ids,
     get_tsv_json_files,
     load_edf_data,
     parse_descriptive_tsv,
@@ -76,6 +74,27 @@ EMG_CHANNEL_TYPE_ALLOWED_FIELD_ENTRIES = {
     "SYSCLOCK",
     "TRIG",
     "VEOG",
+}
+
+EMG_SCHEMAS = {
+    "task": {
+        "task_name",
+        "task_description",
+        "instructions",
+    },
+    "hardware": {
+        "manufacturer",
+        "manufacturers_model_name",
+        "software_versions",
+        "device_serial_number",
+        "electrode_manufacturer",
+        "electrode_manufacturers_model_name",
+    },
+    "institution": {
+        "institution_name",
+        "institution_address",
+        "institutional_department_name",
+    },
 }
 
 
@@ -420,6 +439,8 @@ class EMGRecording(Recording):
         Recording mode, such as continuous or epoched acquisition.
     software_filters : MutableMapping[str, Filter] | str
         Software filtering description stored in the EMG sidecar.
+    run : EMGRun
+        Top level run object.
     virtual_entity : bool
         Parameter to distinguish virtual and real entities.
     **kwargs
@@ -480,17 +501,11 @@ class EMGRecording(Recording):
         power_line_frequency: int | float | str,
         recording_type: str,
         software_filters: MutableMapping[str, Filter] | str,
+        run: "EMGRun",
         virtual_entity: bool = False,
         **kwargs: Any,
     ):
         # TODO: filters should be filter objects
-        description = kwargs.pop("_description", None)
-        if description is not None and not isinstance(description, MutableMapping):
-            raise TypeError(
-                "Parameter type for argument `_description` must be MutableMapping"
-            )
-        self._description: MutableMapping | None = description
-
         super().__init__(
             base_path=base_path,
             recording_id=recording_id,
@@ -538,18 +553,10 @@ class EMGRecording(Recording):
 
         self._events: Sequence[Event] | None = None
 
-        self._run: EMGRun | None = None
+        self._run: EMGRun | None = run
 
         # Try to set attributes from arguments
         set_attr_from_dict(self, kwargs)
-
-        self._update_description()
-
-        # Update values from self._description
-        if self._description:
-            emg_description = self._description.pop("emg", {})
-            _ = self._description.pop("task", None)
-            set_attr_from_dict(self, {**self._description, **emg_description})
 
     def __repr__(self) -> str:
         """Return a string representation of the EMGRecording entity."""
@@ -597,6 +604,11 @@ class EMGRecording(Recording):
     def channels(self) -> MutableSequence[EMGChannel] | None:
         # numpydoc ignore=RT01
         """Return channel definitions associated with the recording."""
+        if self._channels is None:
+            tsv_path, json_path = get_tsv_json_files(
+                self.root, "*_channels", self.get_top_level_entities()
+            )
+            self._channels = get_emg_channels(tsv_path, json_path)
         return self._channels
 
     @channels.setter
@@ -617,6 +629,11 @@ class EMGRecording(Recording):
     def electrodes(self) -> MutableSequence[EMGElectrode] | None:
         # numpydoc ignore=RT01
         """Return electrode definitions associated with the recording."""
+        if self._electrodes is None:
+            tsv_path, json_path = get_tsv_json_files(
+                self.root, "*_electrodes", self.get_top_level_entities()
+            )
+            self._electrodes = get_emg_electrodes(tsv_path, json_path)
         return self._electrodes
 
     @electrodes.setter
@@ -639,39 +656,29 @@ class EMGRecording(Recording):
         """Return coordinate systems associated with the recording."""
         if self._coordinate_systems is None:
             self._coordinate_systems = []
-            # TODO load corrdsystems from files
-            entities = self.get_top_level_entities()
 
-            # get all possible files with _coordsystem.json
-            files_json = list(self.root.glob("*_coordsystem.json"))
-            filenames_json = [f.name for f in files_json]
-            file_entities_json = [
-                f.removesuffix("_coordsystem.json") for f in filenames_json
-            ]
-
-            # check for entity mismatches and use first one working
-            for file in file_entities_json:
-                file_nospace = re.sub(r"_space.*$", "", file)
-                if check_entity_mismatch(file_nospace, entities):
-                    # load .json file and save it
-                    data = parse_json_sidecar(self.root / (file + "_coordsystem.json"))
-                    data = clean_dict(data, string_manipulation=to_snakecase)
-                    # get the name (space-<name>) from the filename
-                    nameparts = file.split("_")
-                    name_dict = {
-                        namepart.split("-")[0]: namepart.split("-")[1]
-                        for namepart in nameparts
-                    }
-                    name = name_dict.pop("space", "")
+            space_entities = get_next_entity_ids(
+                self.root,
+                "space",
+                self.get_top_level_entities(),
+                filename_ending="coordsystem",
+            )
+            for key in space_entities.keys():
+                entities = self.get_top_level_entities()
+                entities.append(key)
+                _, json_path = get_tsv_json_files(self.root, "*_coordsystem", entities)
+                if json_path is not None:
+                    data = parse_json_sidecar(
+                        json_path, string_manipulation=to_snakecase
+                    )
                     self._coordinate_systems.append(
                         EMGCoordinateSystem(
-                            name=name,
+                            name=key.removeprefix("space-"),
                             emg_coordinate_system=data.pop("emg_coordinate_system"),
                             emg_coordinate_units=data.pop("emg_coordinate_units"),
                             **data,
                         )
                     )
-
         return self._coordinate_systems
 
     @coordinate_systems.setter
@@ -729,11 +736,6 @@ class EMGRecording(Recording):
     def events(self, value: Sequence[Event]) -> None:
         # numpydoc ignore=GL08
         self._events = value
-
-    def _update_description(self) -> None:
-        """Update inherited description metadata for the recording."""
-        file_name = f"*_{self.recording_id}_"
-        _update_description_data(self, file_name)
 
     def write(self, output_path: str | os.PathLike) -> None:  # ruff: ignore[C901]
         """
@@ -958,6 +960,8 @@ class EMGRun(Run):
         Directory containing run-level EMG files.
     run_id : int
         Numeric run identifier used to resolve ``run-<index>`` entities.
+    acquisition : EMGAcquisition
+        Top level acquisition object.
     virtual_entity : bool
         Parameter to distinguish virtual and real entities.
     **kwargs : Any
@@ -999,23 +1003,17 @@ class EMGRun(Run):
         self,
         base_path: os.PathLike | str,
         run_id: int,
+        acquisition: "EMGAcquisition",
         virtual_entity: bool = False,
         **kwargs: Any,
     ):
-        description = kwargs.pop("_description", {})
-        if not isinstance(description, MutableMapping):
-            raise TypeError(
-                "Parameter type for argument `_description` must be MutableMapping"
-            )
-        self._description: MutableMapping = description
-
         super().__init__(
             base_path=base_path, run_id=run_id, virtual_entity=virtual_entity, **kwargs
         )
 
         self._recordings: dict[str, EMGRecording] | None = None
 
-        self._update_description()
+        self._acquisition: EMGAcquisition | None = acquisition
 
     # def __repr__(self) -> str:
     #     return f"<Run id=run-{self.run_id}>"
@@ -1025,76 +1023,34 @@ class EMGRun(Run):
         # numpydoc ignore=RT01
         """Get recordings belonging to the run."""
         if not self._recordings:
-            # TODO make this more elegant
-            assert self.acquisition is not None
-            file_name = f"*{self.acquisition.task.task_id}"
-            file_name += (
-                f"_{self.acquisition.acquisition_id}"
-                if not self.acquisition._virtual_entity
-                else ""
-            )
-            file_name += f"_{self.run_id}" if not self._virtual_entity else ""
-
             self._recordings = {}
-            files = self.root.glob("*_emg.*")
-            recording_labels = set()
-            for file in files:
-                try:
-                    recording_labels.add(
-                        get_entity_from_file(
-                            file,
-                            "recording",
-                        )["recording"]
+            recording_entities = get_next_entity_ids(
+                self.root,
+                "recording",
+                self.get_top_level_entities(),
+                filename_ending="emg",
+            )
+            for key, value in recording_entities.items():
+                entities = self.get_top_level_entities()
+                entities.append(key)
+                recording_json_path = get_any_json_file(self.root, "emg", entities)
+                if recording_json_path is not None:
+                    recording_json_content = parse_json_sidecar(
+                        recording_json_path,
+                        schemas=EMG_SCHEMAS,
+                        string_manipulation=to_snakecase,
                     )
-                except KeyError:
-                    continue
-
-            # values in self._description get passed forward as fallback / to follow the
-            # inheritance principle of BIDS but will be updated downstream
-            for recording_label in recording_labels:
-                self._recordings.update(
-                    {
-                        "recording-" + recording_label: EMGRecording(
-                            recording_id="recording-" + recording_label,
-                            base_path=self.root,
-                            run=self,
-                            hardware=self._description.get("hardware", None),
-                            institution=self._description.get("institution", None),
-                            channels=get_emg_channels(
-                                *get_tsv_json_files(
-                                    self.root,
-                                    file_name
-                                    + f"_recording-{recording_label}_channels",
-                                )
-                            ),
-                            electrodes=self._description.get("electrodes", None),
-                            **self._description.get("emg", None),
-                        )
-                    }
-                )
-
-            # If no recordings are found, add a default one
-            if not self._recordings:
-                self._recordings.update(
-                    {
-                        "recording-00": EMGRecording(
-                            recording_id="recording-00",
-                            base_path=self.root,
-                            run=self,
-                            hardware=self._description.get("hardware", None),
-                            institution=self._description.get("institution", None),
-                            channels=get_emg_channels(
-                                *get_tsv_json_files(
-                                    self.root,
-                                    file_name + "_channels",
-                                )
-                            ),
-                            electrodes=self._description.get("electrodes", None),
-                            virtual_entity=True,
-                            **self._description.get("emg", None),
-                        )
-                    }
-                )
+                    self._recordings[key] = EMGRecording(
+                        base_path=self.root,
+                        recording_id=key,
+                        run=self,
+                        virtual_entity=value,
+                        **recording_json_content["rest"],
+                        hardware=EMGHardware(**recording_json_content["hardware"]),
+                        institution=Institution(
+                            **recording_json_content["institution"]
+                        ),
+                    )
 
         return self._recordings
 
@@ -1126,11 +1082,6 @@ class EMGRun(Run):
             raise TypeError(
                 "Field `Recordings` must be a list of EMGRecordings objects"
             )
-
-    def _update_description(self) -> None:
-        """Refresh inherited description metadata for the run."""
-        file_name = f"*_{self.run_id}_*"
-        _update_description_data(self, file_name)
 
     def write(self, output_path: os.PathLike | str) -> None:
         """
@@ -1202,13 +1153,6 @@ class EMGAcquisition(BaseAcquisition):
         virtual_entity: bool = False,
         **kwargs: Any,
     ):
-        description = kwargs.pop("_description", {})
-        if not isinstance(description, MutableMapping):
-            raise TypeError(
-                "Parameter type for argument `_description` must be MutableMapping"
-            )
-        self._description: MutableMapping = description
-
         super().__init__(
             base_path=base_path,
             acquisition_id=acquisition_id,
@@ -1216,8 +1160,6 @@ class EMGAcquisition(BaseAcquisition):
         )
 
         self._task: EMGTask | None = task
-
-        self._update_description()
 
         set_attr_from_dict(self, kwargs)
 
@@ -1227,42 +1169,15 @@ class EMGAcquisition(BaseAcquisition):
         """Return runs associated with the acquisition."""
         if not self._runs:
             self._runs = {}
-            files = self.root.iterdir()
-            run_ids = set()
-            for file in files:
-                try:
-                    run_ids.add(
-                        get_entity_from_file(
-                            file,
-                            "run",
-                        )["run"]
-                    )
-                except KeyError:
-                    continue
-            for run_id in run_ids:
-                self._runs.update(
-                    {
-                        "run-" + run_id: EMGRun(
-                            run_id=int(run_id),
-                            base_path=self.root,
-                            acquisition=self,
-                            _description=self._description,
-                        )
-                    }
-                )
-
-            # If no runs are found, add a default one
-            if not self._runs:
-                self._runs.update(
-                    {
-                        "run-0": EMGRun(
-                            run_id=0,
-                            base_path=self.root,
-                            acquisition=self,
-                            _description=self._description,
-                            virtual_entity=True,
-                        )
-                    }
+            run_entities = get_next_entity_ids(
+                self.root, "run", self.get_top_level_entities()
+            )
+            for key, value in run_entities.items():
+                self._runs[key] = EMGRun(
+                    base_path=self.root,
+                    run_id=int(key.removeprefix("run-")),
+                    acquisition=self,
+                    virtual_entity=value,
                 )
 
         return self._runs
@@ -1281,7 +1196,6 @@ class EMGAcquisition(BaseAcquisition):
                                 run_id=entry,
                                 base_path=self.root,
                                 acquisition=self,
-                                _description=self._description,
                             )
                         }
                     )
@@ -1314,16 +1228,6 @@ class EMGAcquisition(BaseAcquisition):
         # numpydoc ignore=GL08
         self._task = value
 
-    def _update_description(self) -> None:
-        """Refresh inherited description metadata for the acquisition."""
-        file_name = f"*_{self.acquisition_id}_*_"
-        if self._virtual_entity:
-            assert self.task is not None
-            file_name = f"*_{self.task.task_id}_*"
-        else:
-            file_name = f"*_{self.acquisition_id}_*"
-        _update_description_data(self, file_name)
-
     def get_top_level_entities(self) -> list[str | Any]:
         """
         Method to get all top level entities.
@@ -1349,8 +1253,10 @@ class EMGTask(BaseTask):
         Root directory containing task-specific EMG files.
     task_name : str
         BIDS task label used to resolve files such as ``task-<label>``.
-    **kwargs : str | Datatype | MutableSequence | MutableMapping
-        Optional task metadata, datatype information, inherited description
+    datatype : Datatype
+        Top level Datatype object.
+    **kwargs : str | MutableSequence | MutableMapping
+        Optional task metadata, inherited description
         blocks, and acquisition objects.
 
     Raises
@@ -1385,17 +1291,15 @@ class EMGTask(BaseTask):
         self,
         base_path: os.PathLike | str,
         task_name: str,
-        **kwargs: "str | Datatype | MutableSequence | MutableMapping",
+        datatype: "Datatype",
+        **kwargs: "str | MutableSequence | MutableMapping",
     ) -> None:
-        description = kwargs.pop("_description", {})
-        if not isinstance(description, MutableMapping):
-            raise TypeError(
-                "Parameter type for argument `_description` must be MutableMapping"
-            )
-        self._description: MutableMapping = description
-
         super().__init__(
-            base_path=base_path, task_name=task_name, virtual_entity=False, **kwargs
+            base_path=base_path,
+            task_name=task_name,
+            virtual_entity=False,
+            datatype=datatype,
+            **kwargs,
         )
 
         self._acquisitions: dict[str, EMGAcquisition] | None = None
@@ -1406,42 +1310,16 @@ class EMGTask(BaseTask):
         """Return acquisitions discovered for the EMG task."""
         if not self._acquisitions:
             self._acquisitions = {}
-            files = self.root.iterdir()
-            acquisition_labels = set()
-            for file in files:
-                try:
-                    acquisition_labels.add(
-                        get_entity_from_file(
-                            file,
-                            "acq",
-                        )["acq"]
-                    )
-                except KeyError:
-                    continue
-            for acquisition_label in acquisition_labels:
-                self._acquisitions.update(
-                    {
-                        "acq-" + acquisition_label: EMGAcquisition(
-                            acquisition_id="acq-" + acquisition_label,
-                            base_path=self.root,
-                            task=self,
-                            _description=self._description,
-                        )
-                    }
-                )
 
-            # If no acquisitions are found, add a default one
-            if not self._acquisitions:
-                self._acquisitions.update(
-                    {
-                        "acq-00": EMGAcquisition(
-                            acquisition_id="acq-00",
-                            base_path=self.root,
-                            task=self,
-                            _description=self._description,
-                            virtual_entity=True,
-                        )
-                    }
+            acquisition_entities = get_next_entity_ids(
+                self.root, "acq", self.get_top_level_entities()
+            )
+            for key, value in acquisition_entities.items():
+                self._acquisitions[key] = EMGAcquisition(
+                    base_path=self.root,
+                    acquisition_id=key,
+                    task=self,
+                    virtual_entity=value,
                 )
 
         return self._acquisitions
@@ -1462,7 +1340,6 @@ class EMGTask(BaseTask):
                                 acquisition_id=entry,
                                 base_path=self.root,
                                 task=self,
-                                _description=self._description,
                             )
                         }
                     )
@@ -1489,47 +1366,6 @@ class EMGTask(BaseTask):
         write_entities(output_path, self.acquisitions.values())
         # TODO check if right
         # where is json sidecar "*_emg.json" written? (recording)
-
-
-def parse_emg_json_sidecar(sidecar_path: pathlib.Path) -> dict:
-    """
-    Split an EMG JSON sidecar into task, hardware, institution, and EMG blocks.
-
-    Parameters
-    ----------
-    sidecar_path : pathlib.Path
-        Path to an EMG JSON sidecar file.
-
-    Returns
-    -------
-    dict
-        Grouped metadata blocks keyed by ``task``, ``hardware``,
-        ``institution``, and ``emg``.
-    """
-    with sidecar_path.open("r", encoding="utf-8") as f:
-        data = json.load(f)
-        task_description = {}
-        hardware_description = {}
-        institution_description = {}
-        emg_description = {}
-        for key, value in data.items():
-            if re.match(r"^Task[A-Z].*|^Instructions", key):
-                task_description[key] = value
-            elif re.match(
-                r"^Device[A-Z].*|^(Electrode)?Manufacturer.*|^SoftwareVersions", key
-            ):
-                hardware_description[key] = value
-            elif re.match(r"^Institution.*", key):
-                institution_description[key] = value
-            else:
-                emg_description[key] = value
-
-        return {
-            "task": task_description,
-            "hardware": hardware_description,
-            "institution": institution_description,
-            "emg": emg_description,
-        }
 
 
 def get_emg_channels(
@@ -1648,57 +1484,3 @@ def get_emg_electrodes(
             )
 
     return emg_electrodes
-
-
-def _update_description_data(
-    cls: EMGRecording | EMGRun | EMGAcquisition, file_name: str
-) -> None:
-    """
-    Update inherited EMG metadata from nearby sidecars.
-
-    Parameters
-    ----------
-    cls : EMGRecording or EMGRun or EMGAcquisition
-        Object whose ``_description`` mapping should be updated.
-    file_name : str
-        Filename glob stem used to locate relevant sidecars.
-    """
-    _, json_path = get_tsv_json_files(cls.root, file_name + "emg")
-
-    if json_path:
-        if not cls._description:
-            data = parse_emg_json_sidecar(json_path)
-            data_clean = clean_dict(
-                data,
-                skip_keys_to_manipulate=ManipulateKeysOption.ALL_KEYS_MANIPULATE,
-                string_manipulation=to_snakecase,
-            )
-            cls._description = data_clean
-        else:
-            data = parse_emg_json_sidecar(json_path)
-            data_clean = clean_dict(
-                data,
-                skip_keys_to_manipulate=ManipulateKeysOption.ALL_KEYS_MANIPULATE,
-                string_manipulation=to_snakecase,
-            )
-            cls._description.update(data_clean)
-    else:
-        warn(
-            f"No EMG JSON sidecar file found for {cls._entity_name} {cls._entity_id} "
-            f"in {cls.root}",
-            FileNotFoundWarning,
-        )
-
-    tsv_path, json_path = get_tsv_json_files(cls.root, file_name + "electrodes")
-    if tsv_path:
-        electrodes = {"electrodes": get_emg_electrodes(tsv_path, json_path)}
-        if not cls._description:
-            cls._description = electrodes
-        else:
-            cls._description.update(electrodes)
-    else:
-        warn(
-            f"No EMG electrodes TSV and JSON sidecar file found for {cls._entity_name} "
-            f"{cls._entity_id} in {cls.root}",
-            FileNotFoundWarning,
-        )

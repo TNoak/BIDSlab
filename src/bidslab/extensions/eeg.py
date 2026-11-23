@@ -13,10 +13,8 @@ functions for parsing EEG sidecars and tabular metadata.
 #
 #  SPDX-License-Identifier: BSD-3-Clause
 
-import json
 import os
 import pathlib
-import re
 from collections.abc import Mapping, MutableMapping, MutableSequence, Sequence
 from dataclasses import asdict, dataclass
 from typing import (
@@ -27,7 +25,7 @@ from warnings import warn
 
 import pandas as pd
 
-from bidslab.common.base import BaseAcquisition, BaseTask, check_entity_mismatch
+from bidslab.common.base import BaseAcquisition, BaseTask
 from bidslab.common.specs_misc import (
     Column,
     Entity,
@@ -43,15 +41,15 @@ from bidslab.utils.dict_manipulation import ManipulateKeysOption, clean_dict
 from bidslab.utils.exceptions import (
     FieldEntryNotValidError,
     FieldMissingError,
-    FileNotFoundWarning,
     TopLevelEntityNotLinkedWarning,
 )
 from bidslab.utils.helpers import (
     add_object_to_sequence,
     append_path,
     copy_file,
+    get_any_json_file,
     get_edf_json_files,
-    get_entity_from_file,
+    get_next_entity_ids,
     get_tsv_json_files,
     load_edf_data,
     parse_descriptive_tsv,
@@ -83,6 +81,29 @@ EEG_CHANNEL_TYPE_ALLOWED_FIELD_ENTRIES = {
     "TEMP",
     "TRIG",
     "VEOG",
+}
+
+EEG_SCHEMAS = {
+    "task": {
+        "task_name",
+        "task_description",
+        "instructions",
+        "cog_atlas_id",
+        "cog_po_id",
+    },
+    "hardware": {
+        "manufacturer",
+        "manufacturers_model_name",
+        "software_versions",
+        "device_serial_number",
+        "cap_manufacturer",
+        "cap_manufacturers_model_name",
+    },
+    "institution": {
+        "institution_name",
+        "institution_address",
+        "institutional_department_name",
+    },
 }
 
 
@@ -377,13 +398,6 @@ class EEGSpace(Entity):
         virtual_entity: bool = False,
         **kwargs: Any,
     ):
-        description = kwargs.pop("_description", {})
-        if not isinstance(description, MutableMapping):
-            raise TypeError(
-                "Parameter type for argument `_description` must be MutableMapping"
-            )
-        self._description: MutableMapping = description
-
         super().__init__(space_id, "space", virtual_entity)
 
         self.root: pathlib.Path = pathlib.Path(base_path)
@@ -397,12 +411,6 @@ class EEGSpace(Entity):
 
         # Try to set attributes from arguments
         set_attr_from_dict(self, kwargs)
-
-        self._update_description()
-
-        # Update values from self._description
-        if self._description:
-            self._electrodes = self._description.pop("electrodes", None)
 
     @property
     def run(self) -> "Run | None":
@@ -423,6 +431,11 @@ class EEGSpace(Entity):
     def electrodes(self) -> MutableSequence[EEGElectrode] | None:
         # numpydoc ignore=RT01
         """Return electrode definitions associated with the space."""
+        if self._electrodes is None:
+            tsv_path, json_path = get_tsv_json_files(
+                self.root, "*_electrodes", self.get_top_level_entities()
+            )
+            self._electrodes = get_eeg_electrodes(tsv_path, json_path)
         return self._electrodes
 
     @electrodes.setter
@@ -444,29 +457,17 @@ class EEGSpace(Entity):
         # numpydoc ignore=RT01
         """Return coordinate systems associated with the space."""
         if self._coordinate_system is None:
-            # load corrdsystems from files
-            entities = self.get_top_level_entities()
-
-            # get all possible files with _coordsystem.json
-            files_json = list(self.root.glob("*_coordsystem.json"))
-            filenames_json = [f.name for f in files_json]
-            file_entities_json = [
-                f.removesuffix("_coordsystem.json") for f in filenames_json
-            ]
-
-            # check for entity mismatches and use first one working
-            for file in file_entities_json:
-                if check_entity_mismatch(file, entities):
-                    # load .json file and save it
-                    data = parse_json_sidecar(self.root / (file + "_coordsystem.json"))
-                    data = clean_dict(data, string_manipulation=to_snakecase)
-                    self._coordinate_system = EEGCoordinateSystem(
-                        name=self.space_id.removeprefix("space-"),
-                        eeg_coordinate_system=data.pop("eeg_coordinate_system"),
-                        eeg_coordinate_units=data.pop("eeg_coordinate_units"),
-                        **data,
-                    )
-                    return self._coordinate_system
+            _, json_path = get_tsv_json_files(
+                self.root, "*_coordsystem", self.get_top_level_entities()
+            )
+            if json_path is not None:
+                data = parse_json_sidecar(json_path, string_manipulation=to_snakecase)
+                self._coordinate_system = EEGCoordinateSystem(
+                    name=self.space_id.removeprefix("space-"),
+                    eeg_coordinate_system=data.pop("eeg_coordinate_system"),
+                    eeg_coordinate_units=data.pop("eeg_coordinate_units"),
+                    **data,
+                )
 
         return self._coordinate_system
 
@@ -474,11 +475,6 @@ class EEGSpace(Entity):
     def coordinate_system(self, value: EEGCoordinateSystem) -> None:
         # numpydoc ignore=GL08
         self._coordinate_system = value
-
-    def _update_description(self) -> None:
-        """Refresh inherited description metadata for the run."""
-        file_name = f"*_{self.space_id}_*"
-        _update_description_data(self, file_name)
 
     def write(self, output_path: os.PathLike | str) -> None:
         """
@@ -516,7 +512,9 @@ class EEGSpace(Entity):
             write_json(electrode_description, output_path_electrodes_json)
 
         # write coordinate system file (_coordsystem.json)
-        if self.coordinate_system:
+        if (
+            self.coordinate_system
+        ):  # TODO coordsystem path must not contain the run entity
             output_path_coordsystem = append_path(output_path, "_coordsystem.json")
             coord_dict = asdict(self.coordinate_system)
             _ = coord_dict.pop("name", None)
@@ -590,6 +588,8 @@ class EEGRun(Run):
         Frequency of the power grid at the geographical location of the instrument.
     software_filters : MutableMapping[str, Filter] | str,
         Software filtering description stored in the EEG sidecar.
+    acquisition : EEGAcquisition
+        Top level acquisition object.
     virtual_entity : bool
         Parameter to distinguish virtual and real entities.
     **kwargs : Any
@@ -614,16 +614,10 @@ class EEGRun(Run):
         sampling_frequency: int | float,
         power_line_frequency: int | float | str,
         software_filters: MutableMapping[str, Filter] | str,
+        acquisition: "EEGAcquisition",
         virtual_entity: bool = False,
         **kwargs: Any,
     ):
-        description = kwargs.pop("_description", {})
-        if not isinstance(description, MutableMapping):
-            raise TypeError(
-                "Parameter type for argument `_description` must be MutableMapping"
-            )
-        self._description: MutableMapping = description
-
         super().__init__(
             base_path=base_path, run_id=run_id, virtual_entity=virtual_entity
         )
@@ -662,22 +656,10 @@ class EEGRun(Run):
         self._data: pd.DataFrame | None = None
         self._events: Sequence[Event] | None = None
 
-        self._acquisition: EEGAcquisition | None = None
+        self._acquisition: EEGAcquisition | None = acquisition
 
         # Try to set attributes from arguments
         set_attr_from_dict(self, kwargs)
-
-        self._update_description()
-
-        # Update values from self._description
-        if self._description:
-            eeg_description = self._description.pop("eeg", {})
-            hardware_description = self._description.pop("hardware", {})
-            institution_description = self._description.pop("institution", {})
-            _ = self._description.pop("task", None)
-            set_attr_from_dict(self, {**eeg_description})
-            self.hardware = hardware_description
-            self.institution = institution_description
 
     # def __repr__(self) -> str:
     #     return f"<Run id=run-{self.run_id}>"
@@ -688,44 +670,17 @@ class EEGRun(Run):
         """Return spaces associated with the run."""
         if not self._spaces:
             self._spaces = {}
-            files = self.root.iterdir()
-            space_ids = set()
-            for file in files:
-                try:
-                    space_ids.add(
-                        get_entity_from_file(
-                            file,
-                            "space",
-                        )["space"]
-                    )
-                except KeyError:
-                    continue
-            for space_id in space_ids:
-                self._spaces.update(
-                    {
-                        "space-" + space_id: EEGSpace(
-                            space_id="space-" + space_id,
-                            base_path=self.root,
-                            run=self,
-                            electrodes=self._description.get("electrodes", None),
-                        )
-                    }
-                )
 
-            # If no spaces are found, add a default one
-            if not self._spaces:
-                self._spaces.update(
-                    {
-                        "space-00": EEGSpace(
-                            space_id="space-00",
-                            base_path=self.root,
-                            run=self,
-                            virtual_entity=True,
-                            electrodes=self._description.get("electrodes", None),
-                        )
-                    }
+            space_entities = get_next_entity_ids(
+                self.root, "space", self.get_top_level_entities()
+            )
+            for key, value in space_entities.items():
+                self._spaces[key] = EEGSpace(
+                    base_path=self.root,
+                    space_id=key,
+                    virtual_entity=value,
+                    run=self,
                 )
-
         return self._spaces
 
     @spaces.setter
@@ -775,6 +730,11 @@ class EEGRun(Run):
     def channels(self) -> MutableSequence[EEGChannel] | None:
         # numpydoc ignore=RT01
         """Return channel definitions associated with the run."""
+        if self._channels is None:
+            tsv_path, json_path = get_tsv_json_files(
+                self.root, "*_channels", self.get_top_level_entities()
+            )
+            self._channels = get_eeg_channels(tsv_path, json_path)
         return self._channels
 
     @channels.setter
@@ -791,6 +751,7 @@ class EEGRun(Run):
         else:
             raise TypeError("Field `Channels` must be a list of EEGChannel object")
 
+    # TODO update get_edf_json_files to also work with entity chains
     @property
     def data(self) -> pd.DataFrame:
         # numpydoc ignore=RT01
@@ -829,7 +790,7 @@ class EEGRun(Run):
     def events(self) -> Sequence[Event] | None:
         # numpydoc ignore=RT01
         """Load or return cached events sequence."""
-        if self._events is None:
+        if not self._events:
             self._events = get_events_from_files(self, self.root)
 
         return self._events
@@ -838,11 +799,6 @@ class EEGRun(Run):
     def events(self, value: Sequence[Event]) -> None:
         # numpydoc ignore=GL08
         self._events = value
-
-    def _update_description(self) -> None:
-        """Refresh inherited description metadata for the run."""
-        file_name = f"*_{self.run_id}_*"
-        _update_description_data(self, file_name)
 
     def write(self, output_path: os.PathLike | str) -> None:
         """
@@ -1025,13 +981,6 @@ class EEGAcquisition(BaseAcquisition):
         virtual_entity: bool = False,
         **kwargs: Any,
     ):
-        description = kwargs.pop("_description", {})
-        if not isinstance(description, MutableMapping):
-            raise TypeError(
-                "Parameter type for argument `_description` must be MutableMapping"
-            )
-        self._description: MutableMapping = description
-
         super().__init__(
             base_path=base_path,
             acquisition_id=acquisition_id,
@@ -1040,8 +989,6 @@ class EEGAcquisition(BaseAcquisition):
 
         self._task: EEGTask | None = task
 
-        self._update_description()
-
         set_attr_from_dict(self, kwargs)
 
     @property
@@ -1049,58 +996,29 @@ class EEGAcquisition(BaseAcquisition):
         # numpydoc ignore=RT01
         """Return runs associated with the acquisition."""
         if not self._runs:
-            assert self.task is not None
-            file_name = f"*{self.task.task_id}"
-            file_name += f"_{self.acquisition_id}" if not self._virtual_entity else ""
-
             self._runs = {}
-            files = self.root.iterdir()
-            run_ids = set()
-            for file in files:
-                try:
-                    run_ids.add(
-                        get_entity_from_file(
-                            file,
-                            "run",
-                        )["run"]
+            run_entities = get_next_entity_ids(
+                self.root, "run", self.get_top_level_entities()
+            )
+            for key, value in run_entities.items():
+                entities = self.get_top_level_entities()
+                entities.append(key)
+                run_json_path = get_any_json_file(self.root, "eeg", entities)
+                if run_json_path is not None:
+                    run_json_content = parse_json_sidecar(
+                        run_json_path,
+                        schemas=EEG_SCHEMAS,
+                        string_manipulation=to_snakecase,
                     )
-                except KeyError:
-                    continue
-            for run_id in run_ids:
-                self._runs.update(
-                    {
-                        "run-" + run_id: EEGRun(
-                            run_id=int(run_id),
-                            base_path=self.root,
-                            acquisition=self,
-                            hardware=self._description.get("hardware", None),
-                            institution=self._description.get("institution", None),
-                            channels=get_eeg_channels(
-                                *get_tsv_json_files(
-                                    self.root,
-                                    file_name + f"_run-{run_id}_channels",
-                                )
-                            ),
-                            electrodes=self._description.get("electrodes", None),
-                            **self._description.get("eeg", None),
-                        )
-                    }
-                )
-
-            # If no runs are found, add a default one
-            if not self._runs:
-                self._runs.update(
-                    {
-                        "run-0": EEGRun(
-                            run_id=0,
-                            base_path=self.root,
-                            acquisition=self,
-                            _description=self._description,
-                            virtual_entity=True,
-                            **self._description.get("eeg", {}),
-                        )
-                    }
-                )
+                    self._runs[key] = EEGRun(
+                        base_path=self.root,
+                        run_id=int(key.removeprefix("run-")),
+                        acquisition=self,
+                        virtual_entity=value,
+                        **run_json_content["rest"],
+                        hardware=EEGHardware(**run_json_content["hardware"]),
+                        institution=Institution(**run_json_content["institution"]),
+                    )
 
         return self._runs
 
@@ -1117,10 +1035,15 @@ class EEGAcquisition(BaseAcquisition):
                             f"run-{v}": EEGRun(
                                 base_path=self.root,
                                 run_id=v,
-                                **self._description,
+                                acquisition=self,
+                                eeg_reference="",
+                                sampling_frequency=0,
+                                power_line_frequency=0,
+                                software_filters="",
                             )
                         }
                     )
+                    warn("Run created with dummy data")
             if all(isinstance(v, EEGRun) for v in value):
                 self._runs = {}
                 for v in value:
@@ -1150,16 +1073,6 @@ class EEGAcquisition(BaseAcquisition):
         # numpydoc ignore=GL08
         self._task = value
 
-    def _update_description(self) -> None:
-        """Refresh inherited description metadata for the acquisition."""
-        file_name = f"*_{self.acquisition_id}_*_"
-        if self._virtual_entity:
-            assert self.task is not None
-            file_name = f"*_{self.task.task_id}_*"
-        else:
-            file_name = f"*_{self.acquisition_id}_*"
-        _update_description_data(self, file_name)
-
     def get_top_level_entities(self) -> list[str | Any]:
         """
         Method to get all top level entities.
@@ -1185,8 +1098,10 @@ class EEGTask(BaseTask):
         Root directory containing task-specific EEG files.
     task_name : str
         BIDS task label used to resolve files such as ``task-<label>``.
-    **kwargs : str | Datatype | MutableSequence | MutableMapping
-        Optional task metadata, datatype information, inherited description
+    datatype : Datatype
+        Top level Datatype object.
+    **kwargs : str | MutableSequence | MutableMapping
+        Optional task metadata, inherited description
         blocks, and acquisition objects.
 
     Raises
@@ -1214,20 +1129,18 @@ class EEGTask(BaseTask):
         self,
         base_path: os.PathLike | str,
         task_name: str,
-        **kwargs: "str | Datatype | MutableSequence | MutableMapping",
+        datatype: "Datatype",
+        **kwargs: "str | MutableSequence | MutableMapping",
     ) -> None:
-        description = kwargs.pop("_description", {})
-        if not isinstance(description, MutableMapping):
-            raise TypeError(
-                "Parameter type for argument `_description` must be MutableMapping"
-            )
-        self._description: MutableMapping = description
-
         self.cog_atlas_id: str | None = None
         self.cog_po_id: str | None = None
 
         super().__init__(
-            base_path=base_path, task_name=task_name, virtual_entity=False, **kwargs
+            base_path=base_path,
+            task_name=task_name,
+            virtual_entity=False,
+            datatype=datatype,
+            **kwargs,
         )
 
         self._acquisitions: dict[str, EEGAcquisition] | None = None
@@ -1240,42 +1153,16 @@ class EEGTask(BaseTask):
         """Return acquisitions discovered for the EEG task."""
         if not self._acquisitions:
             self._acquisitions = {}
-            files = self.root.iterdir()
-            acquisition_labels = set()
-            for file in files:
-                try:
-                    acquisition_labels.add(
-                        get_entity_from_file(
-                            file,
-                            "acq",
-                        )["acq"]
-                    )
-                except KeyError:
-                    continue
-            for acquisition_label in acquisition_labels:
-                self._acquisitions.update(
-                    {
-                        "acq-" + acquisition_label: EEGAcquisition(
-                            acquisition_id="acq-" + acquisition_label,
-                            base_path=self.root,
-                            task=self,
-                            _description=self._description,
-                        )
-                    }
-                )
 
-            # If no acquisitions are found, add a default one
-            if not self._acquisitions:
-                self._acquisitions.update(
-                    {
-                        "acq-00": EEGAcquisition(
-                            acquisition_id="acq-00",
-                            base_path=self.root,
-                            task=self,
-                            _description=self._description,
-                            virtual_entity=True,
-                        )
-                    }
+            acquisition_entities = get_next_entity_ids(
+                self.root, "acq", self.get_top_level_entities()
+            )
+            for key, value in acquisition_entities.items():
+                self._acquisitions[key] = EEGAcquisition(
+                    base_path=self.root,
+                    acquisition_id=key,
+                    task=self,
+                    virtual_entity=value,
                 )
 
         return self._acquisitions
@@ -1296,7 +1183,6 @@ class EEGTask(BaseTask):
                                 acquisition_id=entry,
                                 base_path=self.root,
                                 task=self,
-                                _description=self._description,
                             )
                         }
                     )
@@ -1321,47 +1207,6 @@ class EEGTask(BaseTask):
             The path where the output files will be written.
         """
         write_entities(output_path, self.acquisitions.values())
-
-
-def parse_eeg_json_sidecar(sidecar_path: pathlib.Path) -> dict:
-    """
-    Split an EEG JSON sidecar into task, hardware, institution, and EEG blocks.
-
-    Parameters
-    ----------
-    sidecar_path : pathlib.Path
-        Path to an EEG JSON sidecar file.
-
-    Returns
-    -------
-    dict
-        Grouped metadata blocks keyed by ``task``, ``hardware``,
-        ``institution``, and ``eeg``.
-    """
-    with sidecar_path.open("r", encoding="utf-8") as f:
-        data = json.load(f)
-        task_description = {}
-        hardware_description = {}
-        institution_description = {}
-        eeg_description = {}
-        for key, value in data.items():
-            if re.match(r"^Task[A-Z].*|^Instructions|^Cog[A-Z].*", key):
-                task_description[key] = value
-            elif re.match(
-                r"^Device[A-Z].*|^(Cap)?Manufacturer.*|^SoftwareVersions", key
-            ):
-                hardware_description[key] = value
-            elif re.match(r"^Institution.*", key):
-                institution_description[key] = value
-            else:
-                eeg_description[key] = value
-
-        return {
-            "task": task_description,
-            "hardware": hardware_description,
-            "institution": institution_description,
-            "eeg": eeg_description,
-        }
 
 
 def get_eeg_channels(
@@ -1480,57 +1325,3 @@ def get_eeg_electrodes(
             )
 
     return eeg_electrodes
-
-
-def _update_description_data(
-    cls: EEGRun | EEGAcquisition | EEGSpace, file_name: str
-) -> None:
-    """
-    Update inherited EEG metadata from nearby sidecars.
-
-    Parameters
-    ----------
-    cls : EEGRun or EEGAcquisition
-        Object whose ``_description`` mapping should be updated.
-    file_name : str
-        Filename glob stem used to locate relevant sidecars.
-    """
-    _, json_path = get_tsv_json_files(cls.root, file_name + "eeg")
-
-    if json_path:
-        if not cls._description:
-            data = parse_eeg_json_sidecar(json_path)
-            data_clean = clean_dict(
-                data,
-                skip_keys_to_manipulate=ManipulateKeysOption.ALL_KEYS_MANIPULATE,
-                string_manipulation=to_snakecase,
-            )
-            cls._description = data_clean
-        else:
-            data = parse_eeg_json_sidecar(json_path)
-            data_clean = clean_dict(
-                data,
-                skip_keys_to_manipulate=ManipulateKeysOption.ALL_KEYS_MANIPULATE,
-                string_manipulation=to_snakecase,
-            )
-            cls._description.update(data_clean)
-    else:
-        warn(
-            f"No EEG JSON sidecar file found for {cls._entity_name} {cls._entity_id} "
-            f"in {cls.root}",
-            FileNotFoundWarning,
-        )
-
-    tsv_path, json_path = get_tsv_json_files(cls.root, file_name + "electrodes")
-    if tsv_path:
-        electrodes = {"electrodes": get_eeg_electrodes(tsv_path, json_path)}
-        if not cls._description:
-            cls._description = electrodes
-        else:
-            cls._description.update(electrodes)
-    else:
-        warn(
-            f"No EEG electrodes TSV and JSON sidecar file found for {cls._entity_name} "
-            f"{cls._entity_id} in {cls.root}",
-            FileNotFoundWarning,
-        )

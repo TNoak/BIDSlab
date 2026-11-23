@@ -24,7 +24,7 @@ from warnings import warn
 
 import pandas as pd
 
-from bidslab.common.base import BaseAcquisition, BaseTask, Entity, check_entity_mismatch
+from bidslab.common.base import BaseAcquisition, BaseTask, Entity
 from bidslab.common.specs_misc import (
     Column,
     Event,
@@ -47,7 +47,7 @@ from bidslab.utils.exceptions import (
 from bidslab.utils.helpers import (
     add_object_to_sequence,
     append_path,
-    get_entity_from_file,
+    get_next_entity_ids,
     get_tsv_json_files,
     load_tsv_data,
     parse_descriptive_tsv,
@@ -80,6 +80,24 @@ MOTION_CHANNEL_TYPE_ALLOWED_FIELD_ENTRIES = {
     "ORNT",
     "POS",
     "VEL",
+}
+MOTION_SCHEMAS = {
+    "task": {
+        "task_name",
+        "task_description",
+        "instructions",
+    },
+    "hardware": {
+        "manufacturer",
+        "manufacturers_model_name",
+        "software_versions",
+        "device_serial_number",
+    },
+    "institution": {
+        "institution_name",
+        "institution_address",
+        "institutional_department_name",
+    },
 }
 
 
@@ -372,6 +390,11 @@ class MotionRun(Run):
     def channels(self) -> MutableSequence[MotionChannel] | None:
         # numpydoc ignore=RT01
         """Get the motion channels for this run."""
+        if self._channels is None:
+            tsv_path, json_path = get_tsv_json_files(
+                self.root, "*_cahnnels", self.get_top_level_entities()
+            )
+            self._channels = get_motion_channels(tsv_path=tsv_path, json_path=json_path)
         return self._channels
 
     @channels.setter
@@ -384,25 +407,8 @@ class MotionRun(Run):
         # numpydoc ignore=RT01
         """Load or return cached motion samples."""
         if self._data is None:
-            file_name = ""
-
-            # get list of top level entities
-            entities = self.get_top_level_entities()
-
-            # get all possible files with _motion.*
-            files = list(self.root.glob("*_motion.*"))
-            filenames = [f.name for f in files]
-            file_entities = [f.split(".")[0].removesuffix("_motion") for f in filenames]
-
-            # check for entity mismatches and use first one working
-            for file in file_entities:
-                # print(file, entities)
-                if check_entity_mismatch(file, entities):
-                    file_name = file
-
             tsv_path, _ = get_tsv_json_files(
-                self.root,
-                file_name + "_motion",
+                self.root, "*_motion", self.get_top_level_entities()
             )
             data_frame = load_tsv_data(path=tsv_path, header=None)
             column_names = {}
@@ -693,63 +699,19 @@ class MotionAcquisition(BaseAcquisition):
         # numpydoc ignore=RT01
         """Get runs contained in the acquisition."""
         if not self._runs:
-            file_name = ""
-
-            # get list of top level entities
-            entities = self.get_top_level_entities()
-
-            # get all possible files with _motion.*
-            files_e = list(self.root.glob("*_channels.*"))
-            filenames = [f.name for f in files_e]
-            file_entities = [
-                f.split(".")[0].removesuffix("_channels") for f in filenames
-            ]
-
-            # check for entity mismatches and use first one working
-            for file in file_entities:
-                if check_entity_mismatch(file, entities):
-                    file_name = file
-
-            tsv_path, json_path = get_tsv_json_files(
-                self.root,
-                file_name + "_channels",
-            )
-            channels = get_motion_channels(tsv_path=tsv_path, json_path=json_path)
             self._runs = {}
-            files = self.root.iterdir()
-            run_ids = set()
-            for file in files:  # type: ignore [assignment]
-                try:
-                    run_ids.add(
-                        get_entity_from_file(
-                            file,  # type: ignore [arg-type]
-                            "run",
-                        )["run"]
-                    )
-                except KeyError:
-                    continue
-            for run_id in run_ids:
-                self._runs.update(
-                    {
-                        run_id: MotionRun(
-                            run_id=int(run_id),
-                            base_path=self.root,
-                            acquisition=self,
-                            channels=channels,
-                        )
-                    }
-                )
 
-            # If no runs are found, add a default one
-            if not self._runs:
+            run_entities = get_next_entity_ids(
+                self.root, "run", self.get_top_level_entities()
+            )
+            for key, value in run_entities.items():
                 self._runs.update(
                     {
-                        "run-0": MotionRun(
-                            run_id=0,
+                        key: MotionRun(
                             base_path=self.root,
+                            run_id=int(key.removeprefix("run-")),
+                            virtual_entity=value,
                             acquisition=self,
-                            channels=channels,
-                            virtual_entity=True,
                         )
                     }
                 )
@@ -948,62 +910,30 @@ class TrackSys(Entity):
         """Get acquisitions associated with the tracking system."""
         if not self._acquisitions:
             self._acquisitions = {}
-            files = self.root.iterdir()
-            acquisition_ids = set()
-            for file in files:
-                try:
-                    acquisition_ids.add(
-                        get_entity_from_file(
-                            file,
-                            "acq",
-                        )["acq"]
-                    )
-                except KeyError:
-                    continue
-            for acquisition_id in acquisition_ids:
+
+            acquisition_entities = get_next_entity_ids(
+                self.root, "acq", self.get_top_level_entities()
+            )
+            for key, value in acquisition_entities.items():
                 _, json_path = get_tsv_json_files(
                     self.root,
-                    f"*{self.tracking_system_id}_acq-{acquisition_id}_*_motion",
+                    f"*{self.tracking_system_id}_{key}_*_motion",
                 )
-
+                acquisition_description = self._motion_description
                 if json_path:
                     data = parse_motion_json_sidecar(json_path)
                     acquisition_description = data["motion"]
-                    sampling_frequency = acquisition_description.pop(
-                        "SamplingFrequency"
-                    )
-                    self._acquisitions.update(
-                        {
-                            "acq-" + acquisition_id: MotionAcquisition(
-                                base_path=self.root,
-                                acquisition_id="acq-" + acquisition_id,
-                                tracking_system=self,
-                                sampling_frequency=sampling_frequency,
-                                **acquisition_description,
-                            )
-                        }
-                    )
-                elif not get_settings_value("IGNORE_NOT_IMPLEMENTED"):
-                    raise NotImplementedError  # TODO: implement
-
-            # If no acquisitions are found, add a default one from
-            # the motion description
-            if not self._acquisitions:
                 self._acquisitions.update(
                     {
-                        "acq-00": MotionAcquisition(
-                            acquisition_id="acq-00",
+                        key: MotionAcquisition(
                             base_path=self.root,
+                            acquisition_id=key,
+                            virtual_entity=value,
                             tracking_system=self,
-                            sampling_frequency=self._motion_description.pop(
-                                "SamplingFrequency"
-                            ),  # FIXME: dict entry can be None
-                            virtual_entity=True,
-                            **self._motion_description,
+                            **acquisition_description,
                         )
                     }
                 )
-
         return self._acquisitions
 
     @acquisitions.setter
@@ -1115,22 +1045,12 @@ class MotionTask(BaseTask):
         """Get tracking systems associated with the motion task."""
         if not self._tracking_systems:
             self._tracking_systems = {}
-            files = list(self.root.glob(f"*_{self.task_id}_*"))
-            tracking_systems_ids = set()
-            for file in files:
-                try:
-                    tracking_systems_ids.add(
-                        get_entity_from_file(
-                            file,
-                            "tracksys",
-                        )["tracksys"]
-                    )
-                except KeyError:
-                    continue
-            for tracking_system_id in tracking_systems_ids:
-                _, json_path = get_tsv_json_files(
-                    self.root, f"*tracksys-{tracking_system_id}*_motion"
-                )
+
+            tracking_systems_entities = get_next_entity_ids(
+                self.root, "tracksys", self.get_top_level_entities()
+            )
+            for key, value in tracking_systems_entities.items():
+                _, json_path = get_tsv_json_files(self.root, f"*{key}*_motion")
 
                 if json_path:
                     data = parse_motion_json_sidecar(json_path)
@@ -1139,13 +1059,14 @@ class MotionTask(BaseTask):
                     institution_description = data["institution"]  # FIXME: can be None
                     self._tracking_systems.update(
                         {
-                            "tracksys-" + tracking_system_id: TrackSys(
-                                tracking_system_id="tracksys-" + tracking_system_id,
+                            key: TrackSys(
+                                tracking_system_id=key,
                                 base_path=self.root,
                                 task=self,
                                 hardware=hardware_description,
                                 institution=institution_description,
                                 motion_description=motion_description,
+                                virtual_entity=value,
                             )
                         }
                     )

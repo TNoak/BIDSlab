@@ -22,16 +22,16 @@ from warnings import warn
 
 from bidslab.common.base import BaseTask
 from bidslab.common.specs_task import Task
-from bidslab.extensions.eeg import EEGTask, parse_eeg_json_sidecar
-from bidslab.extensions.emg import EMGTask, parse_emg_json_sidecar
-from bidslab.extensions.ieeg import IEEGTask, parse_ieeg_json_sidecar
-from bidslab.extensions.motion import MotionTask, parse_motion_json_sidecar
+from bidslab.extensions.eeg import EEG_SCHEMAS, EEGTask
+from bidslab.extensions.emg import EMG_SCHEMAS, EMGTask
+from bidslab.extensions.ieeg import IEEGTask
+from bidslab.extensions.motion import MOTION_SCHEMAS, MotionTask
 from bidslab.settings import get_settings_value
-from bidslab.utils.dict_manipulation import ManipulateKeysOption, clean_dict
 from bidslab.utils.exceptions import TopLevelEntityNotLinkedWarning
 from bidslab.utils.helpers import (
+    get_any_json_file,
     get_entity_from_file,
-    get_tsv_json_files,
+    parse_json_sidecar,
     set_attr_from_dict,
     write_entities,
 )
@@ -252,96 +252,63 @@ def create_tasks(cls: Datatype, task_ids: set[str]) -> None:
     # create the task and update the tasks dict in the cls object
     cls._tasks = {}
     for task_id in task_ids:
-        _, json_path = get_tsv_json_files(
-            cls.root, f"*task-{task_id}*_{cls.datatype_name}"
-        )
+        entities = cls.get_top_level_entities()
+        entities.append(f"task-{task_id}")
+        json_path = get_any_json_file(cls.root, f"{cls.datatype_name}", entities)
         if not json_path:
             raise FileNotFoundError
 
         match cls.datatype_name:
             case "eeg":
-                data = parse_eeg_json_sidecar(json_path)
-                data_desc = clean_dict(
-                    data,
-                    skip_keys_to_manipulate=ManipulateKeysOption.ALL_KEYS_MANIPULATE,
-                    string_manipulation=to_snakecase,
+                data = parse_json_sidecar(
+                    json_path, schemas=EEG_SCHEMAS, string_manipulation=to_snakecase
                 )
-                # TODO: add electrodes here like with emg
-                task_description = data_desc.pop("task", None)
-                task_name = task_description.pop("task_name", None)
-                description = {
-                    "_description": data_desc,
-                    **task_description,
-                }
                 cls._tasks.update(
                     {
                         "task-" + task_id: EEGTask(
                             task_id="task-" + task_id,
-                            task_name=task_name,
                             base_path=cls.root,
                             datatype=cls,
-                            **description,
+                            **data["task"],
                         )
                     }
                 )
             case "ieeg":
-                data = parse_ieeg_json_sidecar(json_path)
-                data_desc = clean_dict(
-                    data,
-                    skip_keys_to_manipulate=ManipulateKeysOption.ALL_KEYS_MANIPULATE,
-                    string_manipulation=to_snakecase,
+                data = parse_json_sidecar(
+                    json_path, schemas=EEG_SCHEMAS, string_manipulation=to_snakecase
                 )
-                # TODO: add electrodes here like with emg
-                task_description = data_desc.pop("task", None)
-                task_name = task_description.pop("task_name", None)
-                description = {
-                    "_description": data_desc,
-                    **task_description,
-                }
                 cls._tasks.update(
                     {
                         "task-" + task_id: IEEGTask(
                             task_id="task-" + task_id,
-                            task_name=task_name,
                             base_path=cls.root,
                             datatype=cls,
-                            **description,
+                            **data["task"],
                         )
                     }
                 )
             case "emg":
-                data = parse_emg_json_sidecar(json_path)
-                data_desc = clean_dict(
-                    data,
-                    skip_keys_to_manipulate=ManipulateKeysOption.ALL_KEYS_MANIPULATE,
-                    string_manipulation=to_snakecase,
+                data = parse_json_sidecar(
+                    json_path, schemas=EMG_SCHEMAS, string_manipulation=to_snakecase
                 )
-                # TODO: add electrodes here
-                task_description = data_desc.pop("task", None)
-                task_name = task_description.pop("task_name", None)
-                description = {
-                    "_description": data_desc,
-                    **task_description,
-                }
                 cls._tasks.update(
                     {
                         "task-" + task_id: EMGTask(
                             task_id="task-" + task_id,
-                            task_name=task_name,
                             base_path=cls.root,
                             datatype=cls,
-                            **description,
+                            **data["task"],
                         )
                     }
                 )
             case "motion":
-                data = parse_motion_json_sidecar(json_path)
-                task_name = data["task"].pop("TaskName")
+                data = parse_json_sidecar(
+                    json_path, schemas=MOTION_SCHEMAS, string_manipulation=to_snakecase
+                )
                 cls._tasks.update(
                     {
                         "task-" + task_id: MotionTask(
                             task_id="task-" + task_id,
-                            task_name=task_name,
                             base_path=cls.root,
                             datatype=cls,
                             **data["task"],
