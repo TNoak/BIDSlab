@@ -32,7 +32,6 @@ from bidslab.utils.checks import check_if_valid_uri
 from bidslab.utils.dict_manipulation import (
     ManipulateKeysOption,
     clean_dict,
-    manipulate_dictkeys,
 )
 from bidslab.utils.exceptions import (
     FieldEntryNotValidError,
@@ -76,6 +75,20 @@ FORMAT_ALLOWED_FIELD_ENTRIES = {
     "participant_relative",
     "stimuli_relative",
     "hed_version",
+}
+
+PHYSIO_SCHEMAS = {
+    "hardware": {
+        "manufacturer",
+        "manufacturers_model_name",
+        "software_versions",
+        "device_serial_number",
+    },
+    "columns": {"columns"},
+}
+
+STIMS_SCHEMAS = {
+    "columns": {"columns"},
 }
 
 
@@ -992,29 +1005,15 @@ class Run[A: AcquisitionType](Entity):
 
                 _, json_file = get_tsv_json_files(folders, "*_physio", entitylist)
 
-                description = {}
                 if json_file:
-                    description = parse_json_sidecar(json_file)
-
-                # create the entity with the loaded description
-                if description:
-                    # TODO create hardware and columns as class
-                    description = manipulate_dictkeys(description, to_snakecase)
-                    hardware = Hardware(
-                        manufacturer=description.pop("maunfacturer", None),
-                        manufacturers_model_name=description.pop(
-                            "manufacturers_model_name", None
-                        ),
-                        device_serial_number=description.pop(
-                            "device_serial_number", None
-                        ),
-                        software_versions=description.pop("software_versions", None),
+                    data = parse_json_sidecar(
+                        json_file, PHYSIO_SCHEMAS, string_manipulation=to_snakecase
                     )
-                    column_names = description.pop("columns", None)
-                    columns = []
 
+                    column_names = data["columns"]
+                    columns = []
                     columns = [
-                        Column(column_name, **description.pop(column_name, {}))
+                        Column(column_name, **data["rest"].pop(column_name, {}))
                         for column_name in column_names
                     ]
 
@@ -1022,9 +1021,9 @@ class Run[A: AcquisitionType](Entity):
                         recording_id=key,
                         virtual_entity=value,
                         base_path=self.root,
-                        hardware=hardware,
+                        hardware=Hardware(**data["hardware"]),
                         columns=columns,
-                        **description,
+                        **data["rest"],
                     )
                     self._physio[key].run = self
                 else:
@@ -1064,18 +1063,15 @@ class Run[A: AcquisitionType](Entity):
 
                 _, json_file = get_tsv_json_files(folders, "*_stim", entitylist)
 
-                description = {}
-                if json_file:
-                    description = parse_json_sidecar(json_file)
+                if json_file is not None:
+                    data = parse_json_sidecar(
+                        json_file, STIMS_SCHEMAS, string_manipulation=to_snakecase
+                    )
 
-                # create the entity with the loaded description
-                if description:
-                    description = manipulate_dictkeys(description, to_snakecase)
-                    column_names = description.pop("columns", None)
+                    column_names = data["columns"]
                     columns = []
-
                     columns = [
-                        Column(column_name, **description.pop(column_name, {}))
+                        Column(column_name, **data["rest"].pop(column_name, {}))
                         for column_name in column_names
                     ]
 
@@ -1084,7 +1080,7 @@ class Run[A: AcquisitionType](Entity):
                         recording_id=key,
                         base_path=self.root,
                         columns=columns,
-                        **description,
+                        **data["rest"],
                     )
                     self._stims[key].run = self
                 else:
