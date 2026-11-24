@@ -387,8 +387,8 @@ class MotionRun(Run):
             base_path=base_path, run_id=run_id, virtual_entity=virtual_entity
         )
 
-        self._recording_duration: int | float | None = None
-        self._sampling_frequency_effective: int | float | None = None
+        self.recording_duration: int | float | None = None
+        self.sampling_frequency_effective: int | float | None = None
 
         self._channels: MutableSequence[MotionChannel] | None = None
         self._data: Any = None
@@ -622,7 +622,7 @@ class MotionAcquisition(BaseAcquisition):
         BIDS acquisition label, usually written as ``acq-<label>``.
     sampling_frequency : int | float
         Nominal sampling frequency of the motion system in hertz.
-    tracksys : TrackSys
+    tracking_system : TrackSys
         Top level TrackSys object.
     virtual_entity : bool
         Parameter to distinguish virtual and real entities.
@@ -668,7 +668,7 @@ class MotionAcquisition(BaseAcquisition):
         base_path: os.PathLike | str,
         acquisition_id: str,
         sampling_frequency: int | float,
-        tracksys: "TrackSys",
+        tracking_system: "TrackSys",
         virtual_entity: bool = False,
         **kwargs: Any,
     ):
@@ -695,7 +695,7 @@ class MotionAcquisition(BaseAcquisition):
         self.tracked_points_count: int | float | None = None
         self.vel_channel_count: int | None = None
 
-        self._tracking_system: TrackSys | None = tracksys
+        self._tracking_system: TrackSys | None = tracking_system
 
         set_attr_from_dict(self, kwargs)
 
