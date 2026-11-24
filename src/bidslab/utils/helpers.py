@@ -708,7 +708,7 @@ def get_tsv_json_files(  # ruff: ignore[C901]
 
 
 def get_edf_json_files(
-    path: pathlib.Path, file_name: str
+    path: pathlib.Path, file_name: str, entity_chain: Sequence[str] | None = None
 ) -> tuple[pathlib.Path | None, pathlib.Path | None]:
     """
     Locate EDF/BDF recordings and their JSON companions.
@@ -724,6 +724,9 @@ def get_edf_json_files(
         Directory in which the recording and sidecar should be searched.
     file_name : str
         Shared file name stem without extension.
+    entity_chain : Sequence[str] | None
+        Sequence containing all entity ids that the searched file
+        may contain, including virtual entities.
 
     Returns
     -------
@@ -758,9 +761,19 @@ def get_edf_json_files(
     True
     """
     files = path.glob(f"{file_name}.*")
+    matching_files = []
+    if entity_chain is not None:
+        for file in files:
+            file_entities = file.name.split(".")[0].split("_")[:-1]
+            if set(file_entities).issubset(entity_chain):
+                matching_files.append(file)
+    else:
+        matching_files = list(files)
+
     edf_path = None
     json_path = None
-    for file in files:
+
+    for file in matching_files:
         match file.suffix:
             case ".edf" | ".bdf":
                 if not edf_path:

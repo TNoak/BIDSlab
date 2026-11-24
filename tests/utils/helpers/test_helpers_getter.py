@@ -386,6 +386,46 @@ class TestGetEdfJsonFiles:
         # Teardown
         delete_files(tmp_root, files)
 
+    def test_edf_json_files_entity_chain(self, tmp_root):
+        # Setup
+        files = [
+            "sub-0_ses-0_task-someTask_scans.json",
+            "sub-0_ses-0_task-someTask_scans.edf",
+            "sub-1_ses-0_task-someTask_scans.json",
+            "sub-1_ses-0_task-someTask_scans.edf",
+        ]
+        make_files(tmp_root, files)
+
+        # Test
+        edf_path, json_path = abk.utils.helpers.get_edf_json_files(
+            tmp_root, "*_scans", ["sub-0", "ses-0", "task-someTask", "run-1"]
+        )
+        assert json_path == tmp_root / "sub-0_ses-0_task-someTask_scans.json"
+        assert edf_path == tmp_root / "sub-0_ses-0_task-someTask_scans.edf"
+
+        # Teardown
+        delete_files(tmp_root, files)
+
+    def test_edf_json_files_entity_chain_no_suitable_files(self, tmp_root):
+        # Setup
+        files = [
+            "sub-0_ses-1_task-someTask_scans.json",
+            "sub-0_ses-1_task-someTask_scans.edf",
+            "sub-1_ses-0_task-someTask_scans.json",
+            "sub-1_ses-0_task-someTask_scans.edf",
+        ]
+        make_files(tmp_root, files)
+
+        # Test
+        edf_path, json_path = abk.utils.helpers.get_edf_json_files(
+            tmp_root, "*_scans", ["sub-0", "ses-0", "task-someTask", "run-1"]
+        )
+        assert json_path is None
+        assert edf_path is None
+
+        # Teardown
+        delete_files(tmp_root, files)
+
 
 @pytest.mark.parametrize("paths", PATHS)
 def test_get_matching_subpaths(paths):
