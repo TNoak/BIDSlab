@@ -687,34 +687,22 @@ class EMGRecording(Recording):
         self._coordinate_systems = value
 
     @property
-    def data(self) -> pd.DataFrame:
+    def data(self) -> pd.DataFrame | None:
         # numpydoc ignore=RT01
         """Load or return cached EMG sample data."""
         if self._data is None:
-            file_name = "*"
-            if self.run is not None and self.run.acquisition is not None:
-                file_name = f"*{self.run.acquisition.task.task_id}*"
-                file_name += (
-                    f"_{self.run.acquisition.acquisition_id}"
-                    if not self.run.acquisition._virtual_entity
-                    else ""
-                )
-                file_name += (
-                    f"_{self.run.run_id}" if not self.run._virtual_entity else ""
-                )
-            file_name += f"_{self.recording_id}" if not self._virtual_entity else ""
             edf_path, _ = get_edf_json_files(
-                self.root,
-                file_name + "_emg",
+                self.root, "*_emg", self.get_top_level_entities()
             )
-            data_frame = load_edf_data(path=edf_path)
-            column_names = {}
-            if self.channels is not None:
-                for channel_number, channel in enumerate(self.channels):
-                    column_names[channel_number] = channel.name
-            data_frame.rename(columns=column_names, inplace=True)
+            if edf_path is not None:
+                data_frame = load_edf_data(path=edf_path)
+                column_names = {}
+                if self.channels is not None:
+                    for channel_number, channel in enumerate(self.channels):
+                        column_names[channel_number] = channel.name
+                data_frame.rename(columns=column_names, inplace=True)
 
-            self._data = data_frame
+                self._data = data_frame
 
         return self._data
 

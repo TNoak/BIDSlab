@@ -742,31 +742,22 @@ class IEEGRun(Run):
             raise TypeError("Field `Channels` must be a list of IEEGChannel object")
 
     @property
-    def data(self) -> pd.DataFrame:
+    def data(self) -> pd.DataFrame | None:
         # numpydoc ignore=RT01
         """Load or return cached IEEG sample data."""
         if self._data is None:
-            file_name = "*"
-            if self.acquisition is not None:
-                file_name = f"{self.acquisition.task.task_id}*"
-                file_name += (
-                    f"_{self.acquisition.acquisition_id}"
-                    if not self.acquisition._virtual_entity
-                    else ""
-                )
-            file_name += f"_{self.run_id}" if not self._virtual_entity else ""
             edf_path, _ = get_edf_json_files(
-                self.root,
-                file_name + "_eeg",
+                self.root, "*_ieeg", self.get_top_level_entities()
             )
-            data_frame = load_edf_data(path=edf_path)
-            column_names = {}
-            if self.channels is not None:
-                for channel_number, channel in enumerate(self.channels):
-                    column_names[channel_number] = channel.name
-            data_frame.rename(columns=column_names, inplace=True)
+            if edf_path is not None:
+                data_frame = load_edf_data(path=edf_path)
+                column_names = {}
+                if self.channels is not None:
+                    for channel_number, channel in enumerate(self.channels):
+                        column_names[channel_number] = channel.name
+                data_frame.rename(columns=column_names, inplace=True)
 
-            self._data = data_frame
+                self._data = data_frame
 
         return self._data
 
