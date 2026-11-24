@@ -448,9 +448,9 @@ class Event:
         duration: float,
         **kwargs: Any,
     ) -> None:
-        self.onset: float = onset
+        self.onset: float = float(onset)
 
-        self.duration: float = duration
+        self.duration: float = float(duration)
 
         self.columns: dict[str, Any] | None = None
 
@@ -1296,6 +1296,9 @@ def get_events_from_files(
         folders_tsv, f"*_{file_ending}", cls.get_top_level_entities()
     )
 
+    if json_file and not tsv_file:
+        warn("JSON file found, but no suitable TSV file available")
+
     if json_file:
         columns = parse_json_sidecar(json_file)
     if tsv_file:
@@ -1349,7 +1352,6 @@ def write_events_to_files(
     write_json(content=description, output_path=output_path_json)
 
     # write stimuli and tsv data
-
     data_tsv = pd.DataFrame(event.__dict__ for event in events)
     data_tsv = data_tsv.drop(columns=["columns"], errors="ignore")
 
