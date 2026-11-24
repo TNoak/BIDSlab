@@ -13,13 +13,11 @@ sidecars and data tables.
 #
 #  SPDX-License-Identifier: BSD-3-Clause
 
-import json
 import os
 import pathlib
-import re
 from collections.abc import Mapping, MutableSequence, Sequence
 from dataclasses import asdict, dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from warnings import warn
 
 import pandas as pd
@@ -34,7 +32,6 @@ from bidslab.common.specs_misc import (
     get_events_from_files,
     write_events_to_files,
 )
-from bidslab.settings import get_settings_value
 from bidslab.utils.dict_manipulation import (
     ManipulateKeysOption,
     clean_dict,
@@ -57,6 +54,9 @@ from bidslab.utils.helpers import (
     write_json,
 )
 from bidslab.utils.string_manipulation import to_snakecase
+
+if TYPE_CHECKING:
+    from bidslab.common import Datatype
 
 MOTION_CHANNEL_COMPONENT_ALLOWED_FIELD_ENTRIES = {
     "x",
@@ -81,6 +81,7 @@ MOTION_CHANNEL_TYPE_ALLOWED_FIELD_ENTRIES = {
     "POS",
     "VEL",
 }
+
 MOTION_SCHEMAS = {
     "task": {
         "task_name",
@@ -97,6 +98,27 @@ MOTION_SCHEMAS = {
         "institution_name",
         "institution_address",
         "institutional_department_name",
+    },
+    "tracksys": {
+        "tracking_system_name",
+    },
+    "acquisition": {
+        "sampling_frequency",
+        "accel_channel_count",
+        "angaccel_channel_count",
+        "gyro_channel_count",
+        "jntang_channel_count",
+        "latency_channel_count",
+        "magn_channel_count",
+        "misc_channel_count",
+        "missing_values",
+        "motion_channel_count",
+        "ornt_channel_count",
+        "pos_channel_count",
+        # "sampling_frequency_effective",
+        "subject_artefact_description",
+        "tracked_points_count",
+        "vel_channel_count",
     },
 }
 
@@ -318,6 +340,8 @@ class MotionRun(Run):
         Directory containing run-level motion files.
     run_id : int
         Numeric run identifier used to resolve ``run-<index>`` entities.
+    acquisition : MotionAcquisition
+        Top level Acquisition object.
     virtual_entity : bool
         Parameter to distinguish virtual and real entities.
     **kwargs
@@ -355,6 +379,7 @@ class MotionRun(Run):
         self,
         base_path: os.PathLike | str,
         run_id: int,
+        acquisition: "MotionAcquisition",
         virtual_entity: bool = False,
         **kwargs: Any,
     ):
@@ -362,10 +387,15 @@ class MotionRun(Run):
             base_path=base_path, run_id=run_id, virtual_entity=virtual_entity
         )
 
+        self._recording_duration: int | float | None = None
+        self._sampling_frequency_effective: int | float | None = None
+
         self._channels: MutableSequence[MotionChannel] | None = None
         self._data: Any = None
 
         self._events: Sequence[Event] | None = None
+
+        self._acquisition: MotionAcquisition | None = acquisition
 
         set_attr_from_dict(self, kwargs)
 
@@ -592,6 +622,8 @@ class MotionAcquisition(BaseAcquisition):
         BIDS acquisition label, usually written as ``acq-<label>``.
     sampling_frequency : int | float
         Nominal sampling frequency of the motion system in hertz.
+    tracksys : TrackSys
+        Top level TrackSys object.
     virtual_entity : bool
         Parameter to distinguish virtual and real entities.
     **kwargs
@@ -636,6 +668,7 @@ class MotionAcquisition(BaseAcquisition):
         base_path: os.PathLike | str,
         acquisition_id: str,
         sampling_frequency: int | float,
+        tracksys: "TrackSys",
         virtual_entity: bool = False,
         **kwargs: Any,
     ):
@@ -662,17 +695,7 @@ class MotionAcquisition(BaseAcquisition):
         self.tracked_points_count: int | float | None = None
         self.vel_channel_count: int | None = None
 
-        # Recording duration belongs to run level --> !TODO: move to Run
-        self._recording_duration: int | float | None = kwargs.pop(
-            "RecordingDuration", None
-        )
-
-        # sampling_frequency_effective belongs to run level? --> !TODO: move to Run?
-        self._sampling_frequency_effective: int | float | None = kwargs.pop(
-            "SamplingFrequencyEffective", None
-        )
-
-        self._tracking_system: TrackSys | None = None
+        self._tracking_system: TrackSys | None = tracksys
 
         set_attr_from_dict(self, kwargs)
 
@@ -705,15 +728,21 @@ class MotionAcquisition(BaseAcquisition):
                 self.root, "run", self.get_top_level_entities()
             )
             for key, value in run_entities.items():
-                self._runs.update(
-                    {
-                        key: MotionRun(
-                            base_path=self.root,
-                            run_id=int(key.removeprefix("run-")),
-                            virtual_entity=value,
-                            acquisition=self,
-                        )
-                    }
+                entities = self.get_top_level_entities()
+                entities.append(key)
+                _, json_path = get_tsv_json_files(self.root, "*_motion", entities)
+
+                if json_path:
+                    data = parse_json_sidecar(
+                        json_path, MOTION_SCHEMAS, string_manipulation=to_snakecase
+                    )
+
+                self._runs[key] = MotionRun(
+                    base_path=self.root,
+                    run_id=int(key.removeprefix("run-")),
+                    virtual_entity=value,
+                    acquisition=self,
+                    **data.pop("rest", {}),
                 )
 
         return self._runs
@@ -771,9 +800,8 @@ class TrackSys(Entity):
         Directory containing files for the tracking system.
     tracking_system_id : str
         BIDS tracking-system entity label, typically ``tracksys-<label>``.
-    motion_description : dict | None, optional
-        Parsed motion sidecar content inherited by acquisitions when explicit
-        acquisition-level JSON sidecars are absent.
+    task : MotionTask
+        Top level Task object.
     virtual_entity : bool
         Parameter to distinguish virtual and real entities.
     **kwargs : dict | Hardware | Institution | MotionTask | MutableSequence
@@ -814,9 +842,9 @@ class TrackSys(Entity):
         self,
         base_path: os.PathLike | str,
         tracking_system_id: str,
-        motion_description: dict | None = None,
+        task: "MotionTask",
         virtual_entity: bool = False,
-        **kwargs: "dict | Hardware | Institution | MotionTask | MutableSequence",
+        **kwargs: "dict | Hardware | Institution | MutableSequence",
     ) -> None:
         super().__init__(
             _entity_id=tracking_system_id,
@@ -825,18 +853,13 @@ class TrackSys(Entity):
         )
         self._hardware: Hardware | None = None
         self._institution: Institution | None = None
-        self._motion_description: dict = (
-            motion_description if motion_description else {}
-        )
 
         self.tracking_system_id: str = self._entity_id
-        self.tracking_system_name: str | None = self._motion_description.pop(
-            "TrackingSystemName", None
-        )
+        self.tracking_system_name: str | None = None
 
         self.root: pathlib.Path = pathlib.Path(base_path)
 
-        self._task: MotionTask | None = None
+        self._task: MotionTask | None = task
 
         self._acquisitions: dict[str, MotionAcquisition] | None = None
 
@@ -915,14 +938,14 @@ class TrackSys(Entity):
                 self.root, "acq", self.get_top_level_entities()
             )
             for key, value in acquisition_entities.items():
-                _, json_path = get_tsv_json_files(
-                    self.root,
-                    f"*{self.tracking_system_id}_{key}_*_motion",
-                )
-                acquisition_description = self._motion_description
+                entities = self.get_top_level_entities()
+                entities.append(key)
+                _, json_path = get_tsv_json_files(self.root, "*_motion", entities)
+
                 if json_path:
-                    data = parse_motion_json_sidecar(json_path)
-                    acquisition_description = data["motion"]
+                    data = parse_json_sidecar(
+                        json_path, MOTION_SCHEMAS, string_manipulation=to_snakecase
+                    )
                 self._acquisitions.update(
                     {
                         key: MotionAcquisition(
@@ -930,7 +953,7 @@ class TrackSys(Entity):
                             acquisition_id=key,
                             virtual_entity=value,
                             tracking_system=self,
-                            **acquisition_description,
+                            **data.pop("acquisition", None),
                         )
                     }
                 )
@@ -1001,6 +1024,8 @@ class MotionTask(BaseTask):
         Root directory containing task-specific motion files.
     task_name : str
         BIDS task label used to resolve files such as ``task-<label>``.
+    datatype : Datatype
+        Top level Datatype object.
     **kwargs : Any
         Optional inherited task metadata and linked tracking-system objects.
 
@@ -1031,12 +1056,20 @@ class MotionTask(BaseTask):
     """
 
     def __init__(
-        self, base_path: os.PathLike | str, task_name: str, **kwargs: Any
+        self,
+        base_path: os.PathLike | str,
+        task_name: str,
+        datatype: "Datatype",
+        **kwargs: Any,
     ) -> None:
         self._tracking_systems: dict[str, TrackSys] | None = None
 
         super().__init__(
-            base_path=base_path, task_name=task_name, virtual_entity=False, **kwargs
+            base_path=base_path,
+            task_name=task_name,
+            virtual_entity=False,
+            datatype=datatype,
+            **kwargs,
         )
 
     @property
@@ -1050,34 +1083,23 @@ class MotionTask(BaseTask):
                 self.root, "tracksys", self.get_top_level_entities()
             )
             for key, value in tracking_systems_entities.items():
-                _, json_path = get_tsv_json_files(self.root, f"*{key}*_motion")
+                entities = self.get_top_level_entities()
+                entities.append(key)
+                _, json_path = get_tsv_json_files(self.root, "*_motion", entities)
 
                 if json_path:
-                    data = parse_motion_json_sidecar(json_path)
-                    motion_description = data["motion"]  # FIXME: can be None
-                    hardware_description = data["hardware"]  # FIXME: can be None
-                    institution_description = data["institution"]  # FIXME: can be None
-                    self._tracking_systems.update(
-                        {
-                            key: TrackSys(
-                                tracking_system_id=key,
-                                base_path=self.root,
-                                task=self,
-                                hardware=hardware_description,
-                                institution=institution_description,
-                                motion_description=motion_description,
-                                virtual_entity=value,
-                            )
-                        }
+                    data = parse_json_sidecar(
+                        json_path, MOTION_SCHEMAS, string_manipulation=to_snakecase
                     )
-                elif not get_settings_value("IGNORE_NOT_IMPLEMENTED"):
-                    raise NotImplementedError  # TODO: implement
-
-            if not self._tracking_systems:
-                pass
-                # raise ..
-                # TODO: If no tracking systems are found raise Error
-
+                    self._tracking_systems[key] = TrackSys(
+                        tracking_system_id=key,
+                        base_path=self.root,
+                        task=self,
+                        virtual_entity=value,
+                        hardware=Hardware(**data["hardware"]),
+                        institution=Institution(**data["institution"]),
+                        **data.pop("tracksys", {}),
+                    )
         return self._tracking_systems
 
     @tracking_systems.setter
@@ -1163,50 +1185,6 @@ class MotionTask(BaseTask):
                     write_json(motion_description, output_path_motion_description)
 
         write_entities(output_path, self.tracking_systems.values())
-
-
-def parse_motion_json_sidecar(sidecar_path: pathlib.Path) -> dict:
-    """
-    Split a motion JSON sidecar into task, hardware, institution, and motion blocks.
-
-    Parameters
-    ----------
-    sidecar_path : pathlib.Path
-        Path to the motion JSON sidecar.
-
-    Returns
-    -------
-    dict
-        Dictionary containing ``task``, ``hardware``, ``institution``, and
-        ``motion`` sub-dictionaries.
-
-    See Also
-    --------
-    :py:func:`parse_json_sidecar`
-        Generic function for parsing JSON sidecar files.
-    """
-    with sidecar_path.open("r", encoding="utf-8") as f:
-        data = json.load(f)
-        task_description = {}
-        hardware_description = {}
-        institution_description = {}
-        motion_description = {}
-        for key, value in data.items():
-            if re.match(r"^Task[A-Z].*|^Instructions", key):
-                task_description[key] = value
-            elif re.match(r"^Device[A-Z].*|^Manufacturer.*|^Software[A-Z].*", key):
-                hardware_description[key] = value
-            elif re.match(r"^Institution.*", key):
-                institution_description[key] = value
-            else:
-                motion_description[key] = value
-
-        return {
-            "task": task_description,
-            "hardware": hardware_description,
-            "institution": institution_description,
-            "motion": motion_description,
-        }
 
 
 def get_reference_frames(reference_frames_levels: dict) -> dict[str, ReferenceFrame]:
