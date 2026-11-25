@@ -199,7 +199,7 @@ class TestAppendPath:
         # Test
         long_path = abk.utils.helpers.append_path(sample_path, appendix)
         assert isinstance(long_path, pathlib.Path)
-        assert str(long_path) == str(sample_path) + appendix
+        assert pathlib.Path(str(long_path)) == pathlib.Path(str(sample_path) + appendix)
 
 
 class TestCopyFile:
