@@ -64,7 +64,9 @@ class TestGetDataDecorator:
             return 1
 
         # Test
-        with pytest.raises(ValueError):
+        with pytest.raises(
+            ValueError, match=r"No supported data fetching package is configured."
+        ):
             to_be_decorated(path=tmp_root / "test.tsv")
 
     def test_existing_path_no_errors(self, tmp_root):
@@ -92,7 +94,7 @@ class TestGetDataDecorator:
         def to_be_decorated(*, path: pathlib.Path):
             return 1
 
-        monkeypatch.setattr(dl.api, "get", lambda path: None)
+        monkeypatch.setattr(dl.api, "get", lambda _: None)
 
         # Test
         with abk.settings.override_settings_values(
@@ -111,7 +113,9 @@ class TestGetDataDecorator:
             return 1
 
         # Test
-        with pytest.raises(ValueError):
+        with pytest.raises(
+            ValueError, match=r"No supported data fetching package is configured."
+        ):
             with abk.settings.override_settings_values(
                 {"DATASET_FETCHING_PACKAGE": "some_package"}
             ):
@@ -153,7 +157,10 @@ class TestLoadTSVData:
         )
 
         # Test
-        with pytest.raises(ValueError):
+        with pytest.raises(
+            ValueError,
+            match=r"could not convert string 'test' to float64 at row 0, column 1.",
+        ):
             with abk.settings.override_settings_values(
                 {"DATA_LOADING_PACKAGE": abk.settings.PackageLoading.NUMPY}
             ):
@@ -235,10 +242,15 @@ class TestLoadTSVData:
         files = ["test.tsv"]
         make_files(tmp_root, files)
 
+        used_package = "some_pacage"
+
         # Test
-        with pytest.raises(ValueError):
+        with pytest.raises(
+            ValueError,
+            match=f"Data loading for package {used_package} is not implemented.",
+        ):
             with abk.settings.override_settings_values(
-                {"DATA_LOADING_PACKAGE": "some_pacage"}
+                {"DATA_LOADING_PACKAGE": used_package}
             ):
                 abk.utils.helpers.load_tsv_data(path=(tmp_root / "test.tsv"))
 
