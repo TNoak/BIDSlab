@@ -417,15 +417,15 @@ class TestGetNextEntityIDs:
     def test_get_next_entity_ids_real(self, tmp_root):
         # Setup
         files = [
-            "sub-1_ses-test_run-1_physio.json",
-            "sub-1_ses-test_run-2_physio.json",
-            "sub-1_ses-test2_run-3_physio.json",
+            "test/sub-1_ses-test_run-1_physio.json",
+            "test/sub-1_ses-test_run-2_physio.json",
+            "test/sub-1_ses-test2_run-3_physio.json",
         ]
         make_files(tmp_root, files)
 
         # Test
         entities = abk.utils.helpers.get_next_entity_ids(
-            tmp_root, "run", ["sub-1", "ses-test"]
+            tmp_root / "test", "run", ["sub-1", "ses-test"]
         )
         assert entities.pop("run-1", None) is False
         assert entities.pop("run-2", None) is False
@@ -437,14 +437,14 @@ class TestGetNextEntityIDs:
     def test_get_next_entity_ids_virtual(self, tmp_root):
         # Setup
         files = [
-            "sub-1_ses-test_physio.json",
-            "sub-1_ses-test2_run-3_physio.json",
+            "test/sub-1_ses-test_physio.json",
+            "test/sub-1_ses-test2_run-3_physio.json",
         ]
         make_files(tmp_root, files)
 
         # Test
         entities = abk.utils.helpers.get_next_entity_ids(
-            tmp_root, "run", ["sub-1", "ses-test"]
+            tmp_root / "test", "run", ["sub-1", "ses-test"]
         )
         assert entities.pop("run-0", None) is True
         assert entities == {}
@@ -455,14 +455,14 @@ class TestGetNextEntityIDs:
     def test_get_next_entity_ids_first_entity(self, tmp_root):
         # Setup
         files = [
-            "sub-1_ses-test_physio.json",
-            "sub-2_ses-test2_run-3_physio.json",
-            "sub-3_ses-test2_run-3_physio.json",
+            "test/sub-1_ses-test_physio.json",
+            "test/sub-2_ses-test2_run-3_physio.json",
+            "test/sub-3_ses-test2_run-3_physio.json",
         ]
         make_files(tmp_root, files)
 
         # Test
-        entities = abk.utils.helpers.get_next_entity_ids(tmp_root, "sub", [])
+        entities = abk.utils.helpers.get_next_entity_ids(tmp_root / "test", "sub", [])
         assert entities.pop("sub-1", None) is False
         assert entities.pop("sub-2", None) is False
         assert entities.pop("sub-3", None) is False
@@ -474,14 +474,14 @@ class TestGetNextEntityIDs:
     def test_get_next_entity_ids_no_entity_chain(self, tmp_root):
         # Setup
         files = [
-            "sub-1_ses-test_physio.json",
-            "sub-1_ses-test2_run-2_physio.json",
-            "sub-2_ses-test2_run-3_physio.json",
+            "test/sub-1_ses-test_physio.json",
+            "test/sub-1_ses-test2_run-2_physio.json",
+            "test/sub-2_ses-test2_run-3_physio.json",
         ]
         make_files(tmp_root, files)
 
         # Test
-        entities = abk.utils.helpers.get_next_entity_ids(tmp_root, "ses", [])
+        entities = abk.utils.helpers.get_next_entity_ids(tmp_root / "test", "ses", [])
         assert entities.pop("ses-test", None) is False
         assert entities.pop("ses-test2", None) is False
         assert entities == {}
@@ -492,15 +492,15 @@ class TestGetNextEntityIDs:
     def test_get_next_entity_ids_fileending(self, tmp_root):
         # Setup
         files = [
-            "sub-1_ses-test_run-1_stim.json",
-            "sub-1_ses-test_run-2_physio.json",
-            "sub-1_ses-test_run-3_physio.json",
+            "test/sub-1_ses-test_run-1_stim.json",
+            "test/sub-1_ses-test_run-2_physio.json",
+            "test/sub-1_ses-test_run-3_physio.json",
         ]
         make_files(tmp_root, files)
 
         # Test
         entities = abk.utils.helpers.get_next_entity_ids(
-            tmp_root, "run", ["sub-1", "ses-test"], filename_ending="physio"
+            tmp_root / "test", "run", ["sub-1", "ses-test"], filename_ending="physio"
         )
         assert entities.pop("run-2", None) is False
         assert entities.pop("run-3", None) is False
@@ -512,15 +512,15 @@ class TestGetNextEntityIDs:
     def test_get_next_entity_ids_fileending_no_files(self, tmp_root):
         # Setup
         files = [
-            "sub-1_ses-test_run-1_stim.json",
-            "sub-1_ses-test_run-2_stim.json",
-            "sub-1_ses-test_run-3_stim.json",
+            "test/sub-1_ses-test_run-1_stim.json",
+            "test/sub-1_ses-test_run-2_stim.json",
+            "test/sub-1_ses-test_run-3_stim.json",
         ]
         make_files(tmp_root, files)
 
         # Test
         entities = abk.utils.helpers.get_next_entity_ids(
-            tmp_root, "run", ["sub-1", "ses-test"], filename_ending="physio"
+            tmp_root / "test", "run", ["sub-1", "ses-test"], filename_ending="physio"
         )
         assert entities == {}
 
